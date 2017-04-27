@@ -149,13 +149,18 @@ def f(x,datareg):
   
   #Apply current transform on input image
   warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)    
+  warpedmask = affine_transform(datareg.inputmask, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=0, mode='constant', cval=np.nan, prefilter=False)    
   
   #Compute similarity criterion
-  refval = datareg.refarray[~np.isnan(warpedarray)]
-  inval  = warpedarray[~np.isnan(warpedarray)]
+  index = np.multiply(~np.isnan(warpedarray),warpedmask>0)
+  index = np.multiply(datareg.refindex, index)
+  
+  refval = datareg.refarray[index]
+  inval  = warpedarray[index]
   
   res = np.mean(np.abs(refval-inval))
   #res = -mutual_information_2d(refval,inval, datareg.nbins)
+  print(res,x)
   return res
 
 def homogeneousMatrix(M,T):
@@ -186,9 +191,9 @@ def imageResampling(inputimage, outputspacing):
   outputaffine[0:3,0:3] = outputaffine[0:3,0:3] / inputspacing * outputspacing
   #Compute offset such as voxel center correspond...
   Moffset = np.eye(4)
-  Moffset[0,3] = 0.5 * inputspacing[0] #- 0.5 * outputspacing[0] / inputspacing[0]
-  Moffset[1,3] = 0.5 * inputspacing[1] #- 0.5 * outputspacing[1] / inputspacing[1]
-  Moffset[2,3] = 0.5 * inputspacing[2] #- 0.5 * outputspacing[2] / inputspacing[2]
+  Moffset[0,3] = 0.5 * inputspacing[0] 
+  Moffset[1,3] = 0.5 * inputspacing[1]
+  Moffset[2,3] = 0.5 * inputspacing[2]
   outputaffine = np.dot(outputaffine,Moffset)
   
   return nibabel.Nifti1Image(outputarray, outputaffine)
@@ -202,19 +207,32 @@ if __name__ == '__main__':
   parser.add_argument('--inmask', help='Mask of the input image', type=str)
   parser.add_argument('--refmask', help='Mask of the reference image', type=str)  
   parser.add_argument('-o', '--output', help='Output Image', type=str, required = True)
+  parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=0)
 
   args = parser.parse_args()
 
   #Loading images    
+  #TODO : manage possible 4D shape when reading 3D image using nibabel
   inputimage = nibabel.load(args.input)
   refimage   = nibabel.load(args.ref)
   
   if args.inmask is not None :
     inputmask = nibabel.load(args.inmask)
+  else:
+    print('Creating mask images using the following padding value:',str(args.padding))
+    data = np.zeros(inputimage.get_data().shape)
+    data[inputimage.get_data() > args.padding] = 1
+    data = np.reshape(data,data.shape[0:3])
+    inputmask = nibabel.Nifti1Image(data, inputimage.affine) 
+
   if args.refmask is not None :
     refmask = nibabel.load(args.refmask)
-
-  #TODO : If no mask is provided, we need to create one (using padding value or whole image). Masks have to been used for similarity computation
+  else:
+    print('Creating mask images using the following padding value:',str(args.padding))
+    data = np.zeros(refimage.get_data().shape)
+    data[refimage.get_data() > args.padding] = 1
+    data = np.reshape(data,data.shape[0:3])
+    refmask = nibabel.Nifti1Image(data, refimage.affine) 
   
   #3D/3D, 2D/3D, 2D/n2D
   
@@ -228,6 +246,9 @@ if __name__ == '__main__':
   datareg.inputarray = np.reshape(inputimage.get_data(),inputimage.get_data().shape[0:3])
   datareg.Mw2in      = np.linalg.inv(datareg.inputimage.affine) # world to input image
   datareg.Mref2w     = datareg.refimage.affine #reference to world
+  datareg.refmask    = refmask.get_data()
+  datareg.inputmask  = inputmask.get_data()
+  datareg.refindex   = datareg.refmask>0
 
   datareg.nbins = 64
   x[0] = 5
@@ -241,14 +262,14 @@ if __name__ == '__main__':
   dx[5] = 10
   simplex = createSimplex(x,dx)
   
-  ospacing = np.asarray([4,4,4])
-  toto = imageResampling(inputimage, ospacing)
-  nibabel.save(toto,args.output)
+  #ospacing = np.asarray([2,4,6])
+  #toto = imageResampling(inputimage, ospacing)
+  #nibabel.save(toto,args.output)
 
   #res = minimize(f,x,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
-  #res = minimize(f,x,datareg, method='Nelder-Mead', options={'xatol': 0.01, 'disp': True})    
+  res = minimize(f,x,datareg, method='Nelder-Mead', options={'xatol': 0.01, 'disp': True})    
 
   #Apply estimated transform on input image
-  #Mref2in = computeMref2in(res.x,datareg)
-  #warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)     
-  #nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.Mref2w),args.output)
+  Mref2in = computeMref2in(res.x,datareg)
+  warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)     
+  nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.Mref2w),args.output)
