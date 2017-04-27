@@ -158,8 +158,8 @@ def f(x,datareg):
   refval = datareg.refarray[index]
   inval  = warpedarray[index]
   
-  #res = np.mean(np.abs(refval-inval))
-  res = -mutual_information_2d(refval, inval, sigma = 0, normalized = False, nbins = datareg.nbins)
+  res = np.mean(np.abs(refval-inval))
+  #res = -mutual_information_2d(refval, inval, sigma = 0.5, normalized = False, nbins = datareg.nbins)
   return res
 
 def homogeneousMatrix(M,T):
@@ -208,7 +208,7 @@ if __name__ == '__main__':
   parser.add_argument('--refmask', help='Mask of the reference image', type=str)  
   parser.add_argument('-o', '--output', help='Output Image', type=str, required = True)
   parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=-np.inf)
-  parser.add_argument('-s', '--scale', help='Scale for multiresolution registration (optional)', type=float, action='append')
+  parser.add_argument('-s', '--scale', help='Scale for multiresolution registration (default: 8 4 2 1)', nargs = '*', type=float)
 
   args = parser.parse_args()
   
@@ -245,23 +245,19 @@ if __name__ == '__main__':
   #x = [tx, ty, tz, rx, ry, rz]
   #translations are expressed in mm and rotations in degree
   x = np.zeros((6)) 
-  x[0] = 20
-  x[4] = 45
+  x[0] = 40
+  x[4] = 40
   dx = np.zeros((6)) 
-  dx[0] = 20
-  dx[1] = 20
-  dx[2] = 20
-  dx[3] = 10
-  dx[4] = 10
-  dx[5] = 10
+  dx[0] = 50
+  dx[1] = 50
+  dx[2] = 50
+  dx[3] = 45
+  dx[4] = 45
+  dx[5] = 45
   simplex = createSimplex(x,dx)
 
   currentx = np.copy(x)
   
-  #ospacing = np.asarray([2,4,6])
-  #toto = imageResampling(inputimage, ospacing)
-  #nibabel.save(toto,args.output)
-
   for s in scales:
     print(np.tile(s,3))
     datareg = dataReg()
@@ -277,8 +273,8 @@ if __name__ == '__main__':
     datareg.refindex   = datareg.refmask>0
     datareg.nbins = np.ceil(pow(datareg.refarray.shape[0]*datareg.refarray.shape[1]*datareg.refarray.shape[2],1/3.))
 
-    #res = minimize(f,x,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
-    res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.1, 'disp': True})   
+    #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
+    res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})   
     print(s,res.fun,res.x)
     currentx = np.copy(res.x)
 
@@ -286,3 +282,6 @@ if __name__ == '__main__':
   Mref2in = computeMref2in(currentx,datareg)
   warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)     
   nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.Mref2w),args.output)
+
+  #TODO : add parameter initialization using moments (barycenters)
+  #TODO ? blur the data before downsampling
