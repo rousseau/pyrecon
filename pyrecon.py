@@ -41,7 +41,7 @@ import math
 from scipy import ndimage
 EPS = np.finfo(float).eps
 
-def mutual_information_2d(x, y, sigma=1, normalized=False):
+def mutual_information_2d(x, y, sigma=1, normalized=False, nbins=128):
   """
   Computes (normalized) mutual information between two 1D variate from a
   joint histogram.
@@ -58,7 +58,7 @@ def mutual_information_2d(x, y, sigma=1, normalized=False):
   nmi: float
       the computed similariy measure
   """
-  bins = (256, 256)
+  bins = (nbins, nbins)
 
   jh = np.histogram2d(x, y, bins=bins)[0]
 
@@ -158,8 +158,8 @@ def f(x,datareg):
   refval = datareg.refarray[index]
   inval  = warpedarray[index]
   
-  res = np.mean(np.abs(refval-inval))
-  #res = -mutual_information_2d(refval,inval, datareg.nbins)
+  #res = np.mean(np.abs(refval-inval))
+  res = -mutual_information_2d(refval, inval, sigma = 0, normalized = False, nbins = datareg.nbins)
   return res
 
 def homogeneousMatrix(M,T):
@@ -243,9 +243,10 @@ if __name__ == '__main__':
   #3D/3D, 2D/3D, 2D/n2D
   
   #x = [tx, ty, tz, rx, ry, rz]
+  #translations are expressed in mm and rotations in degree
   x = np.zeros((6)) 
-  x[0] = 5
-  x[4] = 10
+  x[0] = 20
+  x[4] = 45
   dx = np.zeros((6)) 
   dx[0] = 20
   dx[1] = 20
@@ -277,7 +278,7 @@ if __name__ == '__main__':
     datareg.nbins = np.ceil(pow(datareg.refarray.shape[0]*datareg.refarray.shape[1]*datareg.refarray.shape[2],1/3.))
 
     #res = minimize(f,x,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
-    res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.01, 'disp': True})   
+    res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.1, 'disp': True})   
     print(s,res.fun,res.x)
     currentx = np.copy(res.x)
 
