@@ -35,7 +35,8 @@ from scipy.optimize import minimize
 import numpy as np
 from scipy.ndimage.interpolation import affine_transform
 import math
-
+import multiprocessing
+from numpy.random import uniform
 
 #From  : https://gist.github.com/GaelVaroquaux/ead9898bd3c973c40429
 from scipy import ndimage
@@ -160,6 +161,11 @@ def f(x,datareg):
   
   res = np.mean(np.abs(refval-inval))
   #res = -mutual_information_2d(refval, inval, sigma = 0.5, normalized = False, nbins = datareg.nbins)
+
+  #Check if overlap between the two images is enough ... otherwise return infinity
+  overlap = np.sum(index) * 100.0 / np.sum(datareg.refindex)
+  if overlap < 25.0:
+    res = np.inf
   return res
 
 def homogeneousMatrix(M,T):
@@ -197,6 +203,19 @@ def imageResampling(inputimage, outputspacing, order=1):
   outputaffine = np.dot(outputaffine,Moffset)
   
   return nibabel.Nifti1Image(outputarray, outputaffine)
+
+def do_minimization(container):
+  return minimize(container.f,container.x,container.datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})    
+
+class container(object):
+  pass
+
+def easy_parallize(f, sequence):
+  pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())    
+  res = pool.map(f, sequence)
+  pool.close()
+  pool.join()    
+  return res
   
 if __name__ == '__main__':
 
@@ -209,6 +228,9 @@ if __name__ == '__main__':
   parser.add_argument('-o', '--output', help='Output Image', type=str, required = True)
   parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=-np.inf)
   parser.add_argument('-s', '--scale', help='Scale for multiresolution registration (default: 8 4 2 1)', nargs = '*', type=float)
+  parser.add_argument('--rx', help='Range of rotation x (default: -30 30)', nargs = '*', type=float)
+  parser.add_argument('--ry', help='Range of rotation y (default: -30 30)', nargs = '*', type=float)
+  parser.add_argument('--rz', help='Range of rotation z (default: -30 30)', nargs = '*', type=float)
 
   args = parser.parse_args()
   
@@ -239,14 +261,29 @@ if __name__ == '__main__':
     scales = args.scale
   else:
     scales = [8,4,2,1]
+
+  if args.rx is not None :
+    rx = args.rx
+  else:
+    rx = [-30,30]
     
+  if args.ry is not None :
+    ry = args.ry
+  else:
+    ry = [-30,30]
+
+  if args.rz is not None :
+    rz = args.rz
+  else:
+    rz = [-30,30]
+
   #3D/3D, 2D/3D, 2D/n2D
   
   #x = [tx, ty, tz, rx, ry, rz]
   #translations are expressed in mm and rotations in degree
   x = np.zeros((6)) 
   x[0] = 40
-  x[4] = 40
+  x[4] = 0
   dx = np.zeros((6)) 
   dx[0] = 50
   dx[1] = 50
@@ -271,12 +308,31 @@ if __name__ == '__main__':
     datareg.refmask    = imageResampling(refmask, np.tile(s,3),order=0).get_data()
     datareg.inputmask  = imageResampling(inputmask, np.tile(s,3),order=0).get_data()
     datareg.refindex   = datareg.refmask>0
-    datareg.nbins = np.ceil(pow(datareg.refarray.shape[0]*datareg.refarray.shape[1]*datareg.refarray.shape[2],1/3.))
+    datareg.nbins      = np.ceil(pow(datareg.refarray.shape[0]*datareg.refarray.shape[1]*datareg.refarray.shape[2],1/3.))
 
+    
+    listofcontainers = []
+    for r in range(10):
+      c = container()
+      c.f = f
+      c.x = np.copy(currentx)
+      c.x[3] += uniform(rx[0],rx[1],1)
+      c.x[4] += uniform(ry[0],ry[1],1)
+      c.x[5] += uniform(rz[0],rz[1],1)
+      print(c.x)
+      c.datareg = datareg
+      listofcontainers.append(c)
+    res = easy_parallize(do_minimization, listofcontainers)
+
+    for r in res:
+      print(r.fun,r.x)      
+    best = min(res, key=lambda(r) : r.fun)
+    print('----------------------------------------------')
+    print(best)
     #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
-    res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})   
-    print(s,res.fun,res.x)
-    currentx = np.copy(res.x)
+    #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})   
+    #print(s,res.fun,res.x)
+    currentx = np.copy(best.x)
 
   #Apply estimated transform on input image
   Mref2in = computeMref2in(currentx,datareg)
@@ -285,3 +341,6 @@ if __name__ == '__main__':
 
   #TODO : add parameter initialization using moments (barycenters)
   #TODO ? blur the data before downsampling
+  #TODO : add center of rotation as center of reference image
+  #TODO ? add linear transform for parameters
+  
