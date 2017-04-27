@@ -166,7 +166,6 @@ def homogeneousMatrix(M,T):
     return Mres
 
 def imageResampling(inputimage, outputspacing):
-  #Need to check if the origin is computed correctly
   M1 = np.diag(outputspacing)
   T1 = outputspacing/2
   inputspacing = inputimage.header.get_zooms()[0:3]
@@ -181,10 +180,17 @@ def imageResampling(inputimage, outputspacing):
   outputshape = np.ceil((inputimage.get_data().shape[0:3])/zoom).astype(int)
   inputarray = inputimage.get_data()
   inputarray = np.reshape(inputarray,inputarray.shape[0:3])
-  outputarray = affine_transform(inputarray, M, offset=T, output_shape=outputshape,  order=3, mode='constant', cval=0.0, prefilter=False)
+  outputarray = affine_transform(inputarray, M, offset=T, output_shape=outputshape,  order=0, mode='constant', cval=0.0, prefilter=False)
   
   outputaffine = inputimage.affine 
   outputaffine[0:3,0:3] = outputaffine[0:3,0:3] / inputspacing * outputspacing
+  #Compute offset such as voxel center correspond...
+  Moffset = np.eye(4)
+  Moffset[0,3] = 0.5 * inputspacing[0] #- 0.5 * outputspacing[0] / inputspacing[0]
+  Moffset[1,3] = 0.5 * inputspacing[1] #- 0.5 * outputspacing[1] / inputspacing[1]
+  Moffset[2,3] = 0.5 * inputspacing[2] #- 0.5 * outputspacing[2] / inputspacing[2]
+  outputaffine = np.dot(outputaffine,Moffset)
+  
   return nibabel.Nifti1Image(outputarray, outputaffine)
   
 if __name__ == '__main__':
@@ -235,7 +241,7 @@ if __name__ == '__main__':
   dx[5] = 10
   simplex = createSimplex(x,dx)
   
-  ospacing = np.asarray([2,2,2])
+  ospacing = np.asarray([4,4,4])
   toto = imageResampling(inputimage, ospacing)
   nibabel.save(toto,args.output)
 
