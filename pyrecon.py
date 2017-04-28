@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
   #Apply estimated transform on input image
   Mref2in = computeMref2in(currentx,datareg)
-  warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)     
+  warpedarray = affine_transform(np.reshape(inputimage.get_data(),inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
   nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.Mref2w),args.output)
 
   #TODO : add parameter initialization using moments (barycenters)
