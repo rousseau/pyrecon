@@ -131,14 +131,15 @@ def compute_affine_matrix(translation=None, angles=None, scale=None, shear=None)
   
   return mat
 
-#Object that is used to put all the stuff needed for registration...
-class dataReg(object):
-  pass
-
 def computeMref2in(x,datareg):
   #Compute transform from refimage to inputimage  
   M = compute_affine_matrix(translation=x[0:3], angles=x[3:6]) #estimated transform
-  return np.dot(datareg.Mw2in,np.dot(M,datareg.Mref2w))
+  
+  #Take into account center of rotation (Mw2c and Mc2w matrices)
+  
+  return np.dot(datareg.Mw2in, np.dot(datareg.Mc2w, np.dot( M,np.dot(datareg.Mw2c,datareg.Mref2w) ) ) )
+  #return np.dot(datareg.Mw2in,np.dot(M,datareg.Mref2w))
+
 
 def createSimplex(x,dx):
   simplex = np.tile(x, (len(x)+1,1))
@@ -219,6 +220,27 @@ def easy_parallize(f, sequence):
   pool.join()    
   return res
   
+#Object that is used to put all the stuff needed for registration...
+class dataReg:
+  def __init__(self,refimage,inputimage,refmask,inputmask,crefimw,s):
+    self.refimage   = imageResampling(refimage, s,order=1)
+    self.inputimage = imageResampling(inputimage, s,order=1)
+    #Get array : using nibabel, 3D image may have 4D shape
+    self.refarray   = np.reshape(self.refimage.get_data(),self.refimage.get_data().shape[0:3])
+    self.inputarray = np.reshape(self.inputimage.get_data(),self.inputimage.get_data().shape[0:3])
+    self.Mw2in      = np.linalg.inv(self.inputimage.affine) # world to input image
+    self.Mref2w     = self.refimage.affine #reference to world
+    self.refmask    = imageResampling(refmask, s,order=0).get_data()
+    self.inputmask  = imageResampling(inputmask, s,order=0).get_data()
+    self.refindex   = self.refmask>0
+    self.nbins      = np.ceil(pow(self.refarray.shape[0]*self.refarray.shape[1]*self.refarray.shape[2],1/3.))
+
+    self.centerrot  = crefimw
+    self.Mw2c       = np.eye(4)
+    self.Mc2w       = np.eye(4)  
+    self.Mw2c[0:3,3]= -self.centerrot[0:3]
+    self.Mc2w[0:3,3]=  self.centerrot[0:3]
+
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser()
@@ -297,20 +319,16 @@ if __name__ == '__main__':
 
   currentx = np.copy(x)
   
+  #Center of rotation : center of reference image expressed in world coordinate
+  crefim = (np.asarray(refimage.get_data().shape[0:3]) -1 ) / 2.0
+  crefim = np.concatenate((crefim,np.array([1]))) 
+  crefimw= np.dot(refimage.affine,crefim)
+  crefimw[3] = 0 #0, Not 1 for homogeneous coordinate otherwise it introduces a bias in translation
+  
+  
   for s in scales:
     print(np.tile(s,3))
-    datareg = dataReg()
-    datareg.refimage   = imageResampling(refimage, np.tile(s,3),order=1)
-    datareg.inputimage = imageResampling(inputimage, np.tile(s,3),order=1)
-    #Get array : using nibabel, 3D image may have 4D shape
-    datareg.refarray   = np.reshape(datareg.refimage.get_data(),datareg.refimage.get_data().shape[0:3])
-    datareg.inputarray = np.reshape(datareg.inputimage.get_data(),datareg.inputimage.get_data().shape[0:3])
-    datareg.Mw2in      = np.linalg.inv(datareg.inputimage.affine) # world to input image
-    datareg.Mref2w     = datareg.refimage.affine #reference to world
-    datareg.refmask    = imageResampling(refmask, np.tile(s,3),order=0).get_data()
-    datareg.inputmask  = imageResampling(inputmask, np.tile(s,3),order=0).get_data()
-    datareg.refindex   = datareg.refmask>0
-    datareg.nbins      = np.ceil(pow(datareg.refarray.shape[0]*datareg.refarray.shape[1]*datareg.refarray.shape[2],1/3.))
+    datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.tile(s,3))
 
     if s == scales[0]:
       #Initialization of translation using center of mass
@@ -323,7 +341,6 @@ if __name__ == '__main__':
       x[0:3] = (inputcomw-refcomw)[0:3]
       print('initialization for translation : ')
       print(x[0:3])
-
     
     listofcontainers = []
     for r in range(4):
@@ -348,13 +365,25 @@ if __name__ == '__main__':
     #print(s,res.fun,res.x)
     currentx = np.copy(best.x)
 
-  #Apply estimated transform on input image
+    #Apply estimated transform on input image
+#    print('apply test transform')
+#    currentx[0] = 0
+#    currentx[1] = 0
+#    currentx[2] = 0
+#    currentx[3] = 45
+#    currentx[4] = 0
+#    currentx[5] = 0
+    
+    Mref2in = computeMref2in(currentx,datareg)
+    warpedarray = affine_transform(np.reshape(datareg.inputimage.get_data(),datareg.inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
+    nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.refimage.affine),'current_at_scale_'+str(s)+'.nii.gz')
+
+  #Final interpolation using the reference image spacing
+  datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray(refimage.header.get_zooms()[0:3]))
   Mref2in = computeMref2in(currentx,datareg)
   warpedarray = affine_transform(np.reshape(inputimage.get_data(),inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
-  nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.Mref2w),args.output)
+  nibabel.save(nibabel.Nifti1Image(warpedarray, refimage.affine),args.output)
 
-  #TODO : add parameter initialization using moments (barycenters)
   #TODO ? blur the data before downsampling
-  #TODO : add center of rotation as center of reference image
   #TODO ? add linear transform for parameters
   
