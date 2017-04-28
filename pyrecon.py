@@ -220,6 +220,29 @@ def easy_parallize(f, sequence):
   pool.join()    
   return res
   
+def image2slices(image):
+  print('image2slices')
+  slices = []
+  for z in range(image.get_data().shape[2]):
+    slicearray = image.get_data()[:,:,z]
+    M = np.eye(4)
+    M[2,3] = z
+    sliceaffine = np.dot(image.affine,M)
+    slices.append(nibabel.Nifti1Image(slicearray, sliceaffine))
+  return slices
+
+def slices2image(slices,refimage):  
+  print('slices2image')
+  outputarray = np.zeros(refimage.get_data().shape[0:3])
+  for s in slices:
+    M = np.dot(np.linalg.inv(s.affine),refimage.affine)
+    T = M[0:3,3]
+    M = M[0:3,0:3]
+    #Basic, long and stupid way to put slices into reference space  
+    outputarray += affine_transform(s.get_data(), M, offset=T, output_shape=outputarray.shape,  order=1, mode='constant', cval=0.0, prefilter=False)
+    
+  return nibabel.Nifti1Image(outputarray, refimage.affine)
+
 #Object that is used to put all the stuff needed for registration...
 class dataReg:
   def __init__(self,refimage,inputimage,refmask,inputmask,crefimw,s):
@@ -255,13 +278,19 @@ if __name__ == '__main__':
   parser.add_argument('--rx', help='Range of rotation x (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--ry', help='Range of rotation y (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--rz', help='Range of rotation z (default: -30 30)', nargs = '*', type=float)
-
+  parser.add_argument('--init_using_barycenter', help='Initialization using image barycenters (default: 1 (choose 0 for no init))', type=int, default=1)
   args = parser.parse_args()
   
   #Loading images    
   #TODO : manage possible 4D shape when reading 3D image using nibabel
   inputimage = nibabel.load(args.input)
   refimage   = nibabel.load(args.ref)
+
+#TEST to convert image to slices  
+#  slices = image2slices(inputimage)
+#  inputimage = slices[20]
+#  toto = slices2image(slices,refimage)
+#  nibabel.save(toto,'toto.nii.gz')  
   
   if args.inmask is not None :
     inputmask = nibabel.load(args.inmask)
@@ -280,6 +309,7 @@ if __name__ == '__main__':
     refdata[refimage.get_data() > args.padding] = 1
     refdata = np.reshape(refdata,refdata.shape[0:3])
     refmask = nibabel.Nifti1Image(refdata, refimage.affine) 
+    
   
   if args.scale is not None :
     scales = args.scale
@@ -329,18 +359,21 @@ if __name__ == '__main__':
   for s in scales:
     print(np.tile(s,3))
     datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.tile(s,3))
-
+    #datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray([s,s,inputimage.header.get_zooms()[2]])) # resampling is anisotropic for slices
+    
     if s == scales[0]:
-      #Initialization of translation using center of mass
-      refcom     = np.asarray(center_of_mass(np.multiply(datareg.refarray,datareg.refmask)))
-      inputcom   = np.asarray(center_of_mass(np.multiply(datareg.inputarray,datareg.inputmask)))
-      refcom     = np.concatenate((refcom,np.array([1])))
-      inputcom   = np.concatenate((inputcom,np.array([1])))
-      refcomw    = np.dot(datareg.Mref2w,refcom) #ref center of mass expressed in world coordinate
-      inputcomw  = np.dot(datareg.inputimage.affine,inputcom) #input center of mass expressed in world coordinate
-      x[0:3] = (inputcomw-refcomw)[0:3]
-      print('initialization for translation : ')
-      print(x[0:3])
+      if args.init_using_barycenter == 1:
+        #Initialization of translation using center of mass
+        refcom     = np.asarray(center_of_mass(np.multiply(datareg.refarray,datareg.refmask)))
+        inputcom   = np.asarray(center_of_mass(np.multiply(datareg.inputarray,datareg.inputmask)))
+        refcom     = np.concatenate((refcom,np.array([1])))
+        inputcom   = np.concatenate((inputcom,np.array([1])))
+        refcomw    = np.dot(datareg.Mref2w,refcom) #ref center of mass expressed in world coordinate
+        inputcomw  = np.dot(datareg.inputimage.affine,inputcom) #input center of mass expressed in world coordinate
+        
+        x[0:3] = (inputcomw-refcomw)[0:3]
+        print('initialization for translation : ')
+        print(x[0:3])
     
     listofcontainers = []
     for r in range(4):
@@ -357,7 +390,9 @@ if __name__ == '__main__':
 
     for r in res:
       print(r.fun,r.x)      
-    best = min(res, key=lambda(r) : r.fun)
+    #best = min(res, key=lambda(r) : r.fun)
+    sortedx = sorted(res, key=lambda(r) : r.fun) #Use sorted array to extract possibly multiple best candidates
+    best = sortedx[0]
     print('----------------------------------------------')
     print(best)
     #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
@@ -386,4 +421,6 @@ if __name__ == '__main__':
 
   #TODO ? blur the data before downsampling
   #TODO ? add linear transform for parameters
-  
+  #TODO : define a fast and simple strategy for multiresolution registration using random inits.
+  #TODO : initialization for slice to volume maybe different from 3D/3D case
+  #TODO : manage slice image resampling
