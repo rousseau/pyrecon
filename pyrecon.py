@@ -37,6 +37,8 @@ from scipy.ndimage.interpolation import affine_transform
 import math
 import multiprocessing
 from numpy.random import uniform
+from scipy.ndimage.measurements import center_of_mass
+
 
 #From  : https://gist.github.com/GaelVaroquaux/ead9898bd3c973c40429
 from scipy import ndimage
@@ -243,19 +245,19 @@ if __name__ == '__main__':
     inputmask = nibabel.load(args.inmask)
   else:
     print('Creating mask images using the following padding value:',str(args.padding))
-    data = np.zeros(inputimage.get_data().shape)
-    data[inputimage.get_data() > args.padding] = 1
-    data = np.reshape(data,data.shape[0:3])
-    inputmask = nibabel.Nifti1Image(data, inputimage.affine) 
+    inputdata = np.zeros(inputimage.get_data().shape)
+    inputdata[inputimage.get_data() > args.padding] = 1
+    inputdata = np.reshape(inputdata,inputdata.shape[0:3])
+    inputmask = nibabel.Nifti1Image(inputdata, inputimage.affine) 
 
   if args.refmask is not None :
     refmask = nibabel.load(args.refmask)
   else:
     print('Creating mask images using the following padding value:',str(args.padding))
-    data = np.zeros(refimage.get_data().shape)
-    data[refimage.get_data() > args.padding] = 1
-    data = np.reshape(data,data.shape[0:3])
-    refmask = nibabel.Nifti1Image(data, refimage.affine) 
+    refdata = np.zeros(refimage.get_data().shape)
+    refdata[refimage.get_data() > args.padding] = 1
+    refdata = np.reshape(refdata,refdata.shape[0:3])
+    refmask = nibabel.Nifti1Image(refdata, refimage.affine) 
   
   if args.scale is not None :
     scales = args.scale
@@ -282,7 +284,7 @@ if __name__ == '__main__':
   #x = [tx, ty, tz, rx, ry, rz]
   #translations are expressed in mm and rotations in degree
   x = np.zeros((6)) 
-  x[0] = 40
+
   x[4] = 0
   dx = np.zeros((6)) 
   dx[0] = 50
@@ -302,7 +304,7 @@ if __name__ == '__main__':
     datareg.inputimage = imageResampling(inputimage, np.tile(s,3),order=1)
     #Get array : using nibabel, 3D image may have 4D shape
     datareg.refarray   = np.reshape(datareg.refimage.get_data(),datareg.refimage.get_data().shape[0:3])
-    datareg.inputarray = np.reshape(datareg.refimage.get_data(),datareg.refimage.get_data().shape[0:3])
+    datareg.inputarray = np.reshape(datareg.inputimage.get_data(),datareg.inputimage.get_data().shape[0:3])
     datareg.Mw2in      = np.linalg.inv(datareg.inputimage.affine) # world to input image
     datareg.Mref2w     = datareg.refimage.affine #reference to world
     datareg.refmask    = imageResampling(refmask, np.tile(s,3),order=0).get_data()
@@ -310,9 +312,21 @@ if __name__ == '__main__':
     datareg.refindex   = datareg.refmask>0
     datareg.nbins      = np.ceil(pow(datareg.refarray.shape[0]*datareg.refarray.shape[1]*datareg.refarray.shape[2],1/3.))
 
+    if s == scales[0]:
+      #Initialization of translation using center of mass
+      refcom     = np.asarray(center_of_mass(np.multiply(datareg.refarray,datareg.refmask)))
+      inputcom   = np.asarray(center_of_mass(np.multiply(datareg.inputarray,datareg.inputmask)))
+      refcom     = np.concatenate((refcom,np.array([1])))
+      inputcom   = np.concatenate((inputcom,np.array([1])))
+      refcomw    = np.dot(datareg.Mref2w,refcom) #ref center of mass expressed in world coordinate
+      inputcomw  = np.dot(datareg.inputimage.affine,inputcom) #input center of mass expressed in world coordinate
+      x[0:3] = (inputcomw-refcomw)[0:3]
+      print('initialization for translation : ')
+      print(x[0:3])
+
     
     listofcontainers = []
-    for r in range(10):
+    for r in range(4):
       c = container()
       c.f = f
       c.x = np.copy(currentx)
