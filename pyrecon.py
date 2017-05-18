@@ -187,6 +187,8 @@ def imageResampling(inputimage, outputspacing, order=1):
   T2 = np.asarray(inputspacing) / 2
   
   M = np.linalg.inv(homogeneousMatrix(M2,T2)).dot(homogeneousMatrix(M1,T1))
+  outputaffine = np.dot(inputimage.affine,M)
+  
   T = M[0:3,3]
   M = M[0:3,0:3]
   
@@ -195,15 +197,6 @@ def imageResampling(inputimage, outputspacing, order=1):
   inputarray = inputimage.get_data()
   inputarray = np.reshape(inputarray,inputarray.shape[0:3])
   outputarray = affine_transform(inputarray, M, offset=T, output_shape=outputshape,  order=order, mode='constant', cval=0.0, prefilter=False)
-  
-  outputaffine = np.copy(inputimage.affine) 
-  outputaffine[0:3,0:3] = outputaffine[0:3,0:3] / inputspacing * outputspacing
-  #Compute offset such as voxel center correspond...
-  Moffset = np.eye(4)
-  Moffset[0,3] = 0.5 * inputspacing[0] 
-  Moffset[1,3] = 0.5 * inputspacing[1]
-  Moffset[2,3] = 0.5 * inputspacing[2]
-  outputaffine = np.dot(outputaffine,Moffset)
   
   return nibabel.Nifti1Image(outputarray, outputaffine)
 
@@ -282,9 +275,12 @@ if __name__ == '__main__':
   args = parser.parse_args()
   
   #Loading images    
-  #TODO : manage possible 4D shape when reading 3D image using nibabel
   inputimage = nibabel.load(args.input)
   refimage   = nibabel.load(args.ref)
+
+  #manage possible 4D shape when reading 3D image using nibabel
+  inputimage = nibabel.Nifti1Image(np.squeeze(inputimage.get_data()), inputimage.affine) 
+  refimage = nibabel.Nifti1Image(np.squeeze(refimage.get_data()), refimage.affine) 
 
 #TEST to convert image to slices  
 #  slices = image2slices(inputimage)
