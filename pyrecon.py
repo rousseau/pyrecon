@@ -166,14 +166,13 @@ def compute_affine_matrix(translation=None, angles=None, scale=None, shear=None)
   
   return mat
 
+
+
 def computeMref2in(x,datareg):
   #Compute transform from refimage to inputimage  
-  M = compute_affine_matrix(translation=x[0:3], angles=x[3:6]) #estimated transform
-  
-  #Take into account center of rotation (Mw2c and Mc2w matrices)
-  
+  M = compute_affine_matrix(translation=x[0:3]/datareg.K[0:3], angles=x[3:6]/datareg.K[3:6]) #estimated transform
   return np.dot(datareg.Mw2in, np.dot(datareg.Mc2w, np.dot( M,np.dot(datareg.Mw2c,datareg.Mref2w) ) ) )
-  #return np.dot(datareg.Mw2in,np.dot(M,datareg.Mref2w))
+  
 
 
 def createSimplex(x,dx):
@@ -184,7 +183,8 @@ def createSimplex(x,dx):
 
 def f(x,datareg):
 
-  Mref2in = computeMref2in(x,datareg)
+  realParameter = x/datareg.K # x is the parameter of the transformation multiplied by datareg.K
+  Mref2in = computeMref2in(realParameter,datareg)
   
   #Apply current transform on input image
   warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)    
@@ -234,8 +234,8 @@ def imageResampling(inputimage, outputspacing, order=1):
   
   return nibabel.Nifti1Image(outputarray, outputaffine)
 
-def do_minimization(container):
-  return minimize(container.f,container.x,container.datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})    
+def do_minimization(container):  
+  return minimize(container.f,container.x,container.datareg, method='Nelder-Mead', options={'xatol': 0.5, 'disp': True})    
 
 class container(object):
   pass
@@ -290,8 +290,15 @@ class dataReg:
     self.Mw2c[0:3,3]= -self.centerrot[0:3]
     self.Mc2w[0:3,3]=  self.centerrot[0:3]
     
+    #criterium
     self.criterium = criterium    
     self.criterium.setBinNumber(self.refarray.shape)
+    
+    #normaization of the parameters to optimize
+    Ktranslation = 2/min(np.min(s),np.min(s)) 
+    Ktheta       = max(np.max(self.refarray.shape),np.max(self.refarray.shape))*3.1415/180
+    self.K = np.array([Ktranslation,Ktranslation,Ktranslation,Ktheta,Ktheta,Ktheta])
+
     
 
 #class to constrain the criterium to be part of L1, L2, IM, or IMNormalized lists
@@ -322,7 +329,7 @@ if __name__ == '__main__':
   
   args = parser.parse_args()
   
-  criterium = eval(args.criterium)() #instantiate on obect of type L1, L2, IM or IMNormalized
+  criterium = eval(args.criterium)() #instantiate an obect of type L1, L2, IM or IMNormalized
   
   #Loading images    
   inputimage = nibabel.load(args.input)
@@ -429,12 +436,15 @@ if __name__ == '__main__':
       c.x[3] += uniform(rx[0],rx[1],1)
       c.x[4] += uniform(ry[0],ry[1],1)
       c.x[5] += uniform(rz[0],rz[1],1)
-      print(c.x)
+      c.x = c.x * datareg.K #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function      
+      #parameters are multiplied by dataReg.K so that they are comparable
       c.datareg = datareg
       listofcontainers.append(c)
     res = easy_parallize(do_minimization, listofcontainers)
 
+    
     for r in res:
+      r.x = r.x / datareg.K #to obtain the real parameter
       print(r.fun,r.x)      
     #best = min(res, key=lambda(r) : r.fun)
     sortedx = sorted(res, key=lambda(r) : r.fun) #Use sorted array to extract possibly multiple best candidates
