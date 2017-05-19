@@ -39,7 +39,6 @@ import multiprocessing
 from numpy.random import uniform
 from scipy.ndimage.measurements import center_of_mass
 
-
 #From  : https://gist.github.com/GaelVaroquaux/ead9898bd3c973c40429
 from scipy import ndimage
 EPS = np.finfo(float).eps
@@ -88,6 +87,42 @@ def mutual_information_2d(x, y, sigma=1, normalized=False, nbins=128):
              - np.sum(s2 * np.log(s2)))
 
   return mi
+
+#Objects definig the criteria
+
+#For the L1 norm, a function setBinNumber has been used so that each object defining a criterium has the same interface
+class L1:
+  def compute(self,refval,inval):
+    return np.mean(np.abs(refval-inval))
+  def setBinNumber(self,size):
+    pass
+
+class L2:
+  def compute(self,refval,inval):
+    diff = refval-inval
+    return np.mean(diff**2)
+  def setBinNumber(self,size):
+    pass
+  
+class IM:
+  def __init__(self):
+    self.nbins = 128
+    self.sigma = 1
+  def compute(self,refval,inval):
+    return mutual_information_2d(refval,inval, sigma=self.sigma, normalized=False, nbins=self.nbins)
+  def setBinNumber(self,size):
+    n = np.ceil(pow(size[0]*size[1]*size[2],1/3.))
+    self.nbins = n
+
+#The ImNormalized class inherits from the IM class (we just have to change the behaviour of a function).
+#It is better to have two different classes for IM, and IMNormalized... It is more simple for the creation of the objects.
+class IMNormalized(IM):
+  def __init__(self):
+    IM.__init__(self)
+  def compute(self,refval,inval):
+    return mutual_information_2d(refval,inval, sigma=self.sigma, normalized=True, nbins=self.nbins)
+  
+
 
 def compute_affine_matrix(translation=None, angles=None, scale=None, shear=None):
   """
@@ -162,9 +197,8 @@ def f(x,datareg):
   refval = datareg.refarray[index]
   inval  = warpedarray[index]
   
-  res = np.mean(np.abs(refval-inval))
-  #res = -mutual_information_2d(refval, inval, sigma = 0.5, normalized = False, nbins = datareg.nbins)
-
+  res = datareg.criterium.compute(refval,inval)
+  
   #Check if overlap between the two images is enough ... otherwise return infinity
   overlap = np.sum(index) * 100.0 / np.sum(datareg.refindex)
   if overlap < 25.0:
@@ -238,7 +272,7 @@ def slices2image(slices,refimage):
 
 #Object that is used to put all the stuff needed for registration...
 class dataReg:
-  def __init__(self,refimage,inputimage,refmask,inputmask,crefimw,s):
+  def __init__(self,refimage,inputimage,refmask,inputmask,crefimw,s,criterium):
     self.refimage   = imageResampling(refimage, s,order=1)
     self.inputimage = imageResampling(inputimage, s,order=1)
     #Get array : using nibabel, 3D image may have 4D shape
@@ -249,14 +283,26 @@ class dataReg:
     self.refmask    = imageResampling(refmask, s,order=0).get_data()
     self.inputmask  = imageResampling(inputmask, s,order=0).get_data()
     self.refindex   = self.refmask>0
-    self.nbins      = np.ceil(pow(self.refarray.shape[0]*self.refarray.shape[1]*self.refarray.shape[2],1/3.))
-
+    
     self.centerrot  = crefimw
     self.Mw2c       = np.eye(4)
     self.Mc2w       = np.eye(4)  
     self.Mw2c[0:3,3]= -self.centerrot[0:3]
     self.Mc2w[0:3,3]=  self.centerrot[0:3]
+    
+    self.criterium = criterium    
+    self.criterium.setBinNumber(self.refarray.shape)
+    
 
+#class to constrain the criterium to be part of L1, L2, IM, or IMNormalized lists
+class DefaultListAction(argparse.Action):
+  CHOICES = ['L1','L2','IM','IMNormalized']
+  def __call__(self, parser, namespace, values, option_string=None):
+    if values not in self.CHOICES:
+      message = ("invalid choice: {0!r} (choose from {1})".format(values,', '.join([repr(action) for action in self.CHOICES])))
+      raise argparse.ArgumentError(self, message)
+    setattr(namespace, self.dest, values)
+          
 if __name__ == '__main__':
 
   parser = argparse.ArgumentParser()
@@ -272,7 +318,11 @@ if __name__ == '__main__':
   parser.add_argument('--ry', help='Range of rotation y (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--rz', help='Range of rotation z (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--init_using_barycenter', help='Initialization using image barycenters (default: 1 (choose 0 for no init))', type=int, default=1)
+  parser.add_argument('--criterium', help='criteritum to minimize', type=str, default="IMNormalized", action=DefaultListAction)
+  
   args = parser.parse_args()
+  
+  criterium = eval(args.criterium)() #instantiate on obect of type L1, L2, IM or IMNormalized
   
   #Loading images    
   inputimage = nibabel.load(args.input)
@@ -354,7 +404,7 @@ if __name__ == '__main__':
   
   for s in scales:
     print(np.tile(s,3))
-    datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.tile(s,3))
+    datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.tile(s,3),criterium)
     #datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray([s,s,inputimage.header.get_zooms()[2]])) # resampling is anisotropic for slices
     
     if s == scales[0]:
@@ -372,7 +422,7 @@ if __name__ == '__main__':
         print(x[0:3])
     
     listofcontainers = []
-    for r in range(4):
+    for r in range(1):
       c = container()
       c.f = f
       c.x = np.copy(currentx)
@@ -410,7 +460,7 @@ if __name__ == '__main__':
     nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.refimage.affine),'current_at_scale_'+str(s)+'.nii.gz')
 
   #Final interpolation using the reference image spacing
-  datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray(refimage.header.get_zooms()[0:3]))
+  datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray(refimage.header.get_zooms()[0:3]),criterium)
   Mref2in = computeMref2in(currentx,datareg)
   warpedarray = affine_transform(np.reshape(inputimage.get_data(),inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
   nibabel.save(nibabel.Nifti1Image(warpedarray, refimage.affine),args.output)
