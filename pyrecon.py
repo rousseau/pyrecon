@@ -109,7 +109,7 @@ class IM:
     self.nbins = 128
     self.sigma = 1
   def compute(self,refval,inval):
-    return mutual_information_2d(refval,inval, sigma=self.sigma, normalized=False, nbins=self.nbins)
+    return -mutual_information_2d(refval,inval, sigma=self.sigma, normalized=False, nbins=self.nbins)
   def setBinNumber(self,size):
     n = np.ceil(pow(size[0]*size[1]*size[2],1/3.))
     self.nbins = n
@@ -120,7 +120,7 @@ class IMNormalized(IM):
   def __init__(self):
     IM.__init__(self)
   def compute(self,refval,inval):
-    return mutual_information_2d(refval,inval, sigma=self.sigma, normalized=True, nbins=self.nbins)
+    return -mutual_information_2d(refval,inval, sigma=self.sigma, normalized=True, nbins=self.nbins)
   
 
 
@@ -170,7 +170,7 @@ def compute_affine_matrix(translation=None, angles=None, scale=None, shear=None)
 
 def computeMref2in(x,datareg):
   #Compute transform from refimage to inputimage  
-  M = compute_affine_matrix(translation=x[0:3]/datareg.K[0:3], angles=x[3:6]/datareg.K[3:6]) #estimated transform
+  M = compute_affine_matrix(translation=x[0:3], angles=x[3:6]) #estimated transform
   return np.dot(datareg.Mw2in, np.dot(datareg.Mc2w, np.dot( M,np.dot(datareg.Mw2c,datareg.Mref2w) ) ) )
   
 
@@ -183,10 +183,11 @@ def createSimplex(x,dx):
 
 def f(x,datareg):
 
-  realParameter = x/datareg.K # x is the parameter of the transformation multiplied by datareg.K
+  realParameter = (x- datareg.Kcte)/datareg.K # x is the parameter of the transformation multiplied by datareg.K
   Mref2in = computeMref2in(realParameter,datareg)
   
   #Apply current transform on input image
+  
   warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)    
   warpedmask = affine_transform(datareg.inputmask, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=0, mode='constant', cval=np.nan, prefilter=False)    
   
@@ -203,6 +204,11 @@ def f(x,datareg):
   overlap = np.sum(index) * 100.0 / np.sum(datareg.refindex)
   if overlap < 25.0:
     res = np.inf
+  #print '-----------------'
+  #print "compute"
+  #print realParameter
+  #print res
+  #print '-----------------'
   return res
 
 def homogeneousMatrix(M,T):
@@ -234,9 +240,25 @@ def imageResampling(inputimage, outputspacing, order=1):
   
   return nibabel.Nifti1Image(outputarray, outputaffine)
 
-def do_minimization(container):  
-  return minimize(container.f,container.x,container.datareg, method='Nelder-Mead', options={'xatol': 0.5, 'disp': True})    
+def do_minimization(container):
+  if c.method == "Powell":
+    xtol = 0.5 / datareg.Kcte;
+    #return minimize(container.f,container.x,container.datareg, method='Powell', options={'xtol': xtol, 'disp': False})    
+    return minimize(container.f,container.x,container.datareg, method=c.method, options={'xtol': xtol, 'disp': False})
+  else : 
+    dx = np.zeros((6)) 
+    dx[0] = 1
+    dx[1] = 1
+    dx[2] = 1
+    dx[3] = 1
+    dx[4] = 1
+    dx[5] = 1
+    simplex = createSimplex(container.x,dx)
+  return minimize(container.f,container.x,container.datareg, method='Nelder-Mead', options={'xatol': 0.25, 'disp': False, 'initial_simplex' : simplex})    
+  
 
+
+#python pyrecon.py -r ~/WIP_BE_V3_CT.nii.gz -i test.nii.gz -o res.nii.gz -s 8
 class container(object):
   pass
 
@@ -272,16 +294,27 @@ def slices2image(slices,refimage):
 
 #Object that is used to put all the stuff needed for registration...
 class dataReg:
-  def __init__(self,refimage,inputimage,refmask,inputmask,crefimw,s,criterium):
-    self.refimage   = imageResampling(refimage, s,order=1)
-    self.inputimage = imageResampling(inputimage, s,order=1)
+  def __init__(self,refimage,inputimage,refmask,inputmask,crefimw,s,criterium,resampling):
+    if resampling == True:
+      self.refimage   = imageResampling(refimage, s[3:6],order=1)
+      self.inputimage = imageResampling(inputimage, s[0:3],order=1)
+    else:      
+      self.refimage = refimage
+      self.inputimage = inputimage
     #Get array : using nibabel, 3D image may have 4D shape
     self.refarray   = np.reshape(self.refimage.get_data(),self.refimage.get_data().shape[0:3])
     self.inputarray = np.reshape(self.inputimage.get_data(),self.inputimage.get_data().shape[0:3])
     self.Mw2in      = np.linalg.inv(self.inputimage.affine) # world to input image
     self.Mref2w     = self.refimage.affine #reference to world
-    self.refmask    = imageResampling(refmask, s,order=0).get_data()
-    self.inputmask  = imageResampling(inputmask, s,order=0).get_data()
+    
+    if resampling == True:      
+      self.refmask    = imageResampling(refmask, s[3:6],order=0).get_data()
+      self.inputmask  = imageResampling(inputmask, s[0:3],order=0).get_data()
+    else:      
+      self.refmask = refmask.get_data()
+      self.inputmask = inputmask.get_data()
+      
+      
     self.refindex   = self.refmask>0
     
     self.centerrot  = crefimw
@@ -289,6 +322,7 @@ class dataReg:
     self.Mc2w       = np.eye(4)  
     self.Mw2c[0:3,3]= -self.centerrot[0:3]
     self.Mc2w[0:3,3]=  self.centerrot[0:3]
+
     
     #criterium
     self.criterium = criterium    
@@ -297,9 +331,48 @@ class dataReg:
     #normaization of the parameters to optimize
     Ktranslation = 2/min(np.min(s),np.min(s)) 
     Ktheta       = max(np.max(self.refarray.shape),np.max(self.refarray.shape))*3.1415/180
-    self.K = np.array([Ktranslation,Ktranslation,Ktranslation,Ktheta,Ktheta,Ktheta])
+    self.K = np.array([Ktranslation,Ktranslation,Ktranslation,Ktheta,Ktheta,Ktheta]) 
+    self.Kcte = 10000
 
+
+#volumePixel : size of voxels of the two images (this is a vector of size 6)
+#largestSize : size of voxel at the lowest resolution (this is a float since at the lowest resolution, voxels are cubic)
+#this function returns the size of voxels for both images for each resolution
+#Algorithm : the size of the voxel is decresed with a factor 2 (if this is not inferior to the size of the original voxel).
+#Example : 
+#if the size of voxels are 1,1,4 mm and  2,2,1, then volumePixel = 1,1,4,2,2,1. With largestSize=6
+# we will have s[1] = 6 6 6 6 6 6  (a la resolution la plus basse, on aura des images de taille 6x6x6)
+# we will have s[2] = 3 3 4 3 3 3 
+# we will have s[3] = 1.5 1.5 4 2 2 1.5 
+# we will have s[4] = 1 1 4 2 2 1 
+#Remarque 2 : at the end, if we are close to the original resolution, we can not consider a resolution  (cf fonction isclose)
+#: Example 
+#if the sizes are 1,1,14 mm and 0.9,0.9,0.9. With t largestSize = 4
+#on aura s[1] = 4 4 14 4 4 4 
+#on aura s[2] = 2 2 14 2 2 2 
+#on aura s[3] = 1 1 14 0.9 0.9 0.9 (and not 1 1 12 1 1 1 )
+
+def sequenceofundersampling(volumePixel,largestSize):
+  numberMaximalOfResolutions = 100
+  sequence = np.zeros((numberMaximalOfResolutions,6))
+  sequence[0,:] = np.full(6,largestSize)    
     
+  for i in range(numberMaximalOfResolutions-1):        
+    sequence[i+1,:] = sequence[i,:]/2        
+
+  for j in range(6):
+    sequence[:,j] = np.clip(sequence[:,j], volumePixel[j], 1000000)
+    
+  take = 0
+  for i in range(numberMaximalOfResolutions):        
+    if np.isclose(sequence[i,:],volumePixel,rtol=0.2, atol=0.001).all() == True:     
+      sequence[i,:] = volumePixel
+      take = i+1
+      break
+                
+  sequenceFinal = sequence[0:take,:] 
+  return sequenceFinal
+
 
 #class to constrain the criterium to be part of L1, L2, IM, or IMNormalized lists
 class DefaultListAction(argparse.Action):
@@ -363,12 +436,32 @@ if __name__ == '__main__':
     refdata = np.reshape(refdata,refdata.shape[0:3])
     refmask = nibabel.Nifti1Image(refdata, refimage.affine) 
     
-  
+ 
   if args.scale is not None :
-    scales = args.scale
+    scales = np.array(args.scale)
   else:
-    scales = [8,4,2,1]
-
+    scales = np.array([8,4,2,1])
+    
+  
+  if scales.shape[0] == 1: 
+    volumePixel = np.zeros(6)
+    volumePixel[0:3]=np.asarray(inputimage.header.get_zooms())
+    volumePixel[3:6]=np.asarray(refimage.header.get_zooms())  
+    
+    scales = sequenceofundersampling(volumePixel,scales[0])
+  else:    
+    n = scales.shape[0]
+    scales = np.repeat(scales,6)
+    scales = np.reshape(scales,(n,6))
+    volumePixel = np.zeros((1,6))
+    volumePixel[0,0:3]=np.asarray(inputimage.header.get_zooms())
+    volumePixel[0,3:6]=np.asarray(refimage.header.get_zooms())  
+    scales = np.concatenate((scales,volumePixel),axis=0)
+  print scales
+  
+    
+  
+  
   if args.rx is not None :
     rx = args.rx
   else:
@@ -402,19 +495,26 @@ if __name__ == '__main__':
 
   currentx = np.copy(x)
   
+  
   #Center of rotation : center of reference image expressed in world coordinate
   crefim = (np.asarray(refimage.get_data().shape[0:3]) -1 ) / 2.0
   crefim = np.concatenate((crefim,np.array([1]))) 
   crefimw= np.dot(refimage.affine,crefim)
   crefimw[3] = 0 #0, Not 1 for homogeneous coordinate otherwise it introduces a bias in translation
   
+  iteration = 0
   
-  for s in scales:
-    print(np.tile(s,3))
-    datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.tile(s,3),criterium)
+  
+  for iteration in range(scales.shape[0]):
+    s = scales[iteration]        
+    if iteration == scales.shape[0]-1:
+      datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,s,criterium,False)
+    else:
+      datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,s,criterium,True)
+        
     #datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray([s,s,inputimage.header.get_zooms()[2]])) # resampling is anisotropic for slices
     
-    if s == scales[0]:
+    if iteration == 0:
       if args.init_using_barycenter == 1:
         #Initialization of translation using center of mass
         refcom     = np.asarray(center_of_mass(np.multiply(datareg.refarray,datareg.refmask)))
@@ -424,53 +524,61 @@ if __name__ == '__main__':
         refcomw    = np.dot(datareg.Mref2w,refcom) #ref center of mass expressed in world coordinate
         inputcomw  = np.dot(datareg.inputimage.affine,inputcom) #input center of mass expressed in world coordinate
         
-        x[0:3] = (inputcomw-refcomw)[0:3]
+        currentx[0:3] = (inputcomw-refcomw)[0:3]
         print('initialization for translation : ')
-        print(x[0:3])
+        print(currentx[0:3])
+        
     
     listofcontainers = []
-    for r in range(1):
+    if iteration == 0:
+      nbre = 1
+    else:
+      nbre = 1
+    for r in range(nbre):
       c = container()
       c.f = f
       c.x = np.copy(currentx)
-      c.x[3] += uniform(rx[0],rx[1],1)
-      c.x[4] += uniform(ry[0],ry[1],1)
-      c.x[5] += uniform(rz[0],rz[1],1)
-      c.x = c.x * datareg.K #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function      
+      if r>0:
+        c.x[3] += uniform(rx[0],rx[1],1)
+        c.x[4] += uniform(ry[0],ry[1],1)
+        c.x[5] += uniform(rz[0],rz[1],1)
+        
+      c.x = c.x * datareg.K + datareg.Kcte #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function      
       #parameters are multiplied by dataReg.K so that they are comparable
       c.datareg = datareg
+      if iteration<=1:
+        c.method = 'Powell'
+      else:
+        c.method = 'Nelder-Mead'
       listofcontainers.append(c)
     res = easy_parallize(do_minimization, listofcontainers)
 
     
     for r in res:
-      r.x = r.x / datareg.K #to obtain the real parameter
-      print(r.fun,r.x)      
+      r.x = (r.x- datareg.Kcte) / datareg.K #to obtain the real parameter
+      #print(r.fun,r.x)      
     #best = min(res, key=lambda(r) : r.fun)
     sortedx = sorted(res, key=lambda(r) : r.fun) #Use sorted array to extract possibly multiple best candidates
     best = sortedx[0]
-    print('----------------------------------------------')
-    print(best)
+    #print('----------------------------------------------')
+    #print(best)
     #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
     #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})   
     #print(s,res.fun,res.x)
     currentx = np.copy(best.x)
-
-    #Apply estimated transform on input image
-#    print('apply test transform')
-#    currentx[0] = 0
-#    currentx[1] = 0
-#    currentx[2] = 0
-#    currentx[3] = 45
-#    currentx[4] = 0
-#    currentx[5] = 0
+    print "result at scale " 
+    print s
+    print currentx
     
     Mref2in = computeMref2in(currentx,datareg)
     warpedarray = affine_transform(np.reshape(datareg.inputimage.get_data(),datareg.inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
     nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.refimage.affine),'current_at_scale_'+str(s)+'.nii.gz')
 
   #Final interpolation using the reference image spacing
-  datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray(refimage.header.get_zooms()[0:3]),criterium)
+  volumePixel = np.zeros(6)
+  volumePixel[0:3]=np.asarray(inputimage.header.get_zooms())
+  volumePixel[3:6]=np.asarray(refimage.header.get_zooms())
+  datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,volumePixel,criterium,False)    
   Mref2in = computeMref2in(currentx,datareg)
   warpedarray = affine_transform(np.reshape(inputimage.get_data(),inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
   nibabel.save(nibabel.Nifti1Image(warpedarray, refimage.affine),args.output)
