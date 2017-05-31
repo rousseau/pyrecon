@@ -28,7 +28,7 @@
   knowledge of the CeCILL-B license and that you accept its terms.
 
 """
-
+from copy import deepcopy
 import argparse
 import nibabel 
 from scipy.optimize import minimize
@@ -181,15 +181,23 @@ def createSimplex(x,dx):
     simplex[i+1][i] += dx[i]
   return simplex
 
-def f(x,datareg):
+def f(x,datareg,rot):
 
-  realParameter = (x- datareg.Kcte)/datareg.K # x is the parameter of the transformation multiplied by datareg.K
+  if x.shape[0] == 6:
+    realParameter = (x- datareg.Kcte)/datareg.K # x is the parameter of the transformation multiplied by datareg.K
+  else:
+    realParameter = np.zeros(6) # x is the parameter of the transformation multiplied by datareg.K
+    realParameter[0:3] = np.copy(x)
+    realParameter[3:6] = np.copy(rot)
+    realParameter = (realParameter - datareg.Kcte)/datareg.K # x is the parameter of the transformation multiplied by datareg.K
+    
+    
   Mref2in = computeMref2in(realParameter,datareg)
   
   #Apply current transform on input image
   
   warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)    
-  warpedmask = affine_transform(datareg.inputmask, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=0, mode='constant', cval=np.nan, prefilter=False)    
+  warpedmask = affine_transform(datareg.inputmask, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=0, mode='constant', cval=0, prefilter=False)    
   
   #Compute similarity criterion
   index = np.multiply(~np.isnan(warpedarray),warpedmask>0)
@@ -202,8 +210,8 @@ def f(x,datareg):
   
   #Check if overlap between the two images is enough ... otherwise return infinity
   overlap = np.sum(index) * 100.0 / np.sum(datareg.refindex)
-  if overlap < 25.0:
-    res = np.inf
+  if overlap < 5.0:
+    res = 100000 # np.inf to remove warning during execution
   #print '-----------------'
   #print "compute"
   #print realParameter
@@ -241,20 +249,15 @@ def imageResampling(inputimage, outputspacing, order=1):
   return nibabel.Nifti1Image(outputarray, outputaffine)
 
 def do_minimization(container):
-  if c.method == "Powell":
-    xtol = 0.5 / datareg.Kcte;
+  if container.method == "Powell":
+    print "Powell"
+    xtol = 0.25 / datareg.Kcte #A ctet has been added because xtol is a relative tolerance
     #return minimize(container.f,container.x,container.datareg, method='Powell', options={'xtol': xtol, 'disp': False})    
-    return minimize(container.f,container.x,container.datareg, method=c.method, options={'xtol': xtol, 'disp': False})
+    return minimize(container.f,container.x,args=(container.datareg,container.rot), method='Powell', options={'xtol': xtol,'ftol' : 1e-50 , 'disp': False})
   else : 
-    dx = np.zeros((6)) 
-    dx[0] = 1
-    dx[1] = 1
-    dx[2] = 1
-    dx[3] = 1
-    dx[4] = 1
-    dx[5] = 1
-    simplex = createSimplex(container.x,dx)
-  return minimize(container.f,container.x,container.datareg, method='Nelder-Mead', options={'xatol': 0.25, 'disp': False, 'initial_simplex' : simplex})    
+    print "Nelder-Mead"
+    simplex = createSimplex(container.x,container.dx)
+  return minimize(container.f,container.x,args=(container.datareg,container.rot), method='Nelder-Mead', options={'xatol': 0.25/ datareg.Kcte,  'disp': False, 'initial_simplex' : simplex})    
   
 
 
@@ -393,7 +396,7 @@ if __name__ == '__main__':
   parser.add_argument('--refmask', help='Mask of the reference image', type=str)  
   parser.add_argument('-o', '--output', help='Output Image', type=str, required = True)
   parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=-np.inf)
-  parser.add_argument('-s', '--scale', help='Scale for multiresolution registration (default: 8 4 2 1)', nargs = '*', type=float)
+  parser.add_argument('-s', '--scale', help='Scale for multiresolution registration (default: 4 2 1)', nargs = '*', type=float)
   parser.add_argument('--rx', help='Range of rotation x (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--ry', help='Range of rotation y (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--rz', help='Range of rotation z (default: -30 30)', nargs = '*', type=float)
@@ -440,14 +443,15 @@ if __name__ == '__main__':
   if args.scale is not None :
     scales = np.array(args.scale)
   else:
-    scales = np.array([8,4,2,1])
+    scales = np.array([4,2,1])
     
   
   if scales.shape[0] == 1: 
     volumePixel = np.zeros(6)
     volumePixel[0:3]=np.asarray(inputimage.header.get_zooms())
-    volumePixel[3:6]=np.asarray(refimage.header.get_zooms())  
-    
+    volumePixel[3:6]=np.asarray(refimage.header.get_zooms())      
+    if scales[0] == 0:
+      scales[0] = np.min(volumePixel)*8
     scales = sequenceofundersampling(volumePixel,scales[0])
   else:    
     n = scales.shape[0]
@@ -481,30 +485,108 @@ if __name__ == '__main__':
   
   #x = [tx, ty, tz, rx, ry, rz]
   #translations are expressed in mm and rotations in degree
-  x = np.zeros((6)) 
+  currentx = np.zeros((6))
+  
+  
+  
+  if args.init_using_barycenter == 1:
+    #Center of rotation : center of reference image expressed in world coordinate
+    refcom     = np.asarray(center_of_mass(np.multiply(refimage.get_data(),refmask.get_data())))
+    refcom     = np.concatenate((refcom,np.array([1])))
+    refcomw    = np.dot(refimage.affine,refcom) #ref center of mass expressed in world coordinate
+                       
+    #Initialization of translation using center of mass    
+    inputcom   = np.asarray(center_of_mass(np.multiply(inputimage.get_data(),inputmask.get_data())))    
+    inputcom   = np.concatenate((inputcom,np.array([1])))    
+    inputcomw  = np.dot(inputimage.affine,inputcom) #input center of mass expressed in world coordinate        
+                       
+    currentx[0:3] = (inputcomw-refcomw)[0:3]
+    print('initialization for translation : ')
+    print(currentx[0:3])
+    crefimw = refcomw
+    crefimw[3] = 1 
+    
+  else:
+    #Center of rotation : center of reference image expressed in world coordinate
+    crefim = (np.asarray(refimage.get_data().shape[0:3])) / 2.0
+    crefim = np.concatenate((crefim,np.array([1]))) 
+    crefimw= np.dot(refimage.affine,crefim)
+    crefimw[3] = 1 
+  
+###############MULTI-STARTT for resolution 0 ##########"""
+  nbre = 4
+  eulerX = np.linspace(rx[0],rx[1],num = nbre, endpoint = True)
+  eulerY = np.linspace(ry[0],ry[1],num = nbre, endpoint = True)
+  eulerZ = np.linspace(rz[0],rz[1],num = nbre, endpoint = True)  
+  taken=[]
+  for i in range(nbre):
+    for j in range(nbre):
+      for k in range(nbre):
+        x = np.copy(currentx)
+        x[3] = eulerX[i]
+        x[4] = eulerY[j]
+        x[5] = eulerZ[k]        
+        taken.append(x)
+        
+  if nbre>1:
+    sizeSimplexX = (rx[1]-rx[0]) * 1.0 / (nbre-1)
+    sizeSimplexY = (ry[1]-ry[0]) * 1.0 / (nbre-1)
+    sizeSimplexZ = (rz[1]-rz[0]) * 1.0 / (nbre-1)
+    sizeSimplex = max([sizeSimplexX,sizeSimplexY,sizeSimplexZ]) / 2 
+  else:
+    sizeSimplex = 1
+  
+##OPTIMISATION DES TRANSLATIONS A L ECHELLE 0
 
-  x[4] = 0
-  dx = np.zeros((6)) 
-  dx[0] = 50
-  dx[1] = 50
-  dx[2] = 50
-  dx[3] = 45
-  dx[4] = 45
-  dx[5] = 45
-  simplex = createSimplex(x,dx)
+  s = scales[0]
+  datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,s,criterium,True)
+  listofcontainers = []
+  for i in range(len(taken)):
+    c = container()
+    c.f = f
+    c.x = np.copy(taken[i])
+    c.x = c.x * datareg.K + datareg.Kcte #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function              
+    c.datareg = datareg
+    c.method = 'Powell'
+    c.rot = np.copy(c.x[3:6])
+    c.x = np.copy(c.x[0:3])
+    listofcontainers.append(c)    
+  res = easy_parallize(do_minimization, listofcontainers)
 
-  currentx = np.copy(x)
-  
-  
-  #Center of rotation : center of reference image expressed in world coordinate
-  crefim = (np.asarray(refimage.get_data().shape[0:3]) -1 ) / 2.0
-  crefim = np.concatenate((crefim,np.array([1]))) 
-  crefimw= np.dot(refimage.affine,crefim)
-  crefimw[3] = 0 #0, Not 1 for homogeneous coordinate otherwise it introduces a bias in translation
-  
-  iteration = 0
-  
-  
+  listofcontainers = []
+  for i in range(len(taken)):
+    c = container()
+    c.f = f
+    c.x = np.copy(taken[i])
+    c.x = c.x * datareg.K + datareg.Kcte #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function          
+    c.dx = np.ones((3))*6 # 1/2 is the resolution    
+    c.datareg = datareg
+    c.method = 'Nelder-Mead'
+    c.rot = np.copy(c.x[3:6])
+    c.x = np.copy(c.x[0:3])
+    listofcontainers.append(c)    
+  res2 = easy_parallize(do_minimization, listofcontainers)
+
+
+
+  takenFinal = []
+  for i in range(len(taken)):    
+    tak1 = np.copy(taken[i])    
+    tak2 = np.copy(taken[i]* datareg.K + datareg.Kcte)
+    if res[i].fun<res2[i].fun:
+      print 'Powelle prefered'
+      tak2[0:3] = res[i].x
+    else:
+      print 'Nelder-Mead prefered'
+      tak2[0:3] = res2[i].x            
+    tak2 = (tak2- datareg.Kcte) / datareg.K #to obtain the real paramete 
+    takenFinal.append(tak1)
+    takenFinal.append(tak2)
+  taken = takenFinal
+    
+
+
+###AUTRES ITERATIONS..................;
   for iteration in range(scales.shape[0]):
     s = scales[iteration]        
     if iteration == scales.shape[0]-1:
@@ -513,68 +595,86 @@ if __name__ == '__main__':
       datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,s,criterium,True)
         
     #datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,np.asarray([s,s,inputimage.header.get_zooms()[2]])) # resampling is anisotropic for slices
-    
-    if iteration == 0:
-      if args.init_using_barycenter == 1:
-        #Initialization of translation using center of mass
-        refcom     = np.asarray(center_of_mass(np.multiply(datareg.refarray,datareg.refmask)))
-        inputcom   = np.asarray(center_of_mass(np.multiply(datareg.inputarray,datareg.inputmask)))
-        refcom     = np.concatenate((refcom,np.array([1])))
-        inputcom   = np.concatenate((inputcom,np.array([1])))
-        refcomw    = np.dot(datareg.Mref2w,refcom) #ref center of mass expressed in world coordinate
-        inputcomw  = np.dot(datareg.inputimage.affine,inputcom) #input center of mass expressed in world coordinate
-        
-        currentx[0:3] = (inputcomw-refcomw)[0:3]
-        print('initialization for translation : ')
-        print(currentx[0:3])
-        
+                      
     
     listofcontainers = []
-    if iteration == 0:
-      nbre = 1
-    else:
-      nbre = 1
-    for r in range(nbre):
+    for i in range(len(taken)):
       c = container()
       c.f = f
-      c.x = np.copy(currentx)
-      if r>0:
-        c.x[3] += uniform(rx[0],rx[1],1)
-        c.x[4] += uniform(ry[0],ry[1],1)
-        c.x[5] += uniform(rz[0],rz[1],1)
-        
+      c.rot = 0
+      c.x = np.copy(taken[i])
       c.x = c.x * datareg.K + datareg.Kcte #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function      
-      #parameters are multiplied by dataReg.K so that they are comparable
       c.datareg = datareg
-      if iteration<=1:
-        c.method = 'Powell'
+      c.method = 'Powell'
+      c2 = container()
+      c2.rot = 0
+      c2.f = f
+      c2.x = np.copy(c.x)
+      c2.datareg = datareg
+      c2.method = 'Nelder-Mead'        
+      if iteration == 0:
+        c2.dx = sizeSimplex * datareg.K   
       else:
-        c.method = 'Nelder-Mead'
+        c2.dx = np.ones((6))
+      listofcontainers.append(c2)
       listofcontainers.append(c)
-    res = easy_parallize(do_minimization, listofcontainers)
+      
+        
 
+    res = easy_parallize(do_minimization, listofcontainers)
     
-    for r in res:
-      r.x = (r.x- datareg.Kcte) / datareg.K #to obtain the real parameter
-      #print(r.fun,r.x)      
-    #best = min(res, key=lambda(r) : r.fun)
     sortedx = sorted(res, key=lambda(r) : r.fun) #Use sorted array to extract possibly multiple best candidates
-    best = sortedx[0]
-    #print('----------------------------------------------')
-    #print(best)
-    #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'initial_simplex' : simplex, 'xatol': 0.01, 'disp': True})    
-    #res = minimize(f,currentx,datareg, method='Nelder-Mead', options={'xatol': 0.001, 'disp': True})   
-    #print(s,res.fun,res.x)
+    best = sortedx[0]    
+    print best
     currentx = np.copy(best.x)
-    print "result at scale " 
-    print s
-    print currentx
     
+    taken = []
+    fun = []
+    taken.append(np.asarray(currentx))
+    fun.append(best.fun)
+    NUMBER = nbre * nbre *nbre / 4
+    number = 1
+    for i in range(len(sortedx)):      
+      take = 1
+      sort = np.copy(np.asarray(sortedx[i].x))
+      for j in range(len(taken)):      
+        difference = np.abs(taken[j] - sort) 
+        if np.max(difference)<1:        
+          take = 0        
+      if take == 1:        
+        taken.append(sort)
+        fun.append(sortedx[i].fun)
+        number = number+1
+      if number>NUMBER:
+        break
+
+    #print "AT RESOLUTION " 
+    #print s
+    #print "Nombre de minima locaux" 
+    #print len(taken)
+  
+    #for i in range(len(taken)):
+    #  print taken[i]
+   
+
+
+    print "AT RESOLUTION " 
+    print s
+    print "Nombre de minima locaux " 
+    print len(taken)
+  
+    for i in range(len(taken)):
+      taken[i] = (taken[i]- datareg.Kcte) / datareg.K #to obtain the real parameter
+      print str(taken[i]) + " with " + str(fun[i])
+   
+    best = sortedx[0]    
+    currentx = np.copy(best.x)
+    currentx = (currentx- datareg.Kcte) / datareg.K #to obtain the real parameter    
     Mref2in = computeMref2in(currentx,datareg)
     warpedarray = affine_transform(np.reshape(datareg.inputimage.get_data(),datareg.inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
     nibabel.save(nibabel.Nifti1Image(warpedarray, datareg.refimage.affine),'current_at_scale_'+str(s)+'.nii.gz')
-
-  #Final interpolation using the reference image spacing
+#
+#  #Final interpolation using the reference image spacing
   volumePixel = np.zeros(6)
   volumePixel[0:3]=np.asarray(inputimage.header.get_zooms())
   volumePixel[3:6]=np.asarray(refimage.header.get_zooms())
