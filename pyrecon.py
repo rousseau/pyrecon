@@ -250,14 +250,12 @@ def imageResampling(inputimage, outputspacing, order=1):
 
 def do_minimization(container):
   if container.method == "Powell":
-    print "Powell"
-    xtol = 0.25 / datareg.Kcte #A ctet has been added because xtol is a relative tolerance
-    #return minimize(container.f,container.x,container.datareg, method='Powell', options={'xtol': xtol, 'disp': False})    
+    #print "Powell"
+    xtol = 1 / datareg.Kcte #A xtol is a relative tolerance
     return minimize(container.f,container.x,args=(container.datareg,container.rot), method='Powell', options={'xtol': xtol,'ftol' : 1e-50 , 'disp': False})
   else : 
-    print "Nelder-Mead"
     simplex = createSimplex(container.x,container.dx)
-  return minimize(container.f,container.x,args=(container.datareg,container.rot), method='Nelder-Mead', options={'xatol': 0.25/ datareg.Kcte,  'disp': False, 'initial_simplex' : simplex})    
+  return minimize(container.f,container.x,args=(container.datareg,container.rot), method='Nelder-Mead', options={'xatol': 1,  'disp': False, 'initial_simplex' : simplex})    
   
 
 
@@ -332,8 +330,10 @@ class dataReg:
     self.criterium.setBinNumber(self.refarray.shape)
     
     #normaization of the parameters to optimize
-    Ktranslation = 2/min(np.min(s),np.min(s)) 
-    Ktheta       = max(np.max(self.refarray.shape),np.max(self.refarray.shape))*3.1415/180
+    Ktranslation = 2/min(np.min(s),np.min(s))  #so that precision required is 1
+    Ktheta       = max(np.max(self.refarray.shape),np.max(self.refarray.shape))*3.1415/180 #so that precision required is 1
+    
+                      
     self.K = np.array([Ktranslation,Ktranslation,Ktranslation,Ktheta,Ktheta,Ktheta]) 
     self.Kcte = 10000
 
@@ -616,7 +616,7 @@ if __name__ == '__main__':
       if iteration == 0:
         c2.dx = sizeSimplex * datareg.K   
       else:
-        c2.dx = np.ones((6))
+        c2.dx = np.ones((6))*2
       #if iteration <= 1 :
       #  listofcontainers.append(c)
       listofcontainers.append(c2)
@@ -627,8 +627,7 @@ if __name__ == '__main__':
     res = easy_parallize(do_minimization, listofcontainers)
     
     sortedx = sorted(res, key=lambda(r) : r.fun) #Use sorted array to extract possibly multiple best candidates
-    best = sortedx[0]    
-    print best
+    best = sortedx[0]        
     currentx = np.copy(best.x)
     
     taken = []
@@ -642,7 +641,7 @@ if __name__ == '__main__':
       sort = np.copy(np.asarray(sortedx[i].x))
       for j in range(len(taken)):      
         difference = np.abs(taken[j] - sort) 
-        if np.max(difference)<1:        
+        if np.max(difference)<2:        
           take = 0        
       if take == 1:        
         taken.append(sort)
@@ -661,11 +660,8 @@ if __name__ == '__main__':
    
 
 
-    print "AT RESOLUTION " 
-    print s
-    print "Nombre de minima locaux " 
-    print len(taken)
-  
+    print "RESOLUTION " + str(s)    
+    print "Nombre de minima locaux " + str(len(taken))
     for i in range(len(taken)):
       taken[i] = (taken[i]- datareg.Kcte) / datareg.K #to obtain the real parameter
       print str(taken[i]) + " with " + str(fun[i])
