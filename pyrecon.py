@@ -540,18 +540,18 @@ if __name__ == '__main__':
 
   s = scales[0]
   datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,s,criterium,True)
-  listofcontainers = []
-  for i in range(len(taken)):
-    c = container()
-    c.f = f
-    c.x = np.copy(taken[i])
-    c.x = c.x * datareg.K + datareg.Kcte #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function              
-    c.datareg = datareg
-    c.method = 'Powell'
-    c.rot = np.copy(c.x[3:6])
-    c.x = np.copy(c.x[0:3])
-    listofcontainers.append(c)    
-  res = easy_parallize(do_minimization, listofcontainers)
+  #listofcontainers = []
+  #for i in range(len(taken)):
+  #  c = container()
+  #  c.f = f
+  #  c.x = np.copy(taken[i])
+  #  c.x = c.x * datareg.K + datareg.Kcte #for optimization so that parameters are comparable --> the parameters are made de-normalized in the f-function              
+  #  c.datareg = datareg
+  #  c.method = 'Powell'
+  #  c.rot = np.copy(c.x[3:6])
+  #  c.x = np.copy(c.x[0:3])
+  #  listofcontainers.append(c)    
+  #res = easy_parallize(do_minimization, listofcontainers)
 
   listofcontainers = []
   for i in range(len(taken)):
@@ -571,16 +571,17 @@ if __name__ == '__main__':
 
   takenFinal = []
   for i in range(len(taken)):    
-    tak1 = np.copy(taken[i])    
+    #tak1 = np.copy(taken[i])    
     tak2 = np.copy(taken[i]* datareg.K + datareg.Kcte)
-    if res[i].fun<res2[i].fun:
-      print 'Powelle prefered'
-      tak2[0:3] = res[i].x
-    else:
-      print 'Nelder-Mead prefered'
-      tak2[0:3] = res2[i].x            
+    tak2[0:3] = res2[i].x
+    #if res[i].fun<res2[i].fun:
+    #  print 'Powelle prefered'
+    #  tak2[0:3] = res[i].x
+    #else:
+    #  print 'Nelder-Mead prefered'
+    #  tak2[0:3] = res2[i].x            
     tak2 = (tak2- datareg.Kcte) / datareg.K #to obtain the real paramete 
-    takenFinal.append(tak1)
+    #takenFinal.append(tak1)
     takenFinal.append(tak2)
   taken = takenFinal
     
@@ -616,8 +617,10 @@ if __name__ == '__main__':
         c2.dx = sizeSimplex * datareg.K   
       else:
         c2.dx = np.ones((6))
+      #if iteration <= 1 :
+      #  listofcontainers.append(c)
       listofcontainers.append(c2)
-      listofcontainers.append(c)
+      
       
         
 
