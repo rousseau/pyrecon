@@ -174,7 +174,6 @@ def computeMref2in(x,datareg):
   return np.dot(datareg.Mw2in, np.dot(datareg.Mc2w, np.dot( M,np.dot(datareg.Mw2c,datareg.Mref2w) ) ) )
   
 
-
 def createSimplex(x,dx):
   simplex = np.tile(x, (len(x)+1,1))
   for i in range(len(x)):            
@@ -182,6 +181,9 @@ def createSimplex(x,dx):
   return simplex
 
 def f(x,datareg,rot):
+  # x : input parameters. If x.shape[0] = 6, optimization is performed for rigid transforms. If x.shape[0]=3, optimization is performed only for translation
+  # datareg : container containing all required information for minimization
+  # rot : input array that may contain list of rotation values (in this case, only translation is estimated)
 
   if x.shape[0] == 6:
     realParameter = (x- datareg.Kcte)/datareg.K # x is the parameter of the transformation multiplied by datareg.K
@@ -192,9 +194,9 @@ def f(x,datareg,rot):
     realParameter = (realParameter - datareg.Kcte)/datareg.K # x is the parameter of the transformation multiplied by datareg.K
     
     
-  Mref2in = computeMref2in(realParameter,datareg)
+  Mref2in = computeMref2in(realParameter,datareg) #Compute transform from refimage to inputimage
   
-  #Apply current transform on input image
+  #Apply current transform on input image and mask
   
   warpedarray = affine_transform(datareg.inputarray, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=1, mode='constant', cval=np.nan, prefilter=False)    
   warpedmask = affine_transform(datareg.inputmask, Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=datareg.refarray.shape,  order=0, mode='constant', cval=0, prefilter=False)    
@@ -227,7 +229,9 @@ def homogeneousMatrix(M,T):
     return Mres
 
 def imageResampling(inputimage, outputspacing, order=1):
-
+  #inputimage : a nibabel image
+  #outputspacing : a numpy array with three scaling factors
+  #order : order for spline based interpolation (0: nn, 1 : linear, ...)
   M1 = np.diag(outputspacing)
   T1 = outputspacing/2
   inputspacing = inputimage.header.get_zooms()[0:3]
@@ -314,8 +318,7 @@ class dataReg:
     else:      
       self.refmask = refmask.get_data()
       self.inputmask = inputmask.get_data()
-      
-      
+            
     self.refindex   = self.refmask>0
     
     self.centerrot  = crefimw
@@ -323,17 +326,16 @@ class dataReg:
     self.Mc2w       = np.eye(4)  
     self.Mw2c[0:3,3]= -self.centerrot[0:3]
     self.Mc2w[0:3,3]=  self.centerrot[0:3]
-
     
     #criterium
     self.criterium = criterium    
     self.criterium.setBinNumber(self.refarray.shape)
     
-    #normaization of the parameters to optimize
+    #normalization of the parameters to optimize
     Ktranslation = 2/min(np.min(s),np.min(s))  #so that precision required is 1
     Ktheta       = max(np.max(self.refarray.shape),np.max(self.refarray.shape))*3.1415/180 #so that precision required is 1
     
-                      
+    #Need explaination of the role of K                  
     self.K = np.array([Ktranslation,Ktranslation,Ktranslation,Ktheta,Ktheta,Ktheta]) 
     self.Kcte = 10000
 
@@ -437,14 +439,12 @@ if __name__ == '__main__':
     refdata = np.zeros(refimage.get_data().shape)
     refdata[refimage.get_data() > args.padding] = 1
     refdata = np.reshape(refdata,refdata.shape[0:3])
-    refmask = nibabel.Nifti1Image(refdata, refimage.affine) 
-    
+    refmask = nibabel.Nifti1Image(refdata, refimage.affine)     
  
   if args.scale is not None :
     scales = np.array(args.scale)
   else:
-    scales = np.array([4,2,1])
-    
+    scales = np.array([4,2,1])    
   
   if scales.shape[0] == 1: 
     volumePixel = np.zeros(6)
@@ -462,9 +462,6 @@ if __name__ == '__main__':
     volumePixel[0,3:6]=np.asarray(refimage.header.get_zooms())  
     scales = np.concatenate((scales,volumePixel),axis=0)
   print scales
-  
-    
-  
   
   if args.rx is not None :
     rx = args.rx
@@ -490,7 +487,7 @@ if __name__ == '__main__':
   
   
   if args.init_using_barycenter == 1:
-    #Center of rotation : center of reference image expressed in world coordinate
+    #Center of rotation : center of mass of reference image expressed in world coordinate
     refcom     = np.asarray(center_of_mass(np.multiply(refimage.get_data(),refmask.get_data())))
     refcom     = np.concatenate((refcom,np.array([1])))
     refcomw    = np.dot(refimage.affine,refcom) #ref center of mass expressed in world coordinate
@@ -508,12 +505,15 @@ if __name__ == '__main__':
     
   else:
     #Center of rotation : center of reference image expressed in world coordinate
-    crefim = (np.asarray(refimage.get_data().shape[0:3])) / 2.0
+    crefim = (np.asarray(refimage.get_data().shape[0:3]) - 1.0) / 2.0
     crefim = np.concatenate((crefim,np.array([1]))) 
     crefimw= np.dot(refimage.affine,crefim)
     crefimw[3] = 1 
   
-###############MULTI-STARTT for resolution 0 ##########"""
+  # END OF INITALIZATION ------------------------------------------------------
+  
+  
+  ############### MULTI-START for resolution 0 ##########"""
   nbre = 4
   eulerX = np.linspace(rx[0],rx[1],num = nbre, endpoint = True)
   eulerY = np.linspace(ry[0],ry[1],num = nbre, endpoint = True)
@@ -536,7 +536,7 @@ if __name__ == '__main__':
   else:
     sizeSimplex = 1
   
-##OPTIMISATION DES TRANSLATIONS A L ECHELLE 0
+  ##OPTIMISATION DES TRANSLATIONS A L ECHELLE 0
 
   s = scales[0]
   datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,s,criterium,True)
@@ -575,12 +575,12 @@ if __name__ == '__main__':
     tak2 = np.copy(taken[i]* datareg.K + datareg.Kcte)
     tak2[0:3] = res2[i].x
     #if res[i].fun<res2[i].fun:
-    #  print 'Powelle prefered'
+    #  print 'Powell prefered'
     #  tak2[0:3] = res[i].x
     #else:
     #  print 'Nelder-Mead prefered'
     #  tak2[0:3] = res2[i].x            
-    tak2 = (tak2- datareg.Kcte) / datareg.K #to obtain the real paramete 
+    tak2 = (tak2- datareg.Kcte) / datareg.K #to obtain the real parameter
     #takenFinal.append(tak1)
     takenFinal.append(tak2)
   taken = takenFinal
@@ -687,3 +687,4 @@ if __name__ == '__main__':
   #TODO : define a fast and simple strategy for multiresolution registration using random inits.
   #TODO : initialization for slice to volume maybe different from 3D/3D case
   #TODO : manage slice image resampling
+  #TODO : how to save transform (and centers !!!) ???
