@@ -364,7 +364,7 @@ def computeCenterOfRotation(sliceimage,slicemask):
 #we suppose that z=0 for the 2D image so that a line of the transformation cannot be computed.
 #In order to make the slice transform invertible, we put M[2,2] equal to 1 for image2slicesInZ
 #M[0,2] to 1 for image2slicesInX, M[1,2] to 1 for image2slicesInY (we have a rotation in each case)
-def image2slicesInX(image,mask,slices):  
+def image2slicesInX(image,mask,slices,typeSlice):  
   for x in range(image.get_data().shape[0]):
     sliceimage = image.get_data()[x,:,:]
     slicemask  = mask.get_data()[x,:,:]
@@ -379,12 +379,12 @@ def image2slicesInX(image,mask,slices):
     slicemask = nibabel.Nifti1Image(slicemask,sliceaffine)    
     centerofRotation,OK = computeCenterOfRotation(sliceimage,slicemask)
     if OK>0:
-      datareg = dataReg(sliceimage,slicemask,centerofRotation,1)
+      datareg = dataReg(sliceimage,slicemask,centerofRotation,typeSlice)
       slices.append(datareg)
     
   return slices
 
-def image2slicesInY(image,mask,slices):  
+def image2slicesInY(image,mask,slices,typeSlice):  
   for y in range(image.get_data().shape[1]):
     sliceimage = image.get_data()[:,y,:]
     slicemask  = mask.get_data()[:,y,:]
@@ -399,11 +399,11 @@ def image2slicesInY(image,mask,slices):
     slicemask = nibabel.Nifti1Image(slicemask,sliceaffine)
     centerofRotation,OK = computeCenterOfRotation(sliceimage,slicemask)
     if OK>0:
-      datareg = dataReg(sliceimage,slicemask,centerofRotation,2)
+      datareg = dataReg(sliceimage,slicemask,centerofRotation,typeSlice)
       slices.append(datareg)
   return slices
 
-def image2slicesInZ(image,mask,slices):  
+def image2slicesInZ(image,mask,slices,typeSlice):  
   for z in range(image.get_data().shape[2]):
     sliceimage = image.get_data()[:,:,z]
     slicemask  = mask.get_data()[:,:,z]
@@ -414,18 +414,18 @@ def image2slicesInZ(image,mask,slices):
     slicemask = nibabel.Nifti1Image(slicemask,sliceaffine)    
     centerofRotation,OK = computeCenterOfRotation(sliceimage,slicemask)
     if OK>0:
-      datareg = dataReg(sliceimage,slicemask,centerofRotation,3)    
+      datareg = dataReg(sliceimage,slicemask,centerofRotation,typeSlice)    
       slices.append(datareg)
   return slices
 
-def createSlices(image,mask,slices):  
+def createSlices(image,mask,slices,typeSlice):  
   zoom = image.header.get_zooms()
   if zoom[0]>zoom[1] and zoom[0]>zoom[2]:
-    slices =  image2slicesInX(image,mask,slices)
-  elif zoom[1]>zoom[0] and zoom[1]>zoom[0]:    
-    slices =  image2slicesInY(image,mask,slices)
+    slices =  image2slicesInX(image,mask,slices,typeSlice)
+  elif zoom[1]>zoom[0] and zoom[1]>zoom[2]:    
+    slices =  image2slicesInY(image,mask,slices,typeSlice)
   elif zoom[2]>zoom[0] and zoom[2]>zoom[1]:
-    slices =  image2slicesInZ(image,mask,slices)
+    slices =  image2slicesInZ(image,mask,slices,typeSlice)
   else : 
     print "problem of size in the images"
     #slices =  image2slicesInX(image,mask,slices)
@@ -434,16 +434,27 @@ def createSlices(image,mask,slices):
   return slices
       
 
+def criteriumTotal(slices):
+  #slices : containter containing all required information
+  #compute the total square error and the common number of pixels 
+  valueTotal = 0
+  nbreTotal = 0
+  for i in range(len(slices)):
+    value,n = f2(slices[i].parameter,slices,i)
+    valueTotal = valueTotal + value
+    nbreTotal = n + nbreTotal
+  return valueTotal/2,nbreTotal/2
+        
+  
 #criterium for the n-th slice
-def f(x,slices,n): 
+def f(x,slices,n,valueTotalFaux,nbreTotalFaux): 
   # x : input parameters
   # slices : container containing all required information for minimization
   # n : number of the slice to optimize
+  # valueTotalFaux and nbreTotalFaux : criterium withtout considering the n-th slice
   valueFinal,nbreTotal = f2(x,slices,n)
-  if nbreTotal == 0:
-    return 0
-  else:
-    return valueFinal/nbreTotal
+  return (valueTotalFaux+valueFinal)/(nbreTotal+nbreTotalFaux)
+
 
 
 def f2(x,slices,n):
@@ -495,7 +506,7 @@ def applyDirectTransform(input_image, transform):
   return pointset,imagedata
     
 
-def reconstruction(slices):
+def reconstruction(slices,taillePixel):
   
   #calcul d une image dans l espace du monde avec une grille non discrete
   #pointset est les coordonnees
@@ -505,6 +516,12 @@ def reconstruction(slices):
     nbreTotal,n = f2(slices[i].parameter,slices,i) #on regarde si la slice s interescte avec les autres
     if n>0: #OK
       pointset2,imagedata2 = applyDirectTransform(slices[i].sliceimage, slices[i].total)
+      pointset3,imagedata3 = applyDirectTransform(slices[i].slicemask, slices[i].total)
+      garde = np.where(imagedata3>0)
+      imagedata2 = imagedata2[garde[0]]
+      pointset2 = pointset2[:,garde[0]]
+      
+      
       if OK == 0:
         pointset = pointset2
         imagedata = imagedata2
@@ -528,9 +545,9 @@ def reconstruction(slices):
   
   #calcul de la resolution, de la taille de l image, de affine
   resolution = np.zeros((4))
-  resolution[0] = min(inputimage1.affine[0,0],inputimage2.affine[0,0])
-  resolution[1] = min(inputimage1.affine[1,1],inputimage2.affine[1,1])
-  resolution[2] = min(inputimage1.affine[2,2],inputimage2.affine[2,2])
+  resolution[0] = taillePixel  #min(inputimage1.affine[0,0],inputimage2.affine[0,0])
+  resolution[1] = taillePixel #min(inputimage1.affine[1,1],inputimage2.affine[1,1])
+  resolution[2] = taillePixel #min(inputimage1.affine[2,2],inputimage2.affine[2,2])
   resolution[3] = 1
   
   affine = np.diag(resolution)
@@ -544,7 +561,9 @@ def reconstruction(slices):
   nbreX = np.int32(nbreX)
   nbreY = np.int32(nbreY)
   nbreZ = np.int32(nbreZ)
-                 
+  print nbreX
+  print nbreY
+  print nbreZ
   #calcul des coordonnees dans l espace monde
   xi = np.linspace(minX,maxX,nbreX)
   yi = np.linspace(minY,maxY,nbreY)
@@ -560,8 +579,10 @@ def reconstruction(slices):
   pointsetInter[:,2] = kv
   
   pointset = pointset.transpose()
-  image = griddata(pointset[:,0:3], imagedata, pointsetInter, method='nearest')
-  
+  print "on commence"
+  print pointset.shape
+  image = griddata(pointset[:,0:3], imagedata, pointsetInter, method='linear')
+  print "on finit"
   image = image.reshape((nbreX,nbreY,nbreZ))
   imrecon =  nibabel.Nifti1Image(image,affine)
   return imrecon 
@@ -572,40 +593,55 @@ def reconstruction(slices):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   
-  parser.add_argument('-i', '--input1', help='First Input Image', type=str,default = "/home/miv/faisan/DATA/sylvain/res02.nii.gz")
-  parser.add_argument('-j', '--input2', help='Second Input Image', type=str,default = "/home/miv/faisan/DATA/sylvain/BiasFieldCorrected_PET02_t2_1.nii.gz")
-  parser.add_argument('--inmask1', help='Mask of the first input image', type=str)
-  parser.add_argument('--inmask2', help='Mask of the second input image', type=str)  
+  
+  parser.add_argument('-i', '--input', help='Input Image', type=str,action='append')
+  parser.add_argument('--inmask', help='Mask of the images', type=str,action='append')  
   #parser.add_argument('-o', '--output', help='Output Image', type=str, required = True)
   parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=-np.inf)
   args = parser.parse_args()
 
- 
-  #Loading images    
-  inputimage1,mask1   =  loadimages(args.input1,args.inmask1,args.padding)
-  inputimage2,mask2   =  loadimages(args.input2,args.inmask2,args.padding)
-  
-
+  print args.input
+  args.input = ['/home/miv/faisan/data/mar0027_exam01_T2_haste_axial_crop.nii.gz', '/home/miv/faisan/data/mar0027_exam01_T2_haste_coronal_crop.nii.gz', '/home/miv/faisan/data/mar0027_exam01_T2_haste_sagittal_crop.nii.gz']
+  args.inmask = ['/home/miv/faisan/data/mar0027_exam01_T2_haste_axial_mask_crop.nii.gz', '/home/miv/faisan/data/mar0027_exam01_T2_haste_coronal_mask_crop.nii.gz', '/home/miv/faisan/data/mar0027_exam01_T2_haste_sagittal_mask_crop.nii.gz']
+  argspadding = -np.inf
+  #Loading image
   slices=[]
-  slices = createSlices(inputimage1,mask1,slices)
-  slices = createSlices(inputimage2,mask2,slices)
-
+  resolutionFinal = np.inf
+  for i in range(len(args.input)):
+    if args.inmask is not None :
+      inputimage,mask   =  loadimages(args.input[i],args.inmask[i],args.padding)      
+    else:
+      inputimage,mask   =  loadimages(args.input[i],None,args.padding)    
+    resolutionMin = np.min(inputimage.header.get_zooms())
+    if resolutionMin<resolutionFinal:
+      resolutionFinal = resolutionMin
+    slices = createSlices(inputimage,mask,slices,i)
   
-  #registration
-  reference = 25
-  for n in range(3):
-    print n
-    for i in range(len(slices)):      
-      print i
-      if i != reference:
-        #to correct : if there is no overlap, the cost function is equal to 0 - so can cnverge to undesired solution
-        print f(slices[i].parameter,slices,i) 
-        param = minimize(f,slices[i].parameter,args=(slices,i), method='Powell', options={ 'disp': True})
-        slices[i].set_paramater(param.x)
-        print f(slices[i].parameter,slices,i)
-  
-  #simple reconstruction
-  imrecon = reconstruction(slices)
+#  valueTotal,nbreTotal = criteriumTotal(slices)
+###  #registration
+#  reference = 25
+#  for n in range(3):
+#    print n
+#    for i in range(len(slices)):      
+#      print i
+#      if i != reference:
+#        print("before optimization slice ", n , " : ", valueTotal/nbreTotal)
+#        value,nbre = f2(slices[i].parameter,slices,i) 
+#        valueTotal = valueTotal - value # criterium without considering the i-th slice
+#        nbreTotal = nbreTotal - nbre
+#        param = minimize(f,slices[i].parameter,args=(slices,i,valueTotal,nbreTotal), method='Powell', options={ 'disp': True})
+#        slices[i].set_paramater(param.x)
+#        value,nbre = f2(slices[i].parameter,slices,i) 
+#        valueTotal = valueTotal + value 
+#        nbreTotal = nbreTotal + nbre
+#        print("after optimization slice ", n , " : ", valueTotal/nbreTotal, "with : " ,valueTotal, " and " ,nbreTotal)
+#        valueTotal2,nbreTotal2 = criteriumTotal(slices)
+#        print("criterium verification ", n , " : ", valueTotal2/nbreTotal2, "with : " ,valueTotal2," and " ,nbreTotal2)
+#        
+#        
+#  
+#  #simple reconstruction
+  imrecon = reconstruction(slices,resolutionFinal)
   nibabel.save(imrecon,"tmp.nii.gz")
 
   
