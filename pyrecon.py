@@ -397,13 +397,15 @@ if __name__ == '__main__':
   parser.add_argument('--inmask', help='Mask of the input image', type=str)
   parser.add_argument('--refmask', help='Mask of the reference image', type=str)  
   parser.add_argument('-o', '--output', help='Output Image', type=str, required = True)
-  parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=-np.inf)
+  #parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default=-np.inf)
+  parser.add_argument('--padding', help='Padding value used when no mask is provided', type=float, default= 0)
   parser.add_argument('-s', '--scale', help='Scale for multiresolution registration (default: 4 2 1)', nargs = '*', type=float)
   parser.add_argument('--rx', help='Range of rotation x (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--ry', help='Range of rotation y (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--rz', help='Range of rotation z (default: -30 30)', nargs = '*', type=float)
   parser.add_argument('--init_using_barycenter', help='Initialization using image barycenters (default: 1 (choose 0 for no init))', type=int, default=1)
   parser.add_argument('--criterium', help='criteritum to minimize', type=str, default="IMNormalized", action=DefaultListAction)
+  parser.add_argument('--reslice', help='interpolate or not the result', type=bool, default=True)
   
   args = parser.parse_args()
   
@@ -496,7 +498,7 @@ if __name__ == '__main__':
     inputcom   = np.asarray(center_of_mass(np.multiply(inputimage.get_data(),inputmask.get_data())))    
     inputcom   = np.concatenate((inputcom,np.array([1])))    
     inputcomw  = np.dot(inputimage.affine,inputcom) #input center of mass expressed in world coordinate        
-                       
+    
     currentx[0:3] = (inputcomw-refcomw)[0:3]
     print('initialization for translation : ')
     print(currentx[0:3])
@@ -567,8 +569,6 @@ if __name__ == '__main__':
     listofcontainers.append(c)    
   res2 = easy_parallize(do_minimization, listofcontainers)
 
-
-
   takenFinal = []
   for i in range(len(taken)):    
     #tak1 = np.copy(taken[i])    
@@ -622,8 +622,6 @@ if __name__ == '__main__':
       listofcontainers.append(c2)
       
       
-        
-
     res = easy_parallize(do_minimization, listofcontainers)
     
     sortedx = sorted(res, key=lambda(r) : r.fun) #Use sorted array to extract possibly multiple best candidates
@@ -650,16 +648,6 @@ if __name__ == '__main__':
       if number>NUMBER:
         break
 
-    #print "AT RESOLUTION " 
-    #print s
-    #print "Nombre de minima locaux" 
-    #print len(taken)
-  
-    #for i in range(len(taken)):
-    #  print taken[i]
-   
-
-
     print "RESOLUTION " + str(s)    
     print "Nombre de minima locaux " + str(len(taken))
     for i in range(len(taken)):
@@ -680,8 +668,15 @@ if __name__ == '__main__':
   datareg = dataReg(refimage,inputimage,refmask,inputmask,crefimw,volumePixel,criterium,False)    
   Mref2in = computeMref2in(currentx,datareg)
   warpedarray = affine_transform(np.reshape(inputimage.get_data(),inputimage.get_data().shape[0:3]), Mref2in[0:3,0:3], offset=Mref2in[0:3,3], output_shape=refimage.get_data().shape[0:3],  order=3, mode='constant', cval=0, prefilter=False)     
-  nibabel.save(nibabel.Nifti1Image(warpedarray, refimage.affine),args.output)
-
+  if args.reslice == False:
+    nibabel.save(nibabel.Nifti1Image(warpedarray, refimage.affine),args.output)
+  else:
+    M = compute_affine_matrix(translation=currentx[0:3], angles=currentx[3:6]) #estimated transform
+    affine =  np.dot(datareg.Mw2in, np.dot(datareg.Mc2w, M)  ) 
+    affine =  np.dot(datareg.Mw2in, np.dot(datareg.Mc2w, np.dot( M,datareg.Mw2c ) ) )
+    affine = np.linalg.inv(affine)
+    nibabel.save(nibabel.Nifti1Image(inputimage.get_data(), affine),args.output)
+  
   #TODO ? blur the data before downsampling
   #TODO ? add linear transform for parameters
   #TODO : define a fast and simple strategy for multiresolution registration using random inits.
