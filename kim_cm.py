@@ -22,45 +22,51 @@ masque1 = nib.load('../donnee/transfer_2241503_files_0c0883a5/20090325_T2_AXIAL_
 masque2 = nib.load('../donnee/transfer_2241503_files_0c0883a5/20090325_T2_SAG_01_mask.nii.gz')
 masque3 = nib.load('../donnee/transfer_2241503_files_0c0883a5/20090325_T2_COR_01_mask.nii.gz')
 
-class Coupe:
+class Coupe: #Contient les données pour le recalage associe a chaque coupe
     def __init__(self,slice,nbcoupe,masque)    :
         
-        self.slice = slice
-        self._data = self.slice.get_fdata()
-        self._parametre = np.zeros(6)
-        self._trigide = np.eye(4)
+        self.__slice = slice
+        self.__data = self.__slice.get_fdata()
+        self.__parametre = np.zeros(6)
+        self.__trigide = np.eye(4)
         CRot = CentreRotation(masque)
-        self._centre = np.eye(4)
-        self._centreinv = np.eye(4)
-        self._centre[0:4,3] = CRot
-        self._centreinv[0:4,3] = -CRot
+        self.__centre = np.eye(4)
+        self.__centreinv = np.eye(4)
+        self.__centre[0:4,3] = CRot
+        self.__centreinv[0:4,3] = -CRot
         mz = np.eye(4)
-        mz[2,3]=z
-        self._affine = self.slice.affine @ mz
-        self._transfo = self._centreinv @ (self._trigide @ (self._centre @ self._affine))
+        mz[2,3]=nbcoupe #translation en z pour que la coupe corresponde a l origine
+        self.__affine = self.__slice.affine @ mz
+        self.__transfo = self.__centreinv @ (self.__trigide @ (self.__centre @ self.__affine))
+        self.__masque = masque
         
 
     #fonction get et set
     def get_data(self):
-        return self._data
+        return self.__data
     
     def get_parameters(self):
-        return self._parameter
+        return self.__parameter
     
     def set_parameters(self,x):
-        self.parameter = x
-        
-        
+        self.__parameter = x
+              
     def get_transfo(self):
-        return self._transfo
+        return self.__transfo
     
     def get_affine(self):
-        return self._affine
+        return self.__affine
+    
+    def get_slice(self):
+        return self.__slice
+    
+    def get_masque(self):
+        return self.__masque
     
 #Calcul l intersection entre deux coupes et renvoit les points en communs
 def DroiteIntersection2Coupes(Coupe1,Coupe2) : 
    
-    #Calcul la normale au plan Oxy
+   #Calcul la normale au plan Oxy
    M1 = Coupe1.get_transfo()
    M2 = Coupe2.get_transfo()
    
@@ -96,8 +102,9 @@ def DroiteIntersection2Coupes(Coupe1,Coupe2) :
    
    return coeff, pt
  
-    
+#Calcul le segment d intersection de la droite avec l image    
 def SegmentIntersectionCoupe(Coupe,coeff,pt):
+
     
     #equation de la droite dans le plan de l image
     M = Coupe.get_transfo()
@@ -116,47 +123,47 @@ def SegmentIntersectionCoupe(Coupe,coeff,pt):
     print("C =",c)
     
     #Calcul de l intersection avec le plan
-    intersection = np.zeros((3,2))
-    long = Coupe.slice.shape[0]-1
-    larg = Coupe.slice.shape[1]-1
+    intersection = np.zeros((3,2)) #2 points d intersection de coordonnees i,j,k 
+    long = Coupe.get_slice().shape[0]-1
+    larg = Coupe.get_slice().shape[1]-1
  
     i=0
-    if (-c/a) > 0 and (-c/a) < long: 
+    if (-c/a) > 0 and (-c/a) < long: #si y=0 x=-c/a (intersection en bas)
         intersection[0,i] =  -c/a
         intersection[1,i] =  0
         i=i+1
     
-    if (-c/b)>0 and (-c/b)< larg:
+    if (-c/b)>0 and (-c/b)< larg: #si x=0 y=-c/b (intersection a gauche)
         intersection[0,i] = 0 
         intersection[1,i] = -c/b
         i=i+1
    
-    if ((-c-a*long)/b)>0  and ((-c-a*long)/b) < larg:
+    if ((-c-a*long)/b)>0  and ((-c-a*long)/b) < larg: #si x=long y=-c-a*long (intersection a droite)
         intersection[0,i] = long
         intersection[1,i] = (-c-a*long)/b;
         i=i+1
   
-    if (((-c-b*larg)/a)>0) and (((-c-b*larg)/a)<long) :
+    if (((-c-b*larg)/a)>0) and (((-c-b*larg)/a)<long) : #si y=larg x=-c-b*larg (intersection en haut)
         intersection[0,i] = (-c-b*larg)/a;
         intersection[1,i] =larg;
         
     
     #On recalcule les points dans l espace monde
-    intermonde = np.zeros((3,2))
-    rot = M[0:3,0:3]
+    intermonde = np.zeros((3,2)) #2 points d intersection de coordonnes x,y,z
+    rot = M[0:3,0:3] 
     intermonde[0:3,0] = rot @ intersection[0:3,0] + trans
     intermonde[0:3,1] = rot @ intersection[0:3,1] + trans
 
     
     return intermonde[0:3,:],intersection[0:2,:]
 
-def show_slice(slices): #definition de la fonction slice qui prend en paramètre une image
+def show_slice(slices): #definition de la fonction show_slice qui prend en paramètre une image
         #""Function di display row of image slices""
          fig, axes = plt.subplots(1, len(slices))
          for i, slice in enumerate(slices):
              axes[i].imshow(slice.T,cmap="gray",origin="lower") #affiche l'image en niveau de gris (noir pour la valeur minimale et blanche pour la valeur maximale)
 
-        
+#Calcul le centre de gravite du masque et donc de l image        
 def CentreRotation(masque):
     
     X,Y = masque.shape
@@ -182,21 +189,17 @@ def CentreRotation(masque):
 
 def IntersectionEntre2Coupes(Coupe1,seg1,Coupe2,seg2):
     
-    #sortiinter1 = inter1[inter1[0,:].argsort(kind='mergesort')]
-    #sortseg1 = np.concatenate((seg1,np.array([[1,1]])))
-    #sortinter2 = inter2[inter2[0,:].argsort(kind='mergesort')]
-    #sortseg2 = np.concatenate((seg2,np.array([[1,1]])))
-    sortseg1 = np.zeros((3,2))
+    sortseg1 = np.zeros((3,2)) #Trie le segment pour avoir la plus petite valeur de x à gauche et la plus grande a droite
     sortseg2 = np.zeros((3,2))
     
-    if (seg1[0,0]<seg1[0,1]):
+    if (seg1[0,0]<seg1[0,1]): #Trie le segment de l image1
         sortseg1[:,0]=seg1[:,0]
         sortseg1[:,1]=seg1[:,1]
     else:
         sortseg1[:,0]=seg1[:,1]
         sortseg1[:,1]=seg1[:,0]
         
-    if (seg2[0,0]<seg2[0,1]):
+    if (seg2[0,0]<seg2[0,1]): #Trie le segment de l image 2
         sortseg2[:,0]=seg2[:,0]
         sortseg2[:,1]=seg2[:,1]
     else:
@@ -209,11 +212,11 @@ def IntersectionEntre2Coupes(Coupe1,seg1,Coupe2,seg2):
     Ptsegment = np.zeros((3,2))
     #Ptsegment[3,:] = np.ones((1,2))
     
-    if(sortseg1[0,0]>sortseg2[0,0]):
+    if(sortseg1[0,0]>sortseg2[0,0]): #Choisis la plus grande valeurs de x parmis la plus petite valeur de x pour les deux segments
         Ptsegment[:,0] = sortseg1[:,0]
     else:   
         Ptsegment[:,0] = sortseg2[:,0]
-    if(sortseg1[0,1]<sortseg2[0,1]):
+    if(sortseg1[0,1]<sortseg2[0,1]): #Choisis la plus petite valeur de x parmis la plus grande valeur de x pour les deux segments
         Ptsegment[:,1] = sortseg1[:,1]
     else:   
         Ptsegment[:,1] = sortseg2[:,1]  
@@ -222,46 +225,53 @@ def IntersectionEntre2Coupes(Coupe1,seg1,Coupe2,seg2):
     M1 = Coupe1.get_transfo()
     rotM1 = np.linalg.inv(M1[0:3,0:3])
     transM1 = M1[0:3,3]
-    PtsegmentCoupe1 = np.zeros((3,2))
+    PtsegmentCoupe1 = np.zeros((3,2)) #Point d intersection du segment dans le repere Coupe1
     PtsegmentCoupe1[0:3,0] = rotM1 @ (Ptsegment[0:3,0] - transM1)
     PtsegmentCoupe1[0:3,1] = rotM1 @ (Ptsegment[0:3,1] - transM1)
      
     M2 = Coupe2.get_transfo()
     rotM2 = np.linalg.inv(M2[0:3,0:3])
     transM2 = M2[0:3,3]
-    PtsegmentCoupe2 = np.zeros((3,2))
+    PtsegmentCoupe2 = np.zeros((3,2)) #Point d intersection du segment dans le repere Coupe2
     PtsegmentCoupe2[0:3,0] = rotM2 @ (Ptsegment[0:3,0] - transM2)
     PtsegmentCoupe2[0:3,1] = rotM2 @ (Ptsegment[0:3,1] - transM2)
     
+    nbpoint1 = np.abs(int(PtsegmentCoupe1[0,0]) - int(PtsegmentCoupe1[0,1]))
+    nbpoint2 = np.abs(int(PtsegmentCoupe2[0,0]) - int(PtsegmentCoupe2[0,1]))
+    
     print("Ptsegment = ", Ptsegment)
-    return PtsegmentCoupe1, PtsegmentCoupe2, 
+    return PtsegmentCoupe1, PtsegmentCoupe2, nbpoint1, nbpoint2 #Retourne les points d intersection du segment pour les deux coupes
 
-def PointsCoupe(Coupe,PtsegmentCoupe):
+#Fonction qui interpole les valeurs d intensite sur le segment d intersection et renvoit le profil d intensite
+def ProfilCoupe(Coupe,PtsegmentCoupe,nbpoint):
     
-    #1) On creer une ligne entre les deux points
-    nbpointx = np.abs(int(PtsegmentCoupe[0,0]) - int(PtsegmentCoupe[0,1]))
-    x = np.linspace(int(PtsegmentCoupe[0,0]), int(PtsegmentCoupe[0,1]), num=nbpointx, endpoint=False, retstep=False, dtype=int, axis=0)
-    y = np.linspace(int(PtsegmentCoupe[1,0]), int(PtsegmentCoupe[1,1]), num=nbpointx, endpoint=True, retstep=False, dtype=int, axis=0) 
     
-    # Coupe_sortie = Coupe.get_data().copy()
-    val = np.zeros((nbpointx,2))
+    #nbpointx = np.abs(int(PtsegmentCoupe[0,0]) - int(PtsegmentCoupe[0,1])) #nb de points du segment
+    x = np.linspace(int(PtsegmentCoupe[0,0]), int(PtsegmentCoupe[0,1]), num=nbpoint, endpoint=True, retstep=False, dtype=int, axis=0)  #donne les coordonnees des points de x du segments
+    y = np.linspace(int(PtsegmentCoupe[1,0]), int(PtsegmentCoupe[1,1]), num=nbpoint, endpoint=True, retstep=False, dtype=int, axis=0)  #donne les coordonnees des points de y du segments
+    masque = Coupe.get_masque()
+    #Coupe_sortie = Coupe.get_data().copy()
+    val = np.zeros((nbpoint,2))
     
     i=0
     for i in range(x.shape[0]):
-        #Coupe_sortie[x[i],y[i]] = 0
-        val[i,:] = [x[i],y[i]]
-
-    # nifti_sortie = nib.Nifti1Image(Coupe_sortie,Coupe1.get_affine())
-
-    return val,nbpointx
-
-
-def  ProfilCoupe(nbpoint,val,Coupe)   :
+        if masque.get_fdata()[x[i],y[i]]>0:
+           val[i,:] = [x[i],y[i]]
+            #Coupe_sortie[x[i],y[i]] = 0
     
+    #nifti_sortie = nib.Nifti1Image(Coupe_sortie,Coupe1.get_affine())
+    
+    print(np.transpose(val))
+    print(x)
+    print(y)
     sortie = np.zeros(nbpoint)
-    interpol = map_coordinates(Coupe.get_data(),np.transpose(val),output=sortie, order=3, mode='constant', cval=0.0, prefilter=True)
-
-    return interpol
+    #masque_sortie = np.zeros(nbpoint)
+    
+    map_coordinates(Coupe.get_data(),np.transpose(val),output=sortie, order=1, mode='constant', cval=0.0, prefilter=True)
+    
+    index = sortie>0
+    
+    return sortie,index
 
 ###Test : 
     
