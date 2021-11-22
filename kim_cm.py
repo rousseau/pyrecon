@@ -11,6 +11,9 @@ import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt 
 from scipy.ndimage import map_coordinates
+from sliceObject import SliceObject
+from display import plotsegment
+#from display import show_slice,plotsegment
 
 
 
@@ -22,44 +25,7 @@ masque1 = nib.load('../donnee/transfer_2241503_files_0c0883a5/20090325_T2_AXIAL_
 masque2 = nib.load('../donnee/transfer_2241503_files_0c0883a5/20090325_T2_SAG_01_mask.nii.gz')
 masque3 = nib.load('../donnee/transfer_2241503_files_0c0883a5/20090325_T2_COR_01_mask.nii.gz')
 
-"""
-Object that is used for the registration 
-The values of this class must not change because they are linked together : use set_parameter to change parameter
-A new slice takes into parameters : 
-- sliceimage : a 2D slice extracted from a 3D image
-- slicemask : a binary image associated with the sliceimage    
-"""    
-class Slice: 
-    def __init__(self,sliceimage,slicemask)    :
-        
-        self.__sliceimage = sliceimage
-        self.__parameter = np.zeros(6)
-        self.__rigid = rigidMatrix(self.__parameter)
-        rotC = rotationCenter(slicemask,sliceimage.affine) #Compute the barycenter of the image
-        self.__center = np.eye(4)
-        self.__invcenter = np.eye(4)
-        self.__center[0:4,3] = rotC
-        self.__invcenter[0:4,3] = -rotC
-        self.__transfo = self.__invcenter @ (self.__rigid @ (self.__center @ self.__sliceimage.affine))
-        self.__mask = slicemask
-        
 
-    #get and set functions : 
-    def get_parameter(self):
-        return self.__parameter
-    
-    def set_parameter(self,x):
-        self.__parameter = x
-        self.__rigid = rigidMatrix(self.__parameter)
-              
-    def get_transfo(self):
-        return self.__transfo 
-    
-    def get_slice(self):
-        return self.__sliceimage
-    
-    def get_mask(self):
-        return self.__mask
     
 
 def intersectionLineBtw2Planes(M1,M2) : 
@@ -140,171 +106,79 @@ def intersectionSegment(sliceimage,coeff,pt):
     #line equation into the image plan
     M = sliceimage.get_transfo()
     
+    Minv = np.linalg.inv(M)
     rinv = np.linalg.inv(M[0:3,0:3])
-    t = M[0:3,3]
     n = rinv @ coeff
-    ptimg = rinv @ (pt - t) 
-
-    #cartesian coordinate of the line
+    pt = np.concatenate((pt,np.array([1])))
+    ptimg =Minv @ pt
+   
     a = -n[1]
     b = n[0]
     c = -(a*ptimg[0] + b*ptimg[1])
-
     
-    #Calcul de l intersection avec le plan
-    intersection = np.zeros((3,2)) #2 points d intersection de coordonnees i,j,k 
+    
+    #Intersection with the plan
+    intersection = np.zeros((4,2)) #2 points of intersection of coordinates i,j,k 
+    intersection[3,:] = np.ones((1,2))
     width = sliceimage.get_slice().shape[0]-1
     height = sliceimage.get_slice().shape[1]-1
  
-    
-    
-    
-    i=0
+
+    indice=0
     #The intersection on a corner are considered only once
     
     if (abs(a)>1e-10): #if a==0, the division by zeros in not possible, in this case we have only two intersection possible : 
-        if (-c/a) >= 0 and (-c/a) < width: #if y=0 x=-c/a  #the point (0,0) is considered here
-            intersection[0,i] =  -c/a
-            intersection[1,i] =  0
-            i=i+1
-    
-        if (((-c-b*height)/a)>0) and (((-c-b*height)/a) <= width) : #if y=height x=-(c-b* height)/a #the point  (width,height) is considered here
-            intersection[0,i] = (-c-b*height)/a;
-            intersection[1,i] = height;
-            i=i+1
-    
-    if (abs(b)>1e-10): #if b==0, the divistion by zeros in not possible, in this case we have only two intersection possible :
-        if (-c/b)>0 and (-c/b) <= height: #if x=0 y=-c/b #the point (0,heigth) is considered here
-            intersection[0,i] = 0 
-            intersection[1,i] = -c/b
-            i=i+1
+           
+        i=(-c/a); j=0;
+        
+        if  i >= 0 and i < width: #if y=0 x=-c/a  #the point (0,0) is considered here
+            intersection[0,indice] =  i
+            intersection[1,indice] =  j
+            indice=indice+1
+        
+        i=((-c-b*height)/a); j=height
        
-        if ((-c-a*width)/b)>=0  and ((-c-a*width)/b) < height: #if x=width y=(-c-a*width)/b  #the point (width,0) is considered here
-            intersection[0,i] = width
-            intersection[1,i] = (-c-a*width)/b;
-            i=i+1
-  
+        if (i>0) and (i <= width) : #if y=height x=-(c-b* height)/a #the point  (width,height) is considered here
+            intersection[0,indice] = i
+            intersection[1,indice] = j
+            indice=indice+1
+        
+         
+    if (abs(b)>1e-10): #if b==0, the divistion by zeros in not possible, in this case we have only two intersection possible :
+           
+        i=0; j=(-c/b);
+        
+        if j>0 and  j <= height: #if x=0 y=-c/b #the point (0,heigth) is considered here
+            intersection[0,indice] = i 
+            intersection[1,indice] = j
+            indice=indice+1
+       
+        i=width; j=(-c-a*width)/b
+        
+        if j>=0  and j<height: #if x=width y=(-c-a*width)/b  #the point (width,0) is considered here
+            intersection[0,indice] = i
+            intersection[1,indice] = j
+            indice=indice+1
+
     
-    
-    if i < 2 or i > 2:
+    if indice < 2 or indice > 2:
         return 0,0
         
     #Compute the intersection point coordinates in the 3D space
-    interw = np.zeros((3,2)) #2 points of intersection, with 3 coordinates x,y,z
-    R = M[0:3,0:3] 
-    interw[0:3,0] = R @ intersection[0:3,0]  + t
-    interw[0:3,1] = R @ intersection[0:3,1]  + t
+    interw = np.zeros((4,2)) #2 points of intersection, with 3 coordinates x,y,z
+    interw[3,:] = np.ones((1,2))
+    interw = M @ intersection 
     
-    interw[0:3,0] = interw[0:3,0] - pt
-    interw[0:3,0] = interw[0:3,0] - pt
+    interw[0:3,0] = interw[0:3,0] - pt[0:3]
+    interw[0:3,1] = interw[0:3,1] - pt[0:3]
     
     squareNorm = coeff @ coeff.transpose()
-    lambdaPropo = (((1/squareNorm) * coeff.transpose()) @ interw) 
+    lambdaPropo = (((1/squareNorm) * coeff.transpose()) @ interw[0:3,:]) 
 
     
     return lambdaPropo,1
 
-def show_slice(slices): #definition de la fonction show_slice qui prend en paramètre une image
-        #""Function di display row of image slices""
-         fig, axes = plt.subplots(1, len(slices))
-         for i, slice in enumerate(slices):
-             axes[i].imshow(slice.T,cmap="gray",origin="lower") #affiche l'image en niveau de gris (noir pour la valeur minimale et blanche pour la valeur maximale)
 
-#Calcul le centre de gravite du masque et donc de l image        
-def rotationCenter(mask,sliceaffine):
-    """
-    
-    Compute the barycentre
-    
-    Inputs :
-    mask : 2D image
-        binary image which indicates the position of the brain
-
-    Outputs : 
-    centerw : 2xD vector
-   
-    """    
-    X,Y = mask.shape
-    
-    center = np.zeros(2)
-
-    somme_x = 0
-    somme_y = 0
-    nbpoint = 0
-    
-    for i in range(X):
-        for j in range(Y):
-                if mask[i,j] == 1:
-                    somme_x = somme_x + i
-                    somme_y = somme_y + j
-                    nbpoint = nbpoint + 1
-    center[0] = int(somme_x/nbpoint)
-    center[1] = int(somme_y/nbpoint) 
-    
-    centerw = np.concatenate((center,np.array([0,1])))
-    centerw = sliceaffine @ centerw 
-    
-    
-    return centerw
-
-def rigidMatrix(parameters):
-    """
-    Compute the rigidMatrix with 6 parameters. The first three parameters correspond to the rotation and the last three to the translation.
-
-    Inputs : 
-    parameters : The parameters of the rigid transformation, the first three parameters correspond to the rotation and the last three to the translation
-
-    Outputs : 
-    rigide : 4x4 matrix
-    The translation matrix in homogenous coordinates
-
-    """
-   
-    #convert angles into radiant
-    alpha = np.pi*(parameters[0]/180)
-    beta = np.pi*(parameters[1]/180)
-    gamma = np.pi*(parameters[2]/180)
-    
-    # Rotalpha = np.eyes(4)
-    # Rotalpha[1,1] = np.cos(alpha)
-    # Rotalpha[1,2] = - np.sin(alpha)
-    # Rotalpha[2,1] = np.sin(alpha)
-    # Rotalpha[2,2] = np.cos(alpha)
-    
-    # Rotbeta = np.eyes(4)
-    # Rotbeta[0,0] = np.cos(beta)
-    # Rotbeta[0,2] = np.sin(beta)
-    # Rotbeta[2,0] = -np.sin(beta)
-    # Rotbeta[2,2] = np.cos(beta)
-    
-    
-    # Rotgamma = np.eyes(4)
-    # Rotgamma[0,0] = np.cos(gamma)
-    # Rotgamma[0,1] = -np.sin(gamma)
-    # Rotgamma[1,0] = np.sin(gamma)
-    # Rotgamma[1,1] = np.cos(gamma)
-    
-    # trans = np.zeros(4)
-    # trans[0:3,3] = translation
-    
-    # rigide = (Rotalpha * Rotbeta * Rotgamma) + trans 
-    
-    rigide = np.eye(4)
-    rigide[0:3,3] = parameters[3:6]
-    
-    
-    #rotation matrix, rotation around the axe x, y and k
-    rigide[0,0] = np.cos(alpha)*np.cos(beta)
-    rigide[0,1] = np.cos(alpha)*np.sin(beta)*np.sin(gamma)-np.sin(alpha)*np.cos(gamma)
-    rigide[0,2] = np.cos(alpha)*np.sin(beta)*np.cos(gamma)+np.sin(alpha)*np.sin(gamma)
-    rigide[1,0] = np.sin(alpha)*np.cos(beta)
-    rigide[1,1] = np.sin(alpha)*np.sin(beta)*np.sin(gamma)+np.cos(alpha)*np.cos(gamma)
-    rigide[1,2] = np.sin(alpha)*np.sin(beta)*np.cos(gamma)-np.cos(alpha)*np.sin(gamma)
-    rigide[2,0] = -np.sin(beta)
-    rigide[2,1] = np.cos(beta)*np.sin(gamma)
-    rigide[2,2] = np.cos(beta)*np.cos(gamma)
-    
-    return rigide
     
     
 def minLambda(lambdaPropo1,lambdaPropo2):
@@ -329,6 +203,10 @@ def minLambda(lambdaPropo1,lambdaPropo2):
     lambdaMin = np.zeros(2)
     lambdaMin[0] = min(min(lambdaPropo1),min(lambdaPropo2))
     lambdaMin[1] = max(max(lambdaPropo1),max(lambdaPropo2))
+    
+    #lambdaMin[0] = max(min(lambdaPropo1),min(lambdaPropo2))
+    #lambdaMin[1] = min(max(lambdaPropo1),max(lambdaPropo2))
+    
     
     return lambdaMin #Return 2 values of lambda that represent the common segment between the 2 slices
 
@@ -363,16 +241,19 @@ def commonSegment(Slice1,Slice2):
     
     coeff,pt,ok = intersectionLineBtw2Planes(M1,M2)
     
+    
     if ok<1: #if there is no intersection lines (the 2 planes are parralel) it is useless to compute the intersectionSegment
         return 0,0,0,0
     
     
     lambdaPropo1,ok = intersectionSegment(Slice1,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
     
+   
     if ok<1:
         return 0,0,0,0
     
     lambdaPropo2,ok = intersectionSegment(Slice2,coeff,pt)
+    
     
     if ok<1:
         return 0,0,0,0
@@ -384,34 +265,32 @@ def commonSegment(Slice1,Slice2):
         return 0,0,0,0
         
     M1 = Slice1.get_transfo()
-    R1inv = np.linalg.inv(M1[0:3,0:3])
-    t1 = M1[0:3,3]
-        
+
     M2 = Slice2.get_transfo()
-    R2inv = np.linalg.inv(M2[0:3,0:3])
-    t2 = M2[0:3,3]
-        
-        
+
     point3D = np.zeros((3,2))
-        
+    
+    
     point3D[0:3,0] = lambdaMin[0] * coeff + pt #Point corresponding to the value of lambda
     point3D[0:3,1] = lambdaMin[1] * coeff + pt
-        
-    pointImg1 = np.zeros((3,2)) 
-    pointImg2 = np.zeros((3,2))
-        
-    pointImg1[0:3,0] = R1inv @ (point3D[0:3,0] - t1)  #point corresponding to the value of lambda in the image plan
-    pointImg1[0:3,1] = R1inv @ (point3D[0:3,1] - t1)  #(x1,x2;y1,y2,z1,z2)
+    point3D = np.concatenate((point3D,np.array([[1,1]])))
     
-    pointImg2[0:3,0] = R2inv @ (point3D[0:3,0] - t2)  
-    pointImg2[0:3,1] = R2inv @ (point3D[0:3,1] - t2)
         
+    pointImg1 = np.zeros((4,2))
+    pointImg1[3,:] = np.ones((1,2))
+    pointImg2 = np.zeros((4,2))
+    pointImg2[3,:] = np.ones((1,2))
+    
+    pointImg1 = np.linalg.inv(M1) @ point3D
+
+    pointImg2 = np.linalg.inv(M2) @ point3D 
+    
     distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1]) #distance between two points on the two images
     distance2 = np.linalg.norm(pointImg2[0:2,0] - pointImg2[0:2,1]) 
         
     res = min(Slice1.get_slice().header.get_zooms()) #the smaller resolution of a voxel
         
-    if res<0: #problem with the resolution of the image
+    if res<0: #probmem with the resolution of the image
         return 0,0,0,0
         
     if max(distance1,distance2)<1: #no pixel in commun
@@ -419,9 +298,8 @@ def commonSegment(Slice1,Slice2):
         
     nbpoint = int(np.round(max(distance1,distance2)+1)/res) #choose the max distance and divide it by the smaller resolution 
         
-    #segment = np.linspace(lambdaMin[1],lambdaMin[2],nbpoint,endpoint=True,retstep=False,dtype=None,axis=0)
 
-    return pointImg1,pointImg2,nbpoint,1
+    return pointImg1[0:3],pointImg2[0:3],nbpoint,1
 
 
 def sliceProfil(Slice,pointImg,nbpoint):
@@ -444,7 +322,8 @@ def sliceProfil(Slice,pointImg,nbpoint):
     index : boolean nbpointx1 vector
         index of interest
     """
-    
+    if nbpoint == 0:
+        return 0,0
     interpol= np.zeros(nbpoint)
     interpolMask = np.zeros(nbpoint)
     pointInterpol = np.zeros((2,nbpoint))
@@ -455,7 +334,7 @@ def sliceProfil(Slice,pointImg,nbpoint):
     map_coordinates(Slice.get_slice().get_fdata(), pointInterpol , output=interpol, order=1, mode='constant', cval=np.nan, prefilter=False)
     map_coordinates(mask, pointInterpol, output=interpolMask, order=0, mode='constant',cval=np.nan,prefilter=False)
     
-    index =np.multiply(~np.isnan(interpol),interpolMask>0)
+    index =~np.isnan(interpol)*interpolMask>0
     #val_mask = interpol * interpolMask
     #index=val_mask>0
       
@@ -485,13 +364,13 @@ def commonProfil(val1,index1,val2,index2,nbpoint):
         values of interest in val2
 
     """
+    if nbpoint==0:
+        return 0,0
     valindex=np.linspace(0,nbpoint-1,nbpoint,dtype=int)
     index = index1+index2 
     index = valindex[index==True]
-    #print(index)
-    
-    
-    return val1[index],val2[index]
+
+    return val1[index],val2[index],index
     
 
 def loadSlice(img,mask,listSlice):
@@ -504,14 +383,25 @@ def loadSlice(img,mask,listSlice):
         sliceaffine = img.affine @ mz
         nifti = nib.Nifti1Image(slice_img,sliceaffine)
         slice_masque = mask.get_fdata()[:,:,z]
-        c_im1 = Slice(nifti,slice_masque)
+        c_im1 = SliceObject(nifti,slice_masque)
         listSlice.append(c_im1)
         
     return listSlice
     
     #map_coordinates(input, coordinates)
     
+# def erreur(commonVal1,commonVal2):
     
+#     erreur = 0
+    
+#     for i in range(commonVal1.shape[0]):
+#         e = abs(commonVal1[i] - commonVal2[i])
+#         erreur = erreur + e 
+        
+#     return erreur, commonVal1.shape[0], erreur/commonVal1.shape[0]
+
+# def optimization(erreur,N,Slice):
+#     minimize(erreur/N,Slice.get_parameters,)
 
 # #Fonction qui interpole les valeurs d intensite sur le segment d intersection et renvoit le profil d intensite
 # def SliceProfil(Coupe,PtsegmentCoupe,nbpoint):
@@ -555,25 +445,6 @@ def loadSlice(img,mask,listSlice):
 # #     return erreur 
     
 
-def plotsegment(Slice,coeff,pt,lambdaPropo,ok):
-    
-    if ok < 1:
-        return 0
-    
-    M = Slice.get_transfo()
-    rotinv = np.linalg.inv(M[0:3,0:3])
-    pt1=lambdaPropo[0]*coeff + pt
-    pt2=lambdaPropo[1]*coeff + pt
-    
-    
-    ptimg = np.zeros((3,2))
-    ptimg[0:3,0] = rotinv @ (pt1.transpose() - M[0:3,3])
-    ptimg[0:3,1] = rotinv @ (pt2.transpose() - M[0:3,3])
-    
-    plt.figure()
-    plt.imshow(Slice.get_slice().get_fdata().T,cmap="gray",origin="lower")
-    plt.plot(ptimg[0,:],ptimg[1,:],marker='o')
-    return ptimg
 
 
 
@@ -590,9 +461,9 @@ Coupe_img1 = loadSlice(img1, masque1, Coupe_img1)
 Coupe_img2 = loadSlice(img2, masque2, Coupe_img2)    
 Coupe_img3 = loadSlice(img3, masque3, Coupe_img3)    
 
-Coupe1 = Coupe_img1[4]
+Coupe1 = Coupe_img1[7]
 #Masque1 = Masque_img[4]
-Coupe2 = Coupe_img2[9]
+Coupe2 = Coupe_img2[6]
 
 #coeff,pt,ok = intersectionLineBtw2Planes(Coupe1.get_transfo(), Coupe2.get_transfo()) #calcul de la droite d intersection
 
@@ -610,14 +481,19 @@ if ok>0:
     
     val1,index1=sliceProfil(Coupe1, pointImg1, nbpoint)
     val2,index2=sliceProfil(Coupe2, pointImg2, nbpoint)
-    commonVal1,commonVal2 = commonProfil(val1, index1, val2, index2,nbpoint)
-    # lambdaMin = minLambda(lambdaPropo1,lambdaPropo2)
-
-    # plt.figure()
-    # plotsegment(Coupe1, coeff, pt, lambdaPropo1,ok)
-    # plotsegment(Coupe2, coeff, pt, lambdaPropo2,ok)
-    # plotsegment(Coupe1,coeff,pt,lambdaMin,ok)
-    # plotsegment(Coupe2,coeff,pt,lambdaMin,ok)
+    commonVal1,commonVal2,index = commonProfil(val1, index1, val2, index2,nbpoint)
+ 
+    #Before applying the mask
+    title1 = 'Intersection segment for image1, without mask'
+    title2 = 'Intersection segment for image2, without mask'
+    plotsegment(Coupe1,pointImg1,ok,nbpoint,title1,mask=np.nan,index=np.nan)
+    plotsegment(Coupe2,pointImg2,ok,nbpoint,title2,mask=np.nan,index=np.nan)
+   
+    #After applying the mask
+    title1 = 'Intersection segment for image1, with mask'
+    title2 = 'Intersection segment for image2, with mask'
+    plotsegment(Coupe1,pointImg1,ok,nbpoint,title1,mask=Coupe1.get_mask(),index=index)
+    plotsegment(Coupe2,pointImg2,ok,nbpoint,title2,mask=Coupe2.get_mask(),index=index)
 
     plt.figure()
     plt.plot(commonVal1)
