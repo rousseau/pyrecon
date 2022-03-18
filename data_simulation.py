@@ -12,7 +12,10 @@ This script aims to create motion simulation on an MRI image to validate the reg
 import nibabel as nib
 import numpy as np
 import random as rd
-from kim_cm import loadSlice,commonSegment
+from registration import loadSlice,commonSegment,sliceProfil,computeCostBetweenAll2Dimages,costFromMatrix
+from scipy.ndimage import map_coordinates
+from scipy.ndimage import distance_transform_cdt
+import random as rd
 
 def create3VolumeFromAlist(listSlice):
     
@@ -30,143 +33,145 @@ def create3VolumeFromAlist(listSlice):
         else:
             print('error : image orientation must be either Axial, Coronal or Sagittal')
     return SliceAx,SliceCor,SliceSag
-    
-def findCommonPointBetweenAxSagCor(SliceAx,SliceCor,SliceSag):
-    
-    listPointAxCor = []
-    listPointCor = []
-    listpoint = []
-    
-    finalListAx = []
-    finalListCor = []
-    finalListSag = []
-    
-    
-    for zax in range(len(SliceAx)):
-        sax = SliceAx[zax]
-        
-        for zcor in range(len(SliceCor)):
-        #check the point on the intersection between slices axial and coronal    
-            scor = SliceCor[zcor]
-            pt1,pt2,nbpoint,ok = commonSegment(sax,scor)
-            pointAx = np.zeros((nbpoint,3))
-            pointAx[:,0] = np.linspace(pt1[0,0],pt1[0,1],nbpoint)
-            pointAx[:,1] = np.linspace(pt1[1,0],pt1[1,1],nbpoint)
-            pointAx[:,2] = np.ones(nbpoint)*zax
-            listpoint = pointAx.tolist()
-            listPointAxCor.extend(listpoint)
-            # print('zax:',zax)
-            # print('zcor:',zcor)
-            # print('1 :',pt1[1,0],pt1[1,1])
-            # print('2 : ',pt2[1,0],pt2[1,1])
-            #print("pointAx:",pointAx)
-            
-            pointCor = np.zeros((nbpoint,3))
-            pointCor[:,0] = np.linspace(pt2[0,0],pt2[0,1],nbpoint)
-            pointCor[:,1] = np.linspace(pt2[1,0],pt2[1,1],nbpoint)
-            pointCor[:,2] = np.ones(nbpoint)*zcor
-            listpoint = pointCor.tolist()
-            listPointCor.extend(listpoint)
-            #print("pointCor:",pointCor)
-    #print(arrayAxCor.shape)
-    
-    for zax in range(len(SliceAx)):  
-        sax = SliceAx[zax]
-        
-        for zsag in range(len(SliceSag)):
-        #check the point on the intersection between slices axial and sagiattal
-        
-            ssag = SliceSag[zsag]
-            pt1,pt2,nbpoint,ok = commonSegment(sax,ssag)
-            pointAx = np.zeros((nbpoint,3))
-            pointAx[:,0] = np.linspace(pt1[0,0],pt1[0,1],nbpoint)
-            pointAx[:,1] = np.linspace(pt1[1,0],pt1[1,1],nbpoint)
-            pointAx[:,2] = np.ones(nbpoint)*zax   
-            # print('zax:',zax)
-            # print('zsag:',zsag)
-            # print('1 :',pt1[0,0],pt1[0,1])
-            # print('2 : ',pt2[0,0],pt2[0,1])
-            
-            
-            pointSag = np.zeros((nbpoint,3))
-            pointSag[:,0] = np.linspace(pt2[0,0],pt2[0,1],nbpoint)
-            pointSag[:,1] = np.linspace(pt2[1,0],pt2[1,1],nbpoint)
-            pointSag[:,2] = np.ones(nbpoint)*zsag
-            
-            
-            for ip in range(pointAx.shape[0]):
 
-                p = pointAx[ip,:]
-                pl = p.tolist()
-                #print(len(listPointAxCor))
-                if  pl in listPointAxCor:
- 
-                    finalListAx.append(pl)
-                
-                    psag = pointSag[ip,:]
-                    finalListSag.append(psag)
-                    
-                    ipcor = listPointAxCor.index(pl)
-                    pcor = listPointCor[ipcor]
-                    finalListCor.append(pcor)
-                    #print(listPointAxCor[ipcor] == pl)
-                    # zcor = int(pcor[2])
-                    # zax = int(pl[2])
-                    # zsag = int(psag[2])
-                    # transCor = SliceCor[zcor].get_transfo()
-                    # transSag = SliceSag[zsag].get_transfo() 
-                    # transAx = SliceAx[zax].get_transfo()
-                    # pwax = np.zeros(4)
-                    # pwax[0:2] = pl[0:2]
-                    # pwax[3] = 1
-                    # pwcor = np.zeros(4)
-                    # pwcor[0:2] = pcor[0:2]
-                    # pwcor[3] = 1
-                    # pwsag = np.zeros(4)
-                    # pwsag[3] = 1
-                    # pwsag[0:2] = psag[0:2]
-                    # print('pax',pl)
-                    # print('pcor',pcor)
-                    # print('psag',psag)
-                    
-                    # print('pax_tow',transAx @ pwax)
-                    # print('pcor_tow',transCor @ pwcor)
-                    # print('psag_tow',transSag @ pwsag)
-                    #pcor = listPointCor[np.where(arrayAxCor == np.array([p]))]
-                    #finalListCor.append(pcor)
+def findCommonPointbtw2V(Volume1,Volume2):
     
-     
-    pointCoordinateInAx = np.array(finalListAx) 
-    pointCoordinateInCor = np.array(finalListCor)
-    pointCoordinateInSag = np.array(finalListSag)
- 
-    # nbPointAxCor = arrayAxCor.shape[0]
-    # nbPointAxSag = arrayAxSag.shape[0]
+    listPointVolume1 = []
+    listPointVolume2 = []
+    
+    for zV1 in range(len(Volume1)):
+        sV1 = Volume1[zV1]
+        maskV1 = sV1.get_mask()
+        for zV2 in range(len(Volume2)):
+            sV2 = Volume2[zV2]
+            maskV2 = sV2.get_mask()
+            
+            sliceimage1=sV1.get_slice().get_fdata();M1=sV1.get_transfo();res=min(sV1.get_slice().header.get_zooms())
+            sliceimage2=sV2.get_slice().get_fdata();M2=sV2.get_transfo()
+            pt1,pt2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
+            nbpoint=np.int32(nbpoint[0,0]);ok=np.int32(ok[0,0])
+            dist = 1
+            nbpt = int(np.ceil(nbpoint/dist))
+
+            pointV1 = np.zeros((nbpt,3))
+            pointV1[:,0] = np.linspace(pt1[0,0],pt1[0,1],nbpt)
+            pointV1[:,1] = np.linspace(pt1[1,0],pt1[1,1],nbpt)
+            pointV1[:,2] = np.ones(nbpt)*zV1
+            interpolMask = np.zeros(nbpt)
+            ptInterpol = np.zeros((3,nbpt))
+            ptInterpol[0,:] = pointV1[:,0]
+            ptInterpol[1,:] = pointV1[:,1]
+            ptInterpol[2,:] = np.zeros(nbpt)
+            map_coordinates(maskV1, ptInterpol, output=interpolMask, order=0, mode='constant',cval=np.nan,prefilter=False)
+            pV1 = pointV1[np.where(interpolMask>0)]
+            listpoint = pV1.tolist()
+            listPointVolume1.extend(listpoint)
+            
+            
+            pointV2 = np.zeros((nbpt,3))
+            pointV2[:,0] = np.linspace(pt2[0,0],pt2[0,1],nbpt)
+            pointV2[:,1] = np.linspace(pt2[1,0],pt2[1,1],nbpt)
+            pointV2[:,2] = np.ones(nbpt)*zV2
+            interpolMask = np.zeros(nbpt)
+            ptInterpol = np.zeros((3,nbpt))
+            ptInterpol[0,:] = pointV2[:,0]
+            ptInterpol[1,:] = pointV2[:,1]
+            ptInterpol[2,:] = np.zeros(nbpt)
+            map_coordinates(maskV2, ptInterpol, output=interpolMask, order=0, mode='constant',cval=np.nan,prefilter=False)
+            pV2 = pointV2[np.where(interpolMask>0)]
+            listpoint = pV2.tolist()
+            listPointVolume2.extend(listpoint)
+            
+            
+            
+     #debug : 
+    
+    for indice  in range(len(listPointVolume1)):
+            
+            #print('indice :', indice)
+            p1 = listPointVolume1[indice]
+            p2 = listPointVolume2[indice]
+            
+            zV1 = int(p1[2])
+            zV2 = int(p2[2])
+            
+            transV1 = Volume1[zV1].get_transfo()
+            transV2 = Volume2[zV2].get_transfo() 
+            pwv1 = np.zeros(4)
+            pwv1[0:2] = p1[0:2]
+            pwv1[3] = 1
+            pwv2 = np.zeros(4)
+            pwv2[0:2] = p2[0:2]
+            pwv2[3] = 1
+            pv1_inw = transV1 @ pwv1
+            pv2_inw = transV2 @ pwv2
+            #print('1 :', pv1_inw)
+            #print('2 :', pv2_inw)
+                     
+            if ~((pv1_inw==pv2_inw).all()) :
+                print("error : Points are not the same")        
+            
+    return np.array(listPointVolume1),np.array(listPointVolume2)
+
+def ChamferDistance(volume):
+    
+    # nbSlice = len(listSliceVol)
+    # X,Y,Z = listSliceVol[0].get_slice().get_fdata().shape
+    # imgChamferDistance = np.zeros((X,Y,nbSlice))
+    
+    # indice = 0
+    # for s in listSliceVol:
+    #     chamfer_distance =  distance_transform_cdt(s.get_slice().get_fdata())
+    #     Vmax = np.max(chamfer_distance)
+    #     inv_chamfer_distance = np.abs(chamfer_distance - Vmax)
+    #     imgChamferDistance[:,:,indice] = inv_chamfer_distance
+    #     indice = indice + 1
+    
+    inv_chamfer_distance = distance_transform_cdt(volume.get_fdata())
+
+    return inv_chamfer_distance
+
+def createArrayOfChamferDistance(ChamferDistance,coordinateInAx):
+    
+    dFromCenter = np.zeros(coordinateInAx.shape[0])
+    indice = 0
+    
+    for c in coordinateInAx:    
+        dFromCenter[indice] = ChamferDistance[int(c[0]),int(c[1]),int(c[2])]
+        indice = indice + 1
+    return dFromCenter
 
     
-    # for ipAxCor in range(nbPointAxCor):
-    # #check the points that intersect an axial, coronal and sagittal slice.
-    #     #print(p)
-       
-    #     pAxCor=arrayAxCor[ipAxCor,:]
-    #     print(ipAxCor)
-    #     for ipAxSag in range(nbPointAxSag):
-            
-    #         pAxSag = arrayAxSag[ipAxSag,:]
-            
-    #         if (pAxCor == pAxSag).all():
-    #             print('hey')
-                
-    #             finalListAx.append(pAxCor)
-    #             pInCor  =  arrayCor[ipAxCor,:]
-    #             pInSag = arraySag[ipAxSag,:]
-    #             finalListCor.append(pInCor)
-    #             finalListSag.append(pInSag)
-    #             break
-            
- 
-
-    return pointCoordinateInAx,pointCoordinateInCor,pointCoordinateInSag
+def ErrorOfRegistrationBtw2Slice(pointCoordinateV1,pointCoordinateV2,Volume1,Volume2):
+    
+    nbpointError = pointCoordinateV1.shape[0]
+    res = np.zeros(nbpointError)
+    
+    for ip in range(nbpointError):
+        
+        pV1 = pointCoordinateV1[ip,:]
+        
+        zV1 = int(pV1[2])
+        Mv1 = Volume1[zV1].get_transfo()
+        p2Dv1 = np.zeros(4)
+        p2Dv1[0:2] = pV1[0:2]
+        p2Dv1[3] = 1
+        pInV1 = Mv1 @ p2Dv1
+        
+        pV2 = pointCoordinateV2[ip,:]
+        
+        zV2 = int(pV2[2])
+        Mv2 = Volume2[zV2].get_transfo()
+        p2Dv2 = np.zeros(4)
+        p2Dv2[0:2] = pV2[0:2]
+        p2Dv2[3] = 1
+        pInV2 = Mv2 @ p2Dv2
+        
+        #print(pInV1[2],pInV2[2])
+        diff = np.sqrt((pInV1[0]-pInV2[0])**2 + (pInV1[1]-pInV2[1])**2 + (pInV1[2]-pInV2[2])**2)
+        res[ip]=diff
+      
+    return res
 
 def computeErrorOfRegistration(pointCoordinateInAx,pointCoordinateInCor,pointCoordinateInSag,SliceAx,SliceCor,SliceSag):
     
@@ -176,7 +181,7 @@ def computeErrorOfRegistration(pointCoordinateInAx,pointCoordinateInCor,pointCoo
     for ip in range(nbpointError):
             
           pAx = pointCoordinateInAx[ip,:]
-          print('pAx : ', pAx)
+          #print('pAx : ', pAx)
         
           zax = int(pAx[2])
           Max = SliceAx[zax].get_transfo()
@@ -186,7 +191,7 @@ def computeErrorOfRegistration(pointCoordinateInAx,pointCoordinateInCor,pointCoo
           pInAx = Max @ p2Dax
         
           pCor = pointCoordinateInCor[ip,:]   
-          print('pCor :', pCor)
+          #print('pCor :', pCor)
         
           zcor = int(pCor[2])
           Mcor = SliceCor[zcor].get_transfo()
@@ -196,7 +201,7 @@ def computeErrorOfRegistration(pointCoordinateInAx,pointCoordinateInCor,pointCoo
           pInCor = Mcor @ p2Dcor
         
           pSag = pointCoordinateInSag[ip,:] 
-          print('pSag :', pSag)
+          #print('pSag :', pSag)
                 
           zsag = int(pSag[2])
           Msag = SliceSag[zsag].get_transfo()
@@ -205,9 +210,9 @@ def computeErrorOfRegistration(pointCoordinateInAx,pointCoordinateInCor,pointCoo
           p2Dsag[3] = 1
           pInSag = Msag @ p2Dsag
          
-          print('Ax:', pInAx)
-          print('Sag:', pInSag)
-          print('Cor:', pInCor)
+          #print('Ax:', pInAx)
+          #print('Sag:', pInSag)
+          #print('Cor:', pInCor)
           
           diffAxSag = np.sqrt((pInAx[0]-pInSag[0])**2 + (pInAx[1]-pInSag[1])**2 + (pInAx[2]-pInSag[2])**2)
           diffAxCor = np.sqrt((pInAx[0]-pInCor[0])**2 + (pInAx[1]-pInCor[1])**2 + (pInAx[2]-pInCor[2])**2)
@@ -327,7 +332,7 @@ def createSlices(img,mask):
             
 
 
-def createMvt(listSlice,bounds):
+def createMvt(listSlice,boundsRot,boundsTrans):
     """
     The function create mouvement bteween the slices of a 3D mri image
 
@@ -339,10 +344,10 @@ def createMvt(listSlice,bounds):
 
     """
     nbSlice = len(listSlice)
-    boundsAngle = bounds #in degrees
-    boundsTranslation = bounds #in mm
+    boundsAngle = boundsRot #in degrees
+    boundsTranslation = boundsTrans #in mm
     rangeAngle = boundsAngle[1]-boundsAngle[0]
-    rangeTranslation = boundsTranslation[1]-boundsAngle[0]
+    rangeTranslation = boundsTranslation[1]-boundsTranslation[0]
     motion_parameters = np.zeros((6,nbSlice))
     
     i = 0
@@ -354,7 +359,7 @@ def createMvt(listSlice,bounds):
         t1 = rd.random()*(rangeTranslation) - (rangeTranslation)/2
         t2 = rd.random()*(rangeTranslation) - (rangeTranslation)/2
         t3 = rd.random()*(rangeTranslation) - (rangeTranslation)/2
-        x = [a1,a2,a3,t1,t2,t3]
+        x = np.array([a1,a2,a3,t1,t2,t3])
         s.set_parameters(x)
         motion_parameters[:,i]=x
         i=i+1
@@ -375,7 +380,7 @@ def create3VolumeFromAnImage(image):
 
     """
     X,Y,Z = image.shape
-    sliceRes = 5 #number of slice to subsample the image, in the final volume, we take only 1 over sliceRes images
+    sliceRes = 1 #number of slice to subsample the image, in the final volume, we take only 1 over sliceRes images
     z = int(Z/sliceRes)
     y = int(Y/sliceRes)
     x = int(X/sliceRes)
@@ -420,3 +425,105 @@ def create3VolumeFromAnImage(image):
     
     return Volumeaxial,VolumeCoronal,VolumeSagittal      
 
+
+
+def createAnErrorImage(AxCoordinate,error,ImageSize):
+    
+    ImageError = np.zeros(ImageSize)
+    indice = 0
+    
+    for p in AxCoordinate:
+        #print('p : ',p.astype(int))
+        #print('Error : ',error[indice])
+        pt = p.astype(int)
+        #print(pt[1])
+        ImageError[pt[0],pt[1],pt[2]] = error[indice]
+        indice=indice+1
+    
+    return ImageError
+    
+def displaySimulInIsoImage(listImgMvt,NoMvtAx,NoMvtCor,NoMvtSag,Iso):
+    
+    listImgNoMvtAx = []    
+    loadSlice(NoMvtAx, None, listImgNoMvtAx, "Axial")
+    listImgNoMvtCor = []
+    loadSlice(NoMvtCor, None, listImgNoMvtCor, "Coronal")
+    listImgNoMvtSag = []
+    loadSlice(NoMvtSag, None, listImgNoMvtSag, "Sagittal")
+    
+    X,Y,Z = Iso.shape
+    res = Iso.get_fdata()
+    
+    #dbug
+    # gridError,gridNbpoint = computeCostBetweenAll2Dimages(listImgNoMvt,'MSE')
+    # cost = costFromMatrix(gridError,gridNbpoint)
+    
+    # if cost > 0:
+    #     print('cost :',cost)
+    #     return 0
+    
+    for i_s1 in range(len(listImgMvt)):
+        s1 = listImgMvt[i_s1]
+       
+        for i_s2 in range(len(listImgNoMvtAx)):
+            s2 = listImgNoMvtAx[i_s2]
+            
+            sliceimage1=s1.get_slice().get_fdata();M1=s1.get_transfo();res=min(s1.get_slice().header.get_zooms())
+            sliceimage2=s2.get_slice().get_fdata();M2=s2.get_transfo()
+            ps1,ps2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
+            nbpoint=np.int32(nbpoint[0,0]);ok=np.int32(ok[0,0])
+            
+            if ok>0:
+                profil,index,ndpoints1 = sliceProfil(s1,ps1,nbpoint)
+                
+                x = np.linspace(ps2[0,0],ps2[0,1],nbpoint,dtype=int)
+                y = np.linspace(ps2[1,0],ps2[1,1],nbpoint,dtype=int)
+                
+                for index in range(len(x)):
+                    
+                    if((x[index]>=0) and (y[index]>=0) and (x[index]<s2.get_slice().get_fdata().shape[0]) and (y[index]<s2.get_slice().get_fdata().shape[1])):
+    
+                        res[x[index],y[index],i_s2] = profil[index]
+              
+        for i_s2 in range(len(listImgNoMvtCor)):
+            s2 = listImgNoMvtCor[i_s2]
+            ps1,ps2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
+            nbpoint=np.int32(nbpoint[0,0]);ok=np.int32(ok[0,0])
+            
+            if ok>0:
+                profil,index,ndpoints1 = sliceProfil(s1,ps1,nbpoint)
+                
+                x = np.linspace(ps2[0,0],ps2[0,1],nbpoint,dtype=int)
+                y = np.linspace(ps2[1,0],ps2[1,1],nbpoint,dtype=int)
+                
+                for index in range(len(x)):
+                    
+                    if((x[index]>=0) and (y[index]>=0) and (x[index]<s2.get_slice().get_fdata().shape[0]) and (y[index]<s2.get_slice().get_fdata().shape[1])):
+                            
+                            res[x[index],i_s2,y[index]] = profil[index]
+                       
+        for i_s2 in range(len(listImgNoMvtSag)):
+            s2 = listImgNoMvtSag[i_s2]
+            ps1,ps2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
+            nbpoint=np.int32(nbpoint[0,0]);ok=np.int32(ok[0,0])
+            
+            if ok>0:
+                profil,index,ndpoints1 = sliceProfil(s1,ps1,nbpoint)
+                
+                x = np.linspace(ps2[0,0],ps2[0,1],nbpoint,dtype=int)
+                y = np.linspace(ps2[1,0],ps2[1,1],nbpoint,dtype=int)
+                
+                for index in range(len(x)):
+                    
+                    if((x[index]>0) and (y[index]>0) and (x[index]<s2.get_slice().get_fdata().shape[0]) and (y[index]<s2.get_slice().get_fdata().shape[1])):
+                               
+                            res[i_s2,y[index],x[index]] = profil[index]
+    
+    resNifti = nib.Nifti1Image(res, Iso.affine)           
+    return resNifti            
+                
+                
+                
+
+    
+    
