@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct 19 13:59:55 2021
@@ -14,13 +13,13 @@ from sliceObject import SliceObject
 from scipy.optimize import minimize
 import random as rd
 import time
-from tools import computeErrorVar,minSlices,computeAllErrorsFromGrid
+from tools import computeAllErrorsFromGrid
 import os
 import argparse
 import numba
-from numba import jit
-    
+from numba import jit,njit
 
+@jit(nopython=True)
 def intersectionLineBtw2Planes(M1,M2) : 
     """
     Compute the intersection line between two planes
@@ -45,7 +44,7 @@ def intersectionLineBtw2Planes(M1,M2) :
     #normal vector to the 0xy plan
     n1 = np.cross(M1[0:3,0],M1[0:3,1]) 
     if np.linalg.norm(n1)<1e-6: #no division by 0, case M11 // M12 (normally that souldn't be the case)
-        return 0,0,0
+        return np.array([np.float64(0.0)]),np.array([np.float64(0.0)]),np.array([np.float64(0.0)])
     n1norm = n1/np.linalg.norm(n1)
     n1 = n1norm
     t1 = M1[0:3,3]
@@ -53,33 +52,31 @@ def intersectionLineBtw2Planes(M1,M2) :
     
     n2 = np.cross(M2[0:3,0],M2[0:3,1]) 
     if np.linalg.norm(n2)<1e-6: #no division by 0, case M21 // M22 (normally that souldn't be the case)
-        return 0,0,0
+        return np.array([np.float64(0.0)]),np.array([np.float64(0.0)]),np.array([np.float64(0.0)])
     n2norm = n2/np.linalg.norm(n2)
     n2 = n2norm
     t2 = M2[0:3,3]
 
     
-    alpha = n1 @ n2 #if the vector are colinear alpha will be equal to one (since n1 and n2 are normalized), can happend if we consider two parralel slice
-    beta =  n1 @ t1
-    gamma = n2 @ t2
+    alpha = np.ascontiguousarray(n1) @ np.ascontiguousarray(n2) #if the vector are colinear alpha will be equal to one (since n1 and n2 are normalized), can happend if we consider two parralel slice
+    beta =  np.ascontiguousarray(n1) @ np.ascontiguousarray(t1)
+    gamma = np.ascontiguousarray(n2) @ np.ascontiguousarray(t2)
 
     
     if abs((1 - alpha*alpha))<1e-6: #if the vector are colinear, there is no intersection
-        return 0,0,0
+        return np.array([np.float64(0.0)]),np.array([np.float64(0.0)]),np.array([np.float64(0.0)])
     a = 1/(1 - alpha*alpha)
     g = a*(beta - alpha*gamma)
     h = a*(gamma - alpha*beta)
 
-
-   
     #line equation
     coeff = np.cross(n1,n2)
     pt = g*n1 + h*n2
-   
-    return coeff, pt, 1
+
+    return coeff, pt, np.array([np.float64(1.0)])
  
-  
-def intersectionSegment(sliceimage,coeff,pt):
+@jit(nopython=True)  
+def intersectionSegment(sliceimage,M,coeff,pt):
     """
     Compute the segment of intersection between the line and the 2D slice
     
@@ -100,13 +97,13 @@ def intersectionSegment(sliceimage,coeff,pt):
     """
     
     #line equation into the image plan
-    M = sliceimage.get_transfo()
+    #M = sliceimage.get_transfo()
     
     Minv = np.linalg.inv(M)
     rinv = np.linalg.inv(M[0:3,0:3])
-    n = rinv @ coeff
+    n = np.ascontiguousarray(rinv) @ np.ascontiguousarray(coeff)
     pt = np.concatenate((pt,np.array([1])))
-    ptimg =Minv @ pt
+    ptimg = np.ascontiguousarray(Minv) @ np.ascontiguousarray(pt)
    
     a = -n[1]
     b = n[0]
@@ -116,8 +113,8 @@ def intersectionSegment(sliceimage,coeff,pt):
     #Intersection with the plan
     intersection = np.zeros((4,2)) #2 points of intersection of coordinates i,j,k 
     intersection[3,:] = np.ones((1,2))
-    width = sliceimage.get_slice().shape[0]-1
-    height = sliceimage.get_slice().shape[1]-1
+    width = sliceimage.shape[0]-1
+    height = sliceimage.shape[1]-1
  
 
     indice=0
@@ -158,26 +155,26 @@ def intersectionSegment(sliceimage,coeff,pt):
 
     
     if indice < 2 or indice > 2:
-        return 0,0
+        return np.array([np.float64(0.0)]),np.array([np.float64(0.0)])
         
     #Compute the intersection point coordinates in the 3D space
     interw = np.zeros((4,2)) #2 points of intersection, with 3 coordinates x,y,z
     interw[3,:] = np.ones((1,2))
-    interw = M @ intersection 
+    interw = np.ascontiguousarray(M) @ np.ascontiguousarray(intersection) 
     
     interw[0:3,0] = interw[0:3,0] - pt[0:3]
     interw[0:3,1] = interw[0:3,1] - pt[0:3]
     
-    squareNorm = coeff @ coeff.transpose()
-    lambdaPropo = (((1/squareNorm) * coeff.transpose()) @ interw[0:3,:]) 
+    squareNorm = np.ascontiguousarray(coeff) @ np.ascontiguousarray(coeff.transpose())
+    lambdaPropo = np.ascontiguousarray((((1/squareNorm) * coeff.transpose())) @ np.ascontiguousarray(interw[0:3,:])) 
 
     
-    return lambdaPropo,1
+    return lambdaPropo,np.array([np.float64(1.0)])
 
 
     
-    
-def minLambda(lambdaPropo1,lambdaPropo2,intersection='union'):
+@jit(nopython=True)    
+def minLambda(lambdaPropo1,lambdaPropo2):
     
     """
     Compute the common segment between two images
@@ -196,21 +193,14 @@ def minLambda(lambdaPropo1,lambdaPropo2,intersection='union'):
         
     """
     lambdaMin = np.zeros(2)
-    if intersection=='union':
-        lambdaMin[0] = min(min(lambdaPropo1),min(lambdaPropo2))
-        lambdaMin[1] = max(max(lambdaPropo1),max(lambdaPropo2))
+    lambdaMin[0] = min(min(lambdaPropo1),min(lambdaPropo2))
+    lambdaMin[1] = max(max(lambdaPropo1),max(lambdaPropo2))
 
-    
-    elif intersection=='intersection':
-        lambdaMin[0] = max(min(lambdaPropo1),min(lambdaPropo2))
-        lambdaMin[1] = min(max(lambdaPropo1),max(lambdaPropo2))
-
-    else:
-        print(intersection, ' is not recognize : choose either intersection or union')
     
     return lambdaMin #Return 2 values of lambda that represent the common segment between the 2 slices
 
-def commonSegment(Slice1,Slice2,intersection='union'):
+@jit(nopython=True)
+def commonSegment(sliceimage1,M1,sliceimage2,M2,res):
     """
     Compute the coordinates of the two extremity points of the segment in the 2 image plans
 
@@ -236,46 +226,42 @@ def commonSegment(Slice1,Slice2,intersection='union'):
 
     """
     
-    M1 = Slice1.get_transfo()
-    M2 = Slice2.get_transfo()
+    #M1 = Slice1.get_transfo()
+    #M2 = Slice2.get_transfo()
     
-    coeff,pt,ok = intersectionLineBtw2Planes(M1,M2)
+    coeff,pt,ok=intersectionLineBtw2Planes(M1,M2)
+    ok=np.int(ok[0])
 
     
     if ok<1: #if there is no intersection lines (the 2 planes are parralel) it is useless to compute the intersectionSegment
-        return 0,0,0,0
-    
-    
-    lambdaPropo1,ok = intersectionSegment(Slice1,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
-
-   
-    if ok<1:
-        return 0,0,0,0
-    
-    lambdaPropo2,ok = intersectionSegment(Slice2,coeff,pt)
-
-    
-    if ok<1:
-        return 0,0,0,0
-    
-
-    lambdaMin = minLambda(lambdaPropo1,lambdaPropo2,intersection)
-   
-
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
         
+    #sliceimage1=Slice1.get_slice().get_fdata()
+    lambdaPropo1,ok=intersectionSegment(sliceimage1,M1,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
+    ok=np.int(ok[0])
+   
+    if ok<1:
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+    
+    #sliceimage2=Slice2.get_slice().get_fdata()
+    lambdaPropo2,ok=intersectionSegment(sliceimage2,M2,coeff,pt)
+    ok=np.int(ok[0])
+    
+    if ok<1:
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+
+    lambdaMin = minLambda(lambdaPropo1,lambdaPropo2)
+      
     if lambdaMin[0]==lambdaMin[1]: #the segment is nul, there is no intersection
-        return 0,0,0,0
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
         
-
     point3D = np.zeros((3,2))
-    
     
     point3D[0:3,0] = lambdaMin[0] * coeff + pt #Point corresponding to the value of lambda
     point3D[0:3,1] = lambdaMin[1] * coeff + pt
     
     point3D = np.concatenate((point3D,np.array([[1,1]])))
     
-        
     pointImg1 = np.zeros((4,2))
     pointImg1[3,:] = np.ones((1,2))
     
@@ -284,28 +270,27 @@ def commonSegment(Slice1,Slice2,intersection='union'):
     pointImg2[3,:] = np.ones((1,2))
     
     
-    pointImg1 = np.linalg.inv(M1) @ point3D
+    pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D)
 
-    pointImg2 = np.linalg.inv(M2) @ point3D 
+    pointImg2 = np.ascontiguousarray(np.linalg.inv(M2)) @ np.ascontiguousarray(point3D) 
 
     
     distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1]) #distance between two points on the two images
     distance2 = np.linalg.norm(pointImg2[0:2,0] - pointImg2[0:2,1]) 
 
 
-    res = 1
-    #min(Slice1.get_slice().header.get_zooms())
+    #res = min(Slice1.get_slice().header.get_zooms())
       #the smaller resolution of a voxel
         
     if res<0: #probmem with the resolution of the image
-        return 0,0,0,0
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
         
     if max(distance1,distance2)<1: #no pixel in commun
-        return 0,0,0,0
-        
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+       
     nbpoint = int(np.round(max(distance1,distance2)+1)/res) #choose the max distance and divide it by the smaller resolution 
 
-    return pointImg1[0:2],pointImg2[0:2],nbpoint,1
+    return pointImg1[0:2],pointImg2[0:2],(nbpoint)*np.ones((2,2),dtype=np.float_),np.ones((2,2),dtype=np.float_)
 
 
 def sliceProfil(Slice,pointImg,nbpoint):
@@ -425,7 +410,7 @@ def error(commonVal1,commonVal2):
 
 
 
-def MSElocal(slice1,slice2):
+def costLocal(slice1,slice2):
     """
     
     Compute the MSE between two slices
@@ -447,29 +432,25 @@ def MSElocal(slice1,slice2):
         mean square error bteween two slices
 
     """
-    pointImg1,pointImg2,nbpoint,ok = commonSegment(slice1,slice2)
-    #print("commonSegment ? : ",commonSegment(slice2,slice1)[0]==commonSegment(slice1,slice2)[1])
-    newError=0
-    commonPoint=0
+    sliceimage1=slice1.get_slice().get_fdata();sliceimage2=slice2.get_slice().get_fdata();res=min(slice1.get_slice().header.get_zooms())
+    M1=slice1.get_transfo();M2=slice2.get_transfo()
+    pointImg1,pointImg2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
+    ok=np.int(ok[0,0]); nbpoint=np.int(nbpoint[0,0])
+    newError=0; commonPoint=0; inter=0; union=0
+    
     if ok>0:
         val1,index1,nbpointSlice1=sliceProfil(slice1, pointImg1, nbpoint) 
-        
         val2,index2,nbpointSlice2=sliceProfil(slice2, pointImg2, nbpoint)
-        commonVal1,commonVal2,index = commonProfil(val1, index1, val2, index2,nbpoint)
-        commonPoint = index.shape[0]
-        if index.size != 0 :#and ~(index1.any()==False) and ~(index2.any()==False):
-            #print(commonVal1)
-            #print(commonVal2)
-            #print(commonVal1 - commonVal2)
-            #print(commonVal2 - commonVal1)
-            #print((commonVal1 - commonVal2)**2)
-            #print(sum((commonVal1 - commonVal2)**2))
-            #print(np.median(((commonVal1 - commonVal2)**2)/commonPoint))
-            newError = error(commonVal1,commonVal2)
-    return newError,commonPoint
+        commonVal1,commonVal2,index=commonProfil(val1, index1, val2, index2,nbpoint)
+        val1inter,val2inter,interpoint=commonProfil(val1, index1, val2, index2,nbpoint,'intersection')
+        commonPoint=index.shape[0]
+        newError=error(commonVal1,commonVal2)
+        inter=interpoint.shape[0]
+        union=commonPoint
+    return newError,commonPoint,inter,union
 
 
-def updateCostBetweenAllImageAndOne(slice1,indexSlice,listSlice,gridCriterium,gridnbpoint,criterion):
+def updateCostBetweenAllImageAndOne(indexSlice,listSlice,gridError,gridNbpoint,gridInter,gridUnion):
     """
     The function computes the MSE between slice1 and its orthogonal slices.
 
@@ -485,196 +466,45 @@ def updateCostBetweenAllImageAndOne(slice1,indexSlice,listSlice,gridCriterium,gr
     nbpoint_mse : integer
         
     """
-    i_slice2 = 0
-    #testError = 0
-    if criterion == 'MSE' :
-        fct_criterion = MSElocal
-    elif criterion == 'DICE' :
-        fct_criterion = DICElocal
-    else :
-        print('Choose between MSE and DICE')
-        return 0,0
+    slice1=listSlice[indexSlice]
+
+
         
-    for slice2 in listSlice:
-        #if (indexSlice > i_slice2):
+    for i_slice2 in range(len(listSlice)):
+        slice2=listSlice[i_slice2]
+                
         if slice1.get_orientation() != slice2.get_orientation(): #there is no intersection between slices and its orthogonal slices
-                    
-            
+
             if indexSlice > i_slice2 : 
-                newError,commonPoint = fct_criterion(slice1,slice2)
-                gridCriterium[indexSlice,i_slice2] = newError
-                gridnbpoint[indexSlice,i_slice2] = commonPoint
+                newError,commonPoint,inter,union=costLocal(slice1,slice2)
+                gridError[indexSlice,i_slice2]=newError
+                gridNbpoint[indexSlice,i_slice2]=commonPoint
+                gridInter[indexSlice,i_slice2]=inter
+                gridUnion[indexSlice,i_slice2]=union
             else:
-                newError,commonPoint = fct_criterion(slice2,slice1)
-                gridCriterium[i_slice2,indexSlice] = newError
-                gridnbpoint[i_slice2,indexSlice] = commonPoint
-                    #testError = testError + newError
-        i_slice2=i_slice2+1
+                newError,commonPoint,inter,union=costLocal(slice2,slice1)
+                gridError[i_slice2,indexSlice]=newError
+                gridNbpoint[i_slice2,indexSlice]=commonPoint
+                gridInter[i_slice2,indexSlice]=inter
+                gridUnion[i_slice2,indexSlice]=union
+
     
-    #debug procedure :
-    # debugGridError,debugGridNbpoint = computeCostBetweenAll2Dimages(listSlice,criterion)
+    # #debug procedure :
+    # debugGridError,debugGridNbpoint, debugGridInter, debugGridUnion = computeCostBetweenAll2Dimages(listSlice)
     # #print(debugGridError==gridCriterium)
 
-    # if costFromMatrix(debugGridError,debugGridNbpoint) != costFromMatrix(gridCriterium,gridnbpoint):
+    # if costFromMatrix(debugGridError,debugGridNbpoint) != costFromMatrix(gridError,gridNbpoint):
+    #     print('error')
+    #     return 0
+    # if costFromMatrix(debugGridInter,debugGridUnion) != costFromMatrix(gridInter,gridUnion):
     #     print('error')
     #     return 0
 
 
 
 
-            
-def dice(intersection,union):
-    """
-    Function to compute the DICE
-    """
-    dice = 2*intersection/union
-    return dice
- 
-def indexDice(slice1,listSlice):
-    """
-    The function computes the DICE (intersection over union) between slice1 and its orthonal slices
-    and return an array of the dice between slice1 and each slice.
 
-    Inputs
-    slice1 : 
-        type slice, contains all the necessary information about the slice
-    
-    listSlice : 
-        list of type slice, contains the images in the three orientations, axial,sagital and coronal
-
-    Outputs :
-    DICE : 
-        Array containing the DICE between slice1 and its orthogonal slice
-
-    """
-    INTERSECTION = np.zeros(len(listSlice))
-    UNION = np.zeros(len(listSlice))
-    indice = 0
-    for slice2 in listSlice:
-        if slice1.get_orientation() != slice2.get_orientation(): #there is no intersection between slices and its orthogonal slices
-            newIntersection,newUnion = DICElocal(slice1,slice2)
-            INTERSECTION[indice]=newIntersection
-            UNION[indice] = newUnion
-            indice = indice+1
-    return INTERSECTION,UNION
-
-def indexGlobalDice(listSlice):
-     INTERSECTION = np.zeros(len(listSlice))
-     UNION = np.zeros(len(listSlice))
-     indice=0
-     for slice1 in listSlice:
-         intersectionSlice, unionSlice = indexDice(slice1,listSlice)
-         globalIntersectionSlice = sum(intersectionSlice)
-         globalUnionSlice = sum(unionSlice)
-         INTERSECTION[indice] = globalIntersectionSlice
-         UNION[indice] = globalUnionSlice
-         indice=indice+1
-     return INTERSECTION,UNION  
-
-def DICElocal(slice1,slice2):
-    """
-    The function computes a DICE (IoU) 2 slices
-
-    Inputs:
-    slice1 : 
-        type slice, contains all the information about the slice
-    slice2 : 
-        type slice, contains all the information about the slice
-
-    Returns
-    intersection : integer
-        number of point in the intersection
-    union : integer
-        number of point in the union
-    DICE : double
-        intersection over union
-
-    """
-    intersection=0
-    union=0
-    union_pt1,union_pt2,union_nbpoint,union_ok = commonSegment(slice1,slice2)
-    #print(union_pt1)
-    #print(union_pt2)
-    if union_ok > 0:
-        union_val1,union_index1,union_nbpointSlice1=sliceProfil(slice1, union_pt1, union_nbpoint)
-        union_val2,union_index2,union_nbpointSlice2=sliceProfil(slice2, union_pt2, union_nbpoint)
-        #union_commonVal1,union_commonVal2,union_index = commonProfil(union_val1, union_index1, union_val2, union_index2, union_nbpoint)
-        #union = union_index.shape[0]
-        union = union_nbpointSlice1 + union_nbpointSlice2
-            
-        #compute the union
-        intersection_pt1,intersection_pt2,intersection_nbpoint,intersection_ok = commonSegment(slice1,slice2,"intersection")
-        #print(intersection_pt1)
-        #print(intersection_pt2)
-        if intersection_ok > 0:
-            intersection_val1,intersection_index1,intersection_nbpointSlice1=sliceProfil(slice1, intersection_pt1, intersection_nbpoint)
-            intersection_val2,intersection_index2,intersection_nbpointSlice2=sliceProfil(slice2, intersection_pt2, intersection_nbpoint)
-            intersection_commonVal1,intersection_commonVal2,intersection_index = commonProfil(intersection_val1, intersection_index1, intersection_val2, intersection_index2,intersection_nbpoint,"intersection")
-            intersection = 2*intersection_index.shape[0]
-            #print(intersection)
-
-            
-    return intersection,union
-
-def DICEGlobal(slice1,listSlice): #union of intersection under union of union
-    """
-    Computes a DICEglobal,the dice is the union of interesction over the union of union. The function computes the dice between slice1 and its orthogonal slices
-    """
-
-    globalInter = 0
-    globalUnion = 0
-    globalDice = 0
-    for slice2 in listSlice:
-        inter, union = DICElocal(slice1,slice2)
-        globalInter = globalInter + inter
-        globalUnion = globalUnion + union
-    globalDice =    dice(globalInter,globalUnion)
-    return globalInter,globalUnion,globalDice
-    
-# def globalCriteriumDice(listSlice):
-#     """
-#     Computes the dice between each slices and its orthogonal slices
-
-#     Inputs
-#     listSlice : list of slices which represents the 3D volume
-        
-
-#     Returns
-#     unionInter : 
-#         nb of element in the intersection of each slices
-#     unionUnion : TYPE
-#         nb of element in the union of each slices
-
-
-#     """
-    
-#     nbSlice = len(listSlice)
-#     L2 = np.zeros(nbSlice,nbSlice)
-#     nbpoint_inter = np.zeros(nbSlice,nbSlice)
-#     i_slice1=0
-    
-#     unionInter = 0
-#     unionUnion = 0
-    
-#     for slice1 in listSlice:
-#         i_slice2=0
-#         for slice2 in listSlice:
-#             if slice1.get_orientation() != slice2.get_orientation():
-#                 if already_done[i_slice1,i_slice2] == already_done[i_slice2,i_slice1] and already_done[i_slice2,i_slice1] <= 0 :
-#                     Inter,Union,DICEloc = DICElocal(slice1,slice2)
-#                     unionInter = unionInter + Inter
-#                     unionUnion = unionUnion + Union
-#                     already_done[i_slice1,i_slice2] = 1
-#                     already_done[i_slice2,i_slice1] = 1   
-                     
-#             i_slice2 = i_slice2+1
-#         i_slice1 = i_slice1+1
-#     if  unionUnion == 0:
-#         return unionInter,unionUnion,0
-#     DICE = dice(unionInter,unionUnion)
-#     return unionInter,unionUnion,DICE
-    
-def computeCostBetweenAll2Dimages(listSlice,criterion):
+def computeCostBetweenAll2Dimages(listSlice):
     """
     Computes the criterium between each slices 
 
@@ -689,34 +519,32 @@ def computeCostBetweenAll2Dimages(listSlice,criterion):
         
     """
     nbSlice = len(listSlice)
-    gridError = np.zeros((nbSlice,nbSlice))
-    gridNbpoint = np.zeros((nbSlice,nbSlice))
+    gridError=np.zeros((nbSlice,nbSlice))
+    gridNbpoint=np.zeros((nbSlice,nbSlice))
+    gridInter=np.zeros((nbSlice,nbSlice))
+    gridUnion=np.zeros((nbSlice,nbSlice))
     i_slice1=0
     
-    if criterion == 'MSE' :
-        fct_criterion = MSElocal
-    elif criterion == 'DICE' :
-        fct_criterion = DICElocal
-    else :
-        print('Choose between MSE and DICE')
-        return 0,0
-    
-    for slice1 in listSlice:
-        i_slice2=0
-        for slice2 in listSlice:
+
+    for i_slice1 in range(nbSlice):
+        slice1=listSlice[i_slice1]
+        for i_slice2 in range(nbSlice):
+            slice2=listSlice[i_slice2]
             if (i_slice1 > i_slice2):
                 if slice1.get_orientation() != slice2.get_orientation():
-                        newError,commonPoint = fct_criterion(slice1,slice2)
-                        gridError[i_slice1,i_slice2] = newError
-                        gridNbpoint[i_slice1,i_slice2] = commonPoint
+                        newError,commonPoint,inter,union=costLocal(slice1,slice2)
+                        gridError[i_slice1,i_slice2]=newError
+                        gridNbpoint[i_slice1,i_slice2]=commonPoint
+                        gridInter[i_slice1,i_slice2]=inter
+                        gridUnion[i_slice1,i_slice2]=union
                     
-            i_slice2 = i_slice2+1
-        i_slice1 = i_slice1+1
-    
-    return gridError,gridNbpoint     
+    return gridError,gridNbpoint,gridInter,gridUnion     
 
 
-def cost_fct(x, slice, indexSlice, listSlice, gridError, gridNbpoint,criterion): #slice and listSlice are constant parameters and x is variable
+
+
+
+def cost_fct(x,i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, gridWeight,threshold): #slice and listSlice are constant parameters and x is variable
     """
     Compute the cost function. 
     
@@ -724,19 +552,17 @@ def cost_fct(x, slice, indexSlice, listSlice, gridError, gridNbpoint,criterion):
         x : 6D array
             parameters of the rigid transformation. The first three parameters represent the rotation and the last three parameters represent the translation
     """
+    slicei=listSlice[i_slice]
+    slicei.set_parameters(x)
+    updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion)
+    updateMatrixOfWeight(gridError,gridNbpoint,gridWeight,i_slice,threshold)
+    errorWithWeight = gridWeight * gridError 
+    res = costFromMatrix(errorWithWeight.copy(),gridNbpoint.copy())
     
-    slice.set_parameters(x)
-    updateCostBetweenAllImageAndOne(slice, indexSlice, listSlice, gridError, gridNbpoint,criterion)
-    res = costFromMatrix(gridError,gridNbpoint)
-    #print(res)
-    
-    if criterion == 'DICE':
-        return -res
-
     return res
 
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def costFromMatrix(gridError,gridNbpoint):
     globalError = np.sum(gridError)
     globalNbpoint = np.sum(gridNbpoint)
@@ -747,16 +573,6 @@ def costFromMatrix(gridError,gridNbpoint):
     return MSE
 #def cost_fct()
 
-
-def cost_fct_dice(x,slice,listSlice,unionInter,unionUnion):
-    
-    previous_inter,previous_union,previous_dice = DICEGlobal(slice, listSlice)
-    slice.set_parameters(x)
-    new_inter,new_union,new_dice = DICEGlobal(slice, listSlice)
-    res_inter = unionInter-previous_inter+new_inter
-    res_union = unionUnion-previous_union+new_union
-    res = res_inter/res_union
-    return res
 
 
 def normalization(listSlice):
@@ -772,12 +588,10 @@ def normalization(listSlice):
         The normalized image
 
     """
+   
     mean_sum = 0
     n = 0
     std=0
-    s1 = listSlice[0]
-    data = s1.get_slice().get_fdata()*s1.get_mask()
-    X,Y,Z = data.shape
     var = []
     for s in listSlice:  
         data = s.get_slice().get_fdata()*s.get_mask()
@@ -789,7 +603,8 @@ def normalization(listSlice):
                     n = n + 1
                     var.append(data[x,y,0])
     mean = mean_sum/n
-    std = np.sqrt((sum((np.array(var)-mean)*(np.array(var)-mean))/n))
+    std = np.sqrt((sum((np.array(var)-mean)*(np.array(var)-mean))/(n)))
+    
     listSliceNorm = []
     for s in listSlice:
         slices = s.get_slice().get_fdata()*s.get_mask()
@@ -801,90 +616,126 @@ def normalization(listSlice):
                     newSlice[x,y,0] = (slices[x,y,0] - mean)/std
         newNifti = nib.Nifti1Image(newSlice, s.get_slice().affine)
         s.set_slice(newNifti)
-        data = s.get_slice().get_fdata()
+        #data = s.get_slice().get_fdata()
         listSliceNorm.append(s)
+
+    #dbug : 
+    # mean_sum = 0
+    # n = 0
+    # std=0
+    # var = []
+    # for s in listSlice:  
+    #     data = s.get_slice().get_fdata()*s.get_mask()
+    #     X,Y,Z = data.shape
+    #     for x in range(X):
+    #         for y in range(Y):
+    #             if data[x,y,0]!= 0:
+    #                 mean_sum = mean_sum + data[x,y,0]
+    #                 n = n + 1
+    #                 var.append(data[x,y,0])
+    # mean = mean_sum/n
+    # std = np.sqrt((sum((np.array(var)-mean)*(np.array(var)-mean))/(n-1))) 
     return listSliceNorm
  
-#Optimisation scheme : 
-    #Try on the different images
-    #Try with shuffle and without shuffle
-    #Try with  a random referance slice
-    #Try with the 2 slices that have the minimum registration error -> be careful not to take the one with zeros ...
-    #Try with 3 images in different orientations that have the best registration error
-    #Try Thierry method : with the variance of the error -> compute the variance of each slice and multiply the error with the inverse of the standard deviation
-    #Try to register together first the slices with most common points
-    #choose the best slices 10 slices with the best cost at each iteration of the algorithme and register on it the slices with the other slices
 
-                
 def optimization(listSlice):
 
-    Nit = 10
-    nbSlice = len(listSlice)
-    EvolutionError = np.zeros(Nit+1)
-    EvolutionGridError = np.zeros((Nit+1,nbSlice,nbSlice))
-    EvolutionGridNbpoint = np.zeros((Nit+1,nbSlice,nbSlice))
-    EvolutionParameters = np.zeros((Nit+1,6,nbSlice))
-    for i_slice in range(nbSlice):
-        EvolutionParameters[0,:,i_slice] = listSlice[i_slice].get_parameters()
+    delta=5
+    indice=0
+    nbSlice=len(listSlice)
+    EvolutionError=[]
+    EvolutionDice=[]
+    EvolutionGridError=[] 
+    EvolutionGridNbpoint=[]
+    EvolutionGridInter=[]
+    EvolutionGridUnion=[]
+    EvolutionParameters=[] 
+    Previous_parameters=np.zeros((6,nbSlice))
+    
+    for i in range(nbSlice):
+        EvolutionParameters.extend(listSlice[i].get_parameters())
+        Previous_parameters[:,i]=listSlice[i].get_parameters()
+        
     
     #Initialisation :
-    gridError, gridNbpoint = computeCostBetweenAll2Dimages(listSlice, 'MSE')
-    gridInter,gridUnion = computeCostBetweenAll2Dimages(listSlice, 'DICE')
-    EvolutionGridError[0,:,:] = gridError
-    EvolutionGridNbpoint[0,:,:] = gridNbpoint
-    EvolutionError[0] = costFromMatrix(gridError, gridNbpoint)
-        
-    for i in range(Nit):
-        randomIndice = np.arange(nbSlice)
-        np.random.shuffle(randomIndice)
-        i_slice = 0
-        start = time.time()
-        
-        for i_slice in randomIndice:
-                        
-        #with the dice : use powell
-        
-            slicei = listSlice[i_slice]
-            x0 = slicei.get_parameters() 
-            #print(x0)
-            #initial_direction = np.eye(6)
-            #res = minimize(cost_fct,x0,args=(slicei,i_slice,listSlice,gridInter,gridUnion,'DICE'),method='Powell',options={"maxiter" : 6,"direc": initial_direction})
-            #x_int = res.x
-            
-            #slicei.set_parameters(x_int) #necessary because the value of x at the end of the algorithm is not the optimal value
-            #updateCostBetweenAllImageAndOne(slicei, i_slice, listSlice, gridError, gridNbpoint,'MSE')
-            #updateCostBetweenAllImageAndOne(slicei, i_slice, listSlice, gridInter, gridUnion,'DICE')
+    gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)
+    EvolutionGridError.extend(gridError.copy())
+    EvolutionGridNbpoint.extend(gridNbpoint.copy())
+    EvolutionGridInter.extend(gridInter.copy())
+    EvolutionGridUnion.extend(gridUnion.copy())
+    costMse=costFromMatrix(gridError, gridNbpoint)
+    costDice=costFromMatrix(gridInter,gridUnion)
+    
+    EvolutionError.append(costMse)
+    print('The MSE before optimization is :', costMse)
+    EvolutionDice.append(costDice)
+    print('The DICE before optimisation is :', costDice)
 
-            res = minimize(cost_fct,x0,args=(slicei,i_slice,listSlice,gridError.copy(),gridNbpoint.copy(),'MSE'),method='CG',options={"maxiter" : 1}) #Nelder-Mead
-            opti_parameter = res.x
+    
+    initial_s = np.zeros((7,6))
+    vectd = np.linspace(delta,1,delta,dtype=int)
+    
             
-            slicei.set_parameters(opti_parameter) #necessary because the value of x at the end of the algorithm is not the optimal value
-            updateCostBetweenAllImageAndOne(slicei, i_slice, listSlice, gridError, gridNbpoint,'MSE')
-            #updateCostBetweenAllImageAndOne(slicei, i_slice, listSlice, gridInter, gridUnion,'DICE')
-            
-            cost = costFromMatrix(gridError, gridNbpoint)
-            # #debug : 
-            # slicedebug = listSlice2[i_slice]
-            # slicedebug.set_parameters(opti_parameter)
-            # print(slicedebug==slicei)
-            # print(listSlice2==listSlice)
+    for d in vectd:
+
+            delta = d
+            randomIndex= np.arange(nbSlice)
+            np.random.shuffle(randomIndex)
+            start = time.time()
             
             
-            EvolutionParameters[i+1,:,i_slice] = slicei.get_parameters()
-            #debug procedure :
-            # debugGridError, debugGridNbpoint = computeCostBetweenAll2Dimages(listSlice, 'MSE')  
-            # if costFromMatrix(debugGridError,debugGridNbpoint) != costFromMatrix(gridError,gridNbpoint):
-            #     print('error')
-            #     return 0
-        end = time.time()
-        elapsed = end - start
-        print(f'Temps d\'exécution : {elapsed}')
-        gridError, gridNbpoint = computeCostBetweenAll2Dimages(listSlice, 'MSE')
-        EvolutionError[i+1] = cost
-        EvolutionGridError[i+1,:,:] = gridError
-        EvolutionGridNbpoint[i+1,:,:] = gridNbpoint
-        #print(listSlice[ref_slice]==listSlice2[ref_slice])
-    return EvolutionError,EvolutionGridError,EvolutionGridNbpoint,EvolutionParameters
+            for i_slice in randomIndex:  
+                slicei = listSlice[i_slice]
+                
+                x = slicei.get_parameters()
+                P0 = x
+                P1 = x + np.array([delta,0,0,0,0,0])
+                P2 = x + np.array([0,delta,0,0,0,0])
+                P3 = x + np.array([0,0,delta,0,0,0])
+                P4 = x + np.array([0,0,0,delta,0,0])
+                P5 = x + np.array([0,0,0,0,delta,0])
+                P6 = x + np.array([0,0,0,0,0,delta])
+                                            
+                initial_s[0,:]=P0
+                initial_s[1,:]=P1
+                initial_s[2,:]=P2
+                initial_s[3,:]=P3
+                initial_s[4,:]=P4
+                initial_s[5,:]=P5
+                initial_s[6,:]=P6
+
+                NM = minimize(cost_fct,x,args=(i_slice,listSlice,gridError,gridNbpoint,gridInter,gridUnion, np.ones((nbSlice,nbSlice)),100000),method='Nelder-Mead',options={"disp" : False, "maxiter" : 20 ,"maxfev":1e4, "xatol" : 1e-2, "fatol" : 1e-2, "initial_simplex" : initial_s , "adaptive" :  True})
+                x_opt = NM.x
+                slicei.set_parameters(x_opt)
+                updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion)
+                print('Cost :',costFromMatrix(gridError,gridNbpoint))
+                                
+            costMse=costFromMatrix(gridError,gridNbpoint)
+            costDice=costFromMatrix(gridInter,gridUnion)
+            EvolutionError.append(costMse)
+            EvolutionDice.append(costDice)
+            EvolutionGridError.extend(gridError.copy())
+            EvolutionGridNbpoint.extend(gridNbpoint.copy())
+            EvolutionGridInter.extend(gridInter.copy())
+            EvolutionGridUnion.extend(gridUnion.copy())
+                
+            end = time.time()
+            elapsed = end - start
+            
+            indice=indice+1
+            print('MSE after ',indice,' iteration :', costMse)
+            print('Dice after,',indice,'iteration :', costDice) 
+            print(f'Temps d\'exécution : {elapsed}')
+            
+            for i in range(nbSlice):
+                EvolutionParameters.extend(listSlice[i].get_parameters())
+    
+
+    end = time.time()
+    elapsed = end - start
+    print(f'Temps d\'exécution : {elapsed}')
+
+    return np.array(EvolutionError),np.array(EvolutionDice),np.array(EvolutionGridError),np.array(EvolutionGridNbpoint),np.array(EvolutionGridInter),np.array(EvolutionGridUnion),np.array(EvolutionParameters)
     
 def save_parameters(parameters2save,path):
     listParameters = ['Anglex','Angley','Anglez','Translationx','Translationy','Translationz']
@@ -905,3 +756,63 @@ def loadimages(fileImage,fileMask):
           inmask = nib.load(fileMask)
     return im,inmask
                 
+def matrixOfWeight(gridError,gridNbpoint,threshold):
+    
+    X,Y = gridError.shape
+    mWeight = np.zeros((X,Y))
+    valWeight = 0
+    
+    for i_slice in range(Y):
+        valWeight = (sum(gridError[:,i_slice])+sum(gridError[i_slice,:]))/(sum(gridNbpoint[i_slice,:])+sum(gridNbpoint[:,i_slice]))
+        
+        mWeight[:,i_slice]=valWeight*np.ones(X)
+        
+
+    Weight = mWeight < threshold
+    return Weight
+
+
+def updateMatrixOfWeight(gridError,gridNbpoint,Weight,i_slice,threshold):
+    
+    
+    mWeight = Weight
+    X,Y = gridError.shape
+    
+    valWeight=(sum(gridError[:,i_slice])+sum(gridError[i_slice,:]))/(sum(gridNbpoint[i_slice,:])+sum(gridNbpoint[:,i_slice]))
+    
+    weight = valWeight < threshold
+
+    mWeight[:,i_slice]=weight*np.ones(X)
+    
+    return mWeight
+
+
+    
+    
+def gridErrorWithWeight(Weight,gridError,i_slice,t):
+    
+    X,Y = gridError.shape
+    gEwithWeight = np.zeros((X,Y))
+    
+
+    for i in range(X):
+        for j in range(Y): 
+            if i != i_slice:
+                val1 = Weight[0,i]
+            else:
+                val1 = 1
+            if j != i_slice:
+                val2 = Weight[0,j]
+            else:
+                val2 = 1
+
+        
+            if i>j:
+                if t == True:
+                    gEwithWeight[i,j] = val1*val2*gridError[i,j]
+                else:
+                    gEwithWeight[i,j] = 1/((1/val1)+(1/val2))*gridError[i,j]
+
+           
+    return gEwithWeight
+    
