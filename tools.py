@@ -8,7 +8,8 @@ Created on Mon Nov  8 10:00:47 2021
 import numpy as np
 
 
-def rotationCenter(mask,sliceaffine):
+
+def rotationCenter(mask):
     """
     
     Compute the barycentre
@@ -21,8 +22,9 @@ def rotationCenter(mask,sliceaffine):
     centerw : 2xD vector
    
     """    
-    X,Y = mask.shape
-    
+    shape = mask.shape
+    X = shape[0]
+    Y = shape[1]
     center = np.zeros(2)
 
     somme_x = 0
@@ -31,15 +33,19 @@ def rotationCenter(mask,sliceaffine):
     
     for i in range(X):
         for j in range(Y):
-                if mask[i,j] == 1:
+                if mask[i,j] > 0:
                     somme_x = somme_x + i
                     somme_y = somme_y + j
                     nbpoint = nbpoint + 1
-    center[0] = int(somme_x/nbpoint)
-    center[1] = int(somme_y/nbpoint) 
+    if nbpoint == 0: #in case there is no mask in the image, we consider the centre of rotation to be the center of the image
+        center[0]= int(X/2)
+        center[1]= int(Y/2)
+    else:
+        center[0] = int(somme_x/nbpoint)
+        center[1] = int(somme_y/nbpoint) 
     
     centerw = np.concatenate((center,np.array([0,1])))
-    centerw = sliceaffine @ centerw 
+    #centerw = sliceaffine @ centerw 
     
     
     return centerw
@@ -62,39 +68,16 @@ def rigidMatrix(parameters):
     gamma = np.pi*(parameters[0]/180.0)
     beta = np.pi*(parameters[1]/180.0)
     alpha = np.pi*(parameters[2]/180.0)
-    
-    # Rotalpha = np.eyes(4)
-    # Rotalpha[1,1] = np.cos(alpha)
-    # Rotalpha[1,2] = - np.sin(alpha)
-    # Rotalpha[2,1] = np.sin(alpha)
-    # Rotalpha[2,2] = np.cos(alpha)
-    
-    # Rotbeta = np.eyes(4)
-    # Rotbeta[0,0] = np.cos(beta)
-    # Rotbeta[0,2] = np.sin(beta)
-    # Rotbeta[2,0] = -np.sin(beta)
-    # Rotbeta[2,2] = np.cos(beta)
-    
-    
-    # Rotgamma = np.eyes(4)
-    # Rotgamma[0,0] = np.cos(gamma)
-    # Rotgamma[0,1] = -np.sin(gamma)
-    # Rotgamma[1,0] = np.sin(gamma)
-    # Rotgamma[1,1] = np.cos(gamma)
-    
-    # trans = np.zeros(4)
-    # trans[0:3,3] = translation
-    
-    # rigide = (Rotalpha * Rotbeta * Rotgamma) + trans 
+
     
     rigide = np.eye(4)
     rigide[0:3,3] = parameters[3:6]
     
-    cosa=np.cos(alpha)
     cosg=np.cos(gamma)
+    cosa=np.cos(alpha)
     cosb=np.cos(beta)
-    sina=np.sin(alpha)
     sing=np.sin(gamma)
+    sina=np.sin(alpha)
     sinb=np.sin(beta)
     
     
@@ -110,3 +93,56 @@ def rigidMatrix(parameters):
     rigide[2,2] = cosb*cosg
     
     return rigide
+
+
+def ParametersFromRigidMatrix(rigidMatrix):
+    
+    p=np.zeros(6)
+    
+    p[3]=rigidMatrix[0,3]
+    p[4]=rigidMatrix[1,3]
+    p[5]=rigidMatrix[2,3]
+    
+    beta=np.arcsin(-rigidMatrix[0,2])
+    gamma=np.arctan2(rigidMatrix[1,2]/np.cos(beta),rigidMatrix[2,2]/np.cos(beta))
+    alpha=np.arctan2(rigidMatrix[0,1]/np.cos(beta),rigidMatrix[0,0]/np.cos(beta))
+    p[0]=(180.0*gamma)/np.pi
+    p[1]=(180.0*beta)/np.pi
+    p[2]=(180.0*alpha)/np.pi
+    
+    return p
+
+#useful function for optimization shemes
+def computeAllErrorsFromGrid(gridError,gridNbpoint):
+    nbSlice,nbSlice = gridError.shape
+    ArrayError = np.zeros(nbSlice)
+    var_error = 0
+    var_nbpoint = 0
+    for i_slice in range(nbSlice):
+        var_error = sum(gridError[:,i_slice]) + sum(gridError[:,i_slice])
+        var_nbpoint = sum((gridNbpoint[i_slice,:])) + sum(gridNbpoint[:,i_slice])
+        ArrayError[i_slice] = var_error/var_nbpoint 
+    return ArrayError
+
+
+
+def transfoMoy(M1,nbSlice1,M2,nbSlice2,nbSlice,Slice):
+    
+    a=np.abs(nbSlice-nbSlice1)
+    print(nbSlice)
+    print(nbSlice1)
+    print('a=',a)
+    b=np.abs(nbSlice-nbSlice2)
+    print('b=',b)
+    MtotB=(b*M1+a*M2)/(a+b)
+    slicemask=Slice.get_mask()
+    affine=Slice.get_slice().affine
+    rotC = rotationCenter(slicemask) #Compute the barycenter of the image
+    centerMatrix = np.eye(4)
+    invcenterMatrix = np.eye(4)
+    center = affine @ rotC
+    centerMatrix[0:3,3] = -center[0:3]
+    invcenterMatrix[0:3,3] = +center[0:3]
+    MB=np.linalg.inv(invcenterMatrix)@MtotB@np.linalg.inv(affine)@np.linalg.inv(centerMatrix)
+    return MB     
+                
