@@ -64,7 +64,7 @@ if __name__ == '__main__':
     errorCorSag_before = ErrorOfRegistrationBtw2Slice(ptCorSag_Cor,ptCorSag_Sag,SliceCorBeforeReg,SliceSagBeforeReg) #Error of registration between coronal and sagittal
     
     #Simulated data and Motion Correction
-    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters = optimization(listWithMvt) #Algorithm of motion correction
+    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo = optimization(listWithMvt) #Algorithm of motion correction
 
     SliceAxAfterReg,SliceCorAfterReg,SliceSagAfterReg = create3VolumeFromAlist(listWithMvt) #Create 3 list of slices that represents the volume Axial, Coronal and Sagittal with simulation motion corrected by the algorithm
     
@@ -86,80 +86,88 @@ if __name__ == '__main__':
     imcor, inmask = loadimages(coronal,cormask)
     imgChamferDistanceCor = ChamferDistance(inmask)
     ccorsag = createArrayOfChamferDistance(imgChamferDistanceCor,ptCorSag_Cor)
-    
-    
-    #Create 3 images error. Those images displays the error of registration corresponding to the pixel
-    X,Y,Z = sliceAx[0].get_slice().shape
-    nbSlice = len(sliceAx)
-    ImageErrorAxCor = createAnErrorImage(ptAxCor_Ax,errorAxCor_after, [X,Y,nbSlice])
-    ImageErrorAxSag = createAnErrorImage(ptAxSag_Ax,errorAxSag_after,[X,Y,nbSlice])
-
-    X,Y,Z = sliceCor[0].get_slice().shape
-    nbSlice = len(sliceCor)
-    ImageErrorCorSag = createAnErrorImage(ptCorSag_Cor, errorCorSag_after, [X,Y,nbSlice])
-
-    
+        
     file = args.output
     if not os.path.exists(file):
         os.makedirs(file)
-        
-    strEE = file + '/ErrorEvolution.dat'
-    ErrorEvolution.tofile(strEE)
     
-    strED = file + '/DiceEvolution.dat'
-    DiceEvolution.tofile(strED)
+    nbit = len(ErrorEvolution)
+    nbSlice=len(listSlice)
     
-    strEGE = file + '/EvolutionGridError.dat'
-    EvolutionGridError.tofile(strEGE)
+    strEE = file + '/ErrorEvolution'
+    #ErrorEvolution.tofile(strEE)
+    np.savez_compressed(strEE,ErrorEvolution)
     
-    strEGN = file + '/EvolutionGridNbpoint.dat'
-    EvolutionGridNbpoint.tofile(strEGN)
+    strED = file + '/DiceEvolution'
+    #DiceEvolution.tofile(strED)
+    np.savez_compressed(strED,DiceEvolution)
     
-    strEGI = file + '/EvolutionGridInter.dat'
-    EvolutionGridInter.tofile(strEGI)
+    strEGE = file + '/EvolutionGridError'
+    #EvolutionGridError.tofile(strEGE)
+    EvolutionGridError = np.reshape(EvolutionGridError,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGE,EvolutionGridError)
     
-    strEGU = file + '/EvolutionGridUnion.dat'
-    EvolutionGridUnion.tofile(strEGU)
+    strEGN = file + '/EvolutionGridNbpoint'
+    #EvolutionGridNbpoint.tofile(strEGN)
+    EvolutionGridNbpoint = np.reshape(EvolutionGridNbpoint,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGN,EvolutionGridNbpoint)
     
-    strEP = file + '/EvolutionParameters.dat'
-    EvolutionParameters.tofile(strEP)
+    strEGI = file + '/EvolutionGridInter'
+    #EvolutionGridInter.tofile(strEGI)
+    EvolutionGridInter = np.reshape(EvolutionGridInter,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGI,EvolutionGridInter)
     
-    strEBac = file + '/ErrorBeforeAxCor.dat'
-    errorAxCor_before.tofile(strEBac)
+    strEGU = file + '/EvolutionGridUnion'
+    #EvolutionGridUnion.tofile(strEGU)
+    EvolutionGridUnion = np.reshape(EvolutionGridUnion,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGU,EvolutionGridUnion)
     
-    strEBas = file + '/ErrorBeforeAxSag.dat'
-    errorAxSag_before.tofile(strEBas)
+    strEP = file + '/EvolutionParameters'
+    #EvolutionParameters.tofile(strEP)
+    EvolutionParameters = np.reshape(EvolutionParameters,[nbit,nbSlice,6])
+    np.savez_compressed(strEP,EvolutionParameters)
     
-    strEBcs = file + '/ErrorBeforeCorSag.dat'
-    errorCorSag_before.tofile(strEBcs)
+    strET = file + '/EvolutionTransfo'
+    #EvolutionTransfo.tofile(strET)
+    EvolutionTransfo = np.reshape(EvolutionTransfo,[nbit,nbSlice,4,4])
+    np.savez_compressed(strET,EvolutionTransfo)
     
-    strEAac = file + '/ErrorAfterAxCor.dat'
-    errorAxCor_after.tofile(strEAac)
+    strEBac = file + '/ErrorBeforeAxCor'
+    #errorAxCor_before.tofile(strEBac)
+    np.savez_compressed(strEBac,errorAxCor_before)
     
-    strEAas = file + '/ErrorAfterAxSag.dat'
-    errorAxSag_after.tofile(strEAas)
+    strEBas = file + '/ErrorBeforeAxSag'
+    #errorAxSag_before.tofile(strEBas)
+    np.savez_compressed(strEBas,errorAxSag_before)
     
-    strEAcs = file + '/ErrorAfterCorSag.dat'
-    errorCorSag_after.tofile(strEAcs)
+    strEBcs = file + '/ErrorBeforeCorSag'
+    #errorCorSag_before.tofile(strEBcs)
+    np.savez_compressed(strEBcs,errorCorSag_before)
+    
+    
+    strEAac = file + '/ErrorAfterAxCor'
+    #errorAxCor_after.tofile(strEAac)
+    np.savez_compressed(strEAac,errorAxCor_after)
+    
+    strEAas = file + '/ErrorAfterAxSag'
+    #errorAxSag_after.tofile(strEAas)
+    np.savez_compressed(strEAas,errorAxSag_after)
+    
+    strEAcs = file + '/ErrorAfterCorSag'
+    #errorCorSag_after.tofile(strEAcs)
+    np.savez_compressed(strEAcs,errorCorSag_after)
 
-    strCac = file + '/colormapAC.dat'
-    caxcor.tofile(strCac)
+    strCac = file + '/colormapAC'
+    #caxcor.tofile(strCac)
+    np.savez_compressed(strCac,caxcor)
     
-    strCas = file +'/colormapAS.dat'
-    caxsag.tofile(strCas)
+    strCas = file +'/colormapAS'
+    #caxsag.tofile(strCas)
+    np.savez_compressed(strCas,caxsag)
     
-    strCcs = file + '/colormapCS.dat'
-    ccorsag.tofile(strCcs)
-    
-    strEIAc = file + '/ErrorImageAxialCoronal.dat'
-    ImageErrorAxCor.tofile(strEIAc)
-    
-    strEIas = file + '/ErrorImageAxialSagittal.dat'
-    ImageErrorAxSag.tofile(strEIas)
-    
-    strEIcs = file + '/ErrorImageCoronalSagittal.dat'
-    ImageErrorCorSag.tofile(strEIcs)
-    
+    strCcs = file + '/colormapCS'
+    #ccorsag.tofile(strCcs)
+    np.savez_compressed(strCcs,ccorsag)
     
     end = time.time()
     elapsed = end - start
