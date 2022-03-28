@@ -555,7 +555,7 @@ def cost_fct(x,i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion,
     slicei=listSlice[i_slice]
     slicei.set_parameters(x)
     updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion)
-    updateMatrixOfWeight(gridError,gridNbpoint,gridWeight,i_slice,threshold)
+    #updateMatrixOfWeight(gridError,gridNbpoint,gridWeight,i_slice,threshold)
     errorWithWeight = gridWeight * gridError 
     res = costFromMatrix(errorWithWeight.copy(),gridNbpoint.copy())
     
@@ -638,12 +638,24 @@ def normalization(listSlice):
     return listSliceNorm
  
 
-def optimization(listSlice):
+def global_optimization(listSlice):
+    """
+    Compute the optimised parameters for each slice
 
-    delta=5
-    indice=0
-    nbSlice=len(listSlice)
-    EvolutionError=[]
+    Input
+    
+    listSlice : list of sliceObjects
+        list of the 2D images of the fetus brains with the orientation information associated with each image
+
+    Returns
+    
+    A list of Arrays. The arrays reprent the Evolution of the parameters that are use to validate the registration.
+    The arrays are : the Evolution of the MSE, of the DICE, the square error, the number of points, the intersection, the union and the results transformation.
+
+    """
+
+    nbSlice=len(listSlice) #number of slices in the list
+    EvolutionError=[] #initalisation of the result arrays
     EvolutionDice=[]
     EvolutionGridError=[] 
     EvolutionGridNbpoint=[]
@@ -651,14 +663,17 @@ def optimization(listSlice):
     EvolutionGridUnion=[]
     EvolutionParameters=[] 
     Previous_parameters=np.zeros((6,nbSlice))
+    EvolutionTransfo=[]
     
-    for i in range(nbSlice):
-        EvolutionParameters.extend(listSlice[i].get_parameters())
-        Previous_parameters[:,i]=listSlice[i].get_parameters()
+    for i in range(nbSlice): #values of the parameters before starting the optimization
+        slicei=listSlice[i]
+        EvolutionParameters.extend(slicei.get_parameters())
+        Previous_parameters[:,i]=slicei.get_parameters()
+        EvolutionTransfo.extend(slicei.get_transfo())
         
     
     #Initialisation :
-    gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)
+    gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice) #error values before starting the optimization
     EvolutionGridError.extend(gridError.copy())
     EvolutionGridNbpoint.extend(gridNbpoint.copy())
     EvolutionGridInter.extend(gridInter.copy())
@@ -670,46 +685,161 @@ def optimization(listSlice):
     print('The MSE before optimization is :', costMse)
     EvolutionDice.append(costDice)
     print('The DICE before optimisation is :', costDice)
-
     
+    #Differents steps of the optimization
+    #1 - Register all the slices together
+    print('step 1 :', "all the slice are register together")
+    resall=allSlicesOptimisation(listSlice, gridError, gridNbpoint, gridInter, gridUnion, EvolutionError, EvolutionDice, EvolutionGridError, EvolutionGridNbpoint, EvolutionGridInter, EvolutionGridUnion, EvolutionParameters, EvolutionTransfo)
+    #1 - 1) Compute of error threshold based on MSE, if the MSE of a slice is below this threshold, it is well register
+    threshold=OptimizationThreshold(gridError,gridNbpoint)
+    #2 - Register togeter the slices that are bad-gister
+    print('step 2 :', "the bad slices are register")
+    resworst=badSliceOptimisation(listSlice,threshold,resall[0],resall[1],resall[2],resall[3],resall[4],resall[5],resall[6],resall[7],resall[8],resall[9],resall[10],resall[11])
+   
+    #returns parameters used to validate the registration
+    EvolutionError=resworst[4];EvolutionDice=resworst[5];EvolutionGridError=resworst[6];EvolutionGridNbpoint=resworst[7];EvolutionGridInter=resworst[8];EvolutionGridUnion=resworst[9];EvolutionParameters=resworst[10];EvolutionTransfo=resworst[11]
+    return np.array(EvolutionError),np.array(EvolutionDice),np.array(EvolutionGridError),np.array(EvolutionGridNbpoint),np.array(EvolutionGridInter),np.array(EvolutionGridUnion),np.array(EvolutionParameters),np.array(EvolutionTransfo)
+    
+
+def SimplexOptimization(delta,x0,i_slice,listSlice,gridError,gridNbpoint,gridInter,gridUnion,gridWeight,initial_s,threshold):
+    """
+    Implementation of the simplex (Nealder - Mead) method for the problem
+    
+    Inputs : 
+        delta : the size of the initial simplex
+        x0 : the initial value of the initial simplex
+        initial_s : an initial array for the simplex
+        i_slice : index of the slice in listSlice 
+        listSlice :  list of sliceObjects, list of the 2D images of the fetus brains with the orientation information associated with each image
+        gridError : triangular matrix representing the square error between each slices
+        gridNbpoint : triangular matrix representing the number of common point between each slices
+        gridInter : triangular matrix representing the number of point on the intersection between each slices
+        gridUnion : triangular matrix representing the number of point on the union between each slices
+        gridWeight : binary matrix, each column represent one image. The matrix indicate if the slice is below or above the threshold
+        threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+        
+    Outputs : 
+        costMSE : global MSE after optimisation
+        costDice : global DICE after optimisation
+        
+    """
+    slicei=listSlice[i_slice]
+    
+    P0 = x0 #create the initial simplex
+    P1 = x0 + np.array([delta,0,0,0,0,0])
+    P2 = x0 + np.array([0,delta,0,0,0,0])
+    P3 = x0 + np.array([0,0,delta,0,0,0])
+    P4 = x0 + np.array([0,0,0,delta,0,0])
+    P5 = x0 + np.array([0,0,0,0,delta,0])
+    P6 = x0 + np.array([0,0,0,0,0,delta])
+                                    
+    initial_s[0,:]=P0
+    initial_s[1,:]=P1
+    initial_s[2,:]=P2
+    initial_s[3,:]=P3
+    initial_s[4,:]=P4
+    initial_s[5,:]=P5
+    initial_s[6,:]=P6
+                                                
+    X,Y = gridError.shape
+    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,gridError.copy(),gridNbpoint.copy(),gridInter.copy(),gridUnion.copy(),gridWeight.copy(),threshold),method='Nelder-Mead',options={"disp" : True,"maxiter" : 20, "maxfev":1e6, "xatol" : 1e-2, "fatol" : 1e-4, "initial_simplex" : initial_s , "adaptive" :  False})
+    #optimisation of the cost function using the simplex method                                    
+    
+    x_opt = NM.x #best parameter obtains after registration
+    slicei.set_parameters(x_opt)
+    updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint,gridInter,gridUnion) #updated matrix of cost
+    costMse=costFromMatrix(gridError,gridNbpoint) #MSE after optimisation
+    costDice=costFromMatrix(gridInter,gridUnion) #Dice after optimisation
+    
+    return costMse,costDice
+    
+def OptimizationThreshold(gridError,gridNbpoint):
+    """
+    Compute the threshold between well-register slices and bad-register slices
+    
+    Inputs 
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+
+    Ouptut 
+    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+        
+    """
+    
+    vectMse = np.zeros([gridError.shape[0]])
+    
+    for i in range(gridError.shape[0]): #compute between each slice and its orthogonal slices
+        mse = sum(gridError[i,:]) + sum(gridError[:,i])
+        point =  sum(gridNbpoint[i,:]) + sum(gridNbpoint[:,i])
+        vectMse[i] = mse/point
+                            
+    valMse = np.median(vectMse[~np.isnan(vectMse)])
+    
+    threshold = 1.25*valMse #the therhold is 1.25x the median value (cf kim's article)
+    
+    print('threshold :', threshold) 
+    return threshold
+
+def allSlicesOptimisation(listSlice,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
+    """
+    
+    Register all slices together
+
+    Input:
+        
+    listSlice : list of sliceObjects, list of the 2D images of the fetus brains with the orientation information associated with each image
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    gridInter : triangular matrix representing the number of point on the intersection between each slices
+    gridUnion : triangular matrix representing the number of point on the union between each slices
+    EvolutionError : array of error at each iteration
+    EvolutionDice : array of dice at each iteration
+    EvolutionGridError : array of the evolution of the variable 'gridError' at each iteration
+    EvolutionGridNbpoint : array of the evolution of the variable 'gridNbpoint' at each iteration
+    EvolutionGridInter : array of the evolution of the variable 'gridInter' at each iteration
+    EvolutionGridUnion : array of the evolution of variable 'gridUnion' at each iteration
+    EvolutionParameters : array of the evolution parameters at each iteration
+    EvolutionTransfo : array of the evolution of the transformation at each iteration
+
+    Ouputs:
+        
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    gridInter : triangular matrix representing the number of point on the intersection between each slices
+    gridUnion : triangular matrix representing the number of point on the union between each slices
+    EvolutionError : array of error at each iteration
+    EvolutionDice : array of dice at each iteration
+    EvolutionGridError : array of the evolution of the variable 'gridError' at each iteration
+    EvolutionGridNbpoint : array of the evolution of the variable 'gridNbpoint' at each iteration
+    EvolutionGridInter : array of the evolution of the variable 'gridInter' at each iteration
+    EvolutionGridUnion : array of the evolution of variable 'gridUnion' at each iteration
+    EvolutionParameters : array of the evolution parameters at each iteration
+    EvolutionTransfo : array of the evolution of the transformation at each iteration
+
+    """
+    
+    delta=5 #maximum size of simplex
     initial_s = np.zeros((7,6))
-    vectd = np.linspace(delta,1,delta,dtype=int)
+    vectd = np.linspace(delta,1,delta,dtype=int) #distinct size of simplex
+    nbSlice = len(listSlice)
+    indice=0
     
-            
-    for d in vectd:
+    for d in vectd: #optimize each slices for differents size of simplex
 
-            delta = d
+            delta = d 
             randomIndex= np.arange(nbSlice)
             np.random.shuffle(randomIndex)
             start = time.time()
             
             
-            for i_slice in randomIndex:  
-                slicei = listSlice[i_slice]
+            for i_slice in randomIndex:   
+            
+                slicei=listSlice[i_slice]
+                x0=slicei.get_parameters()
+                costMse,costDice=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
+                print('costMse :', costMse, 'costDice :', costDice)
                 
-                x = slicei.get_parameters()
-                P0 = x
-                P1 = x + np.array([delta,0,0,0,0,0])
-                P2 = x + np.array([0,delta,0,0,0,0])
-                P3 = x + np.array([0,0,delta,0,0,0])
-                P4 = x + np.array([0,0,0,delta,0,0])
-                P5 = x + np.array([0,0,0,0,delta,0])
-                P6 = x + np.array([0,0,0,0,0,delta])
-                                            
-                initial_s[0,:]=P0
-                initial_s[1,:]=P1
-                initial_s[2,:]=P2
-                initial_s[3,:]=P3
-                initial_s[4,:]=P4
-                initial_s[5,:]=P5
-                initial_s[6,:]=P6
-
-                NM = minimize(cost_fct,x,args=(i_slice,listSlice,gridError,gridNbpoint,gridInter,gridUnion, np.ones((nbSlice,nbSlice)),100000),method='Nelder-Mead',options={"disp" : False, "maxiter" : 20 ,"maxfev":1e4, "xatol" : 1e-2, "fatol" : 1e-2, "initial_simplex" : initial_s , "adaptive" :  True})
-                x_opt = NM.x
-                slicei.set_parameters(x_opt)
-                updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion)
-                print('Cost :',costFromMatrix(gridError,gridNbpoint))
-                                
+                
             costMse=costFromMatrix(gridError,gridNbpoint)
             costDice=costFromMatrix(gridInter,gridUnion)
             EvolutionError.append(costMse)
@@ -728,26 +858,182 @@ def optimization(listSlice):
             print(f'Temps d\'exécution : {elapsed}')
             
             for i in range(nbSlice):
-                EvolutionParameters.extend(listSlice[i].get_parameters())
-    
+                slicei=listSlice[i]
+                EvolutionParameters.extend(slicei.get_parameters())
+                EvolutionTransfo.extend(slicei.get_transfo())
+                
+    return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
 
-    end = time.time()
-    elapsed = end - start
-    print(f'Temps d\'exécution : {elapsed}')
-
-    return np.array(EvolutionError),np.array(EvolutionDice),np.array(EvolutionGridError),np.array(EvolutionGridNbpoint),np.array(EvolutionGridInter),np.array(EvolutionGridUnion),np.array(EvolutionParameters)
+def badSliceOptimisation(listSlice,threshold,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
+    """
     
-def save_parameters(parameters2save,path):
-    listParameters = ['Anglex','Angley','Anglez','Translationx','Translationy','Translationz']
-    if not os.path.exists('path'):
-            os.makedirs('path')
-    for i in range(6):
-        if not os.path.exists('path/ %d'%(i)):
-                os.makedirs('path/ %d' %(i))
-        file = 'path/ %d / %s .txt' %(i,listParameters[i])
-        np.savetxt(file,parameters2save[:,i,:])
+    Register only the best slices together -> ie the slices that have a MSE below the threshold
+
+    Input:
+        
+    listSlice : list of sliceObjects, list of the 2D images of the fetus brains with the orientation information associated with each image
+    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    gridInter : triangular matrix representing the number of point on the intersection between each slices
+    gridUnion : triangular matrix representing the number of point on the union between each slices
+    EvolutionError : array of error at each iteration
+    EvolutionDice : array of dice at each iteration
+    EvolutionGridError : array of the evolution of the variable 'gridError' at each iteration
+    EvolutionGridNbpoint : array of the evolution of the variable 'gridNbpoint' at each iteration
+    EvolutionGridInter : array of the evolution of the variable 'gridInter' at each iteration
+    EvolutionGridUnion : array of the evolution of variable 'gridUnion' at each iteration
+    EvolutionParameters : array of the evolution parameters at each iteration
+    EvolutionTransfo : array of the evolution of the transformation at each iteration
+
+    Ouputs:
+        
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    gridInter : triangular matrix representing the number of point on the intersection between each slices
+    gridUnion : triangular matrix representing the number of point on the union between each slices
+    EvolutionError : array of error at each iteration
+    EvolutionDice : array of dice at each iteration
+    EvolutionGridError : array of the evolution of the variable 'gridError' at each iteration
+    EvolutionGridNbpoint : array of the evolution of the variable 'gridNbpoint' at each iteration
+    EvolutionGridInter : array of the evolution of the variable 'gridInter' at each iteration
+    EvolutionGridUnion : array of the evolution of variable 'gridUnion' at each iteration
+    EvolutionParameters : array of the evolution parameters at each iteration
+    EvolutionTransfo : array of the evolution of the transformation at each iteration
+
+    """
+    
+    
+    delta=5
+    initial_s = np.zeros((7,6))
+    vectd = np.linspace(delta,1,delta,dtype=int) 
+    nbSlice=len(listSlice)
+    
+    threshold=OptimizationThreshold(gridError,gridNbpoint)
+    gridWeight=matrixOfWeight(gridError, gridNbpoint, threshold)
+    
+    for d in vectd:
+               
+        delta = d
+    
+                    
+        randomIndex= np.arange(nbSlice)
+        np.random.shuffle(randomIndex)
+                  
+        for i_slice in randomIndex:
+               #for i in range(3):
+                   if gridWeight[0,i_slice] == 0:
+                       #if (gridWeight[0,i_slice] == True and test == 0) or (gridWeight[0,i_slice] == False and test == 1) :
+                                        
+                           slicei = listSlice[i_slice] 
+                           print('index slice: ',i_slice)
+                           
+                           x0=slicei.get_parameters()
+                           costMse,costDice=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
+                           print('costMse :', costMse, 'costDice :', costDice)
+        
+        for i_slice in range(nbSlice):
+            slicei = listSlice[i_slice]
+            EvolutionParameters.extend(slicei.get_parameters())
+            EvolutionTransfo.extend(slicei.get_transfo())
+            
+        EvolutionError.append(costMse)
+        EvolutionGridError.extend(gridError.copy())
+        EvolutionGridNbpoint.extend(gridNbpoint.copy())
+        EvolutionGridInter.extend(gridInter.copy())
+        EvolutionGridUnion.extend(gridUnion.copy())
+        EvolutionDice.append(costDice)
+    
+    return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
+
+
+# def worstSliceOptimization(listSlice,threshold,Previous_parameters,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
+#     """
+    
+#     Register only the worst slices together -> ie the slices that have a MSE above the threshold
+
+#     Input:
+        
+#     listSlice : list of sliceObjects, list of the 2D images of the fetus brains with the orientation information associated with each image
+#     threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+#     Previous_parameters : parameters of the images before optimisation
+#     gridError : triangular matrix representing the square error between each slices
+#     gridNbpoint : triangular matrix representing the number of common point between each slices
+#     gridInter : triangular matrix representing the number of point on the intersection between each slices
+#     gridUnion : triangular matrix representing the number of point on the union between each slices
+#     EvolutionError : array of error at each iteration
+#     EvolutionDice : array of dice at each iteration
+#     EvolutionGridError : array of the evolution of the variable 'gridError' at each iteration
+#     EvolutionGridNbpoint : array of the evolution of the variable 'gridNbpoint' at each iteration
+#     EvolutionGridInter : array of the evolution of the variable 'gridInter' at each iteration
+#     EvolutionGridUnion : array of the evolution of variable 'gridUnion' at each iteration
+#     EvolutionParameters : array of the evolution parameters at each iteration
+#     EvolutionTransfo : array of the evolution of the transformation at each iteration
+
+#     Ouputs:
+        
+#     gridError : triangular matrix representing the square error between each slices
+#     gridNbpoint : triangular matrix representing the number of common point between each slices
+#     gridInter : triangular matrix representing the number of point on the intersection between each slices
+#     gridUnion : triangular matrix representing the number of point on the union between each slices
+#     EvolutionError : array of error at each iteration
+#     EvolutionDice : array of dice at each iteration
+#     EvolutionGridError : array of the evolution of the variable 'gridError' at each iteration
+#     EvolutionGridNbpoint : array of the evolution of the variable 'gridNbpoint' at each iteration
+#     EvolutionGridInter : array of the evolution of the variable 'gridInter' at each iteration
+#     EvolutionGridUnion : array of the evolution of variable 'gridUnion' at each iteration
+#     EvolutionParameters : array of the evolution parameters at each iteration
+#     EvolutionTransfo : array of the evolution of the transformation at each iteration
+
+#     """
+    
+#     delta=5
+#     vectMse = np.zeros([gridError.shape[0]])
+#     initial_s = np.zeros((7,6))
+#     vectd = np.linspace(delta,1,delta,dtype=int) 
+#     nbSlice=len(listSlice)
+    
+#     gridWeight = matrixOfWeight(gridError, gridNbpoint, threshold)     
+    
+#     for i_slice in range(nbSlice):
+#         slicei = listSlice[i_slice] 
+#         slicei.set_parameters(Previous_parameters[:,i_slice])
+#         if(gridWeight[0,i_slice] == 1):
+#             for d in vectd:
+#                 print('index slice: ',i_slice)
+#                 print('Mse of the slice', vectMse[i_slice])
+                                    
+#                 x0=slicei.get_parameters()
+#                 costMse,costDice=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
+#                 print('costMse :', costMse, 'costDice :', costDice)
+        
+#     for i_slice in range(nbSlice):
+#             slicei = listSlice[i_slice]
+#             EvolutionParameters.extend(slicei.get_parameters())
+#             EvolutionTransfo.extend(slicei.get_transfo())
+            
+#     EvolutionError.append(costMse)
+#     EvolutionGridError.extend(gridError.copy())
+#     EvolutionGridNbpoint.extend(gridNbpoint.copy())
+#     EvolutionGridInter.extend(gridInter.copy())
+#     EvolutionGridUnion.extend(gridUnion.copy())
+#     EvolutionDice.append(costDice)            
+    
+#     return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
+
+# def save_parameters(parameters2save,path):
+#     listParameters = ['Anglex','Angley','Anglez','Translationx','Translationy','Translationz']
+#     if not os.path.exists('path'):
+#             os.makedirs('path')
+#     for i in range(6):
+#         if not os.path.exists('path/ %d'%(i)):
+#                 os.makedirs('path/ %d' %(i))
+#         file = 'path/ %d / %s .txt' %(i,listParameters[i])
+#         np.savetxt(file,parameters2save[:,i,:])
+
     
 def loadimages(fileImage,fileMask):
+    
     im = nib.load(fileImage)
     if fileMask == None:
           fileMask = np.ones(im.get_fdata().shape)
@@ -757,7 +1043,18 @@ def loadimages(fileImage,fileMask):
     return im,inmask
                 
 def matrixOfWeight(gridError,gridNbpoint,threshold):
-    
+    """
+    Compute a binary matrix which represent if a slice is well-register of bad-register. Each column of the matrix represent a slice
+
+    Inputs 
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+        
+    Ouptuts 
+    Weight : The binary matrix
+
+    """
     X,Y = gridError.shape
     mWeight = np.zeros((X,Y))
     valWeight = 0
@@ -773,7 +1070,18 @@ def matrixOfWeight(gridError,gridNbpoint,threshold):
 
 
 def updateMatrixOfWeight(gridError,gridNbpoint,Weight,i_slice,threshold):
-    
+    """
+    Updatate the matrix of weight for one slice    
+
+    Inputs 
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+        
+    Ouptuts 
+    Weight : The binary matrix
+
+    """
     
     mWeight = Weight
     X,Y = gridError.shape
@@ -790,6 +1098,9 @@ def updateMatrixOfWeight(gridError,gridNbpoint,Weight,i_slice,threshold):
     
     
 def gridErrorWithWeight(Weight,gridError,i_slice,t):
+    """
+    Error matrix, adjusted with the gridWeight matrix
+    """
     
     X,Y = gridError.shape
     gEwithWeight = np.zeros((X,Y))
