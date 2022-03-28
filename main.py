@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 from data_simulation import createMvt,findCommonPointbtw2V, create3VolumeFromAlist, ErrorOfRegistrationBtw2Slice, ChamferDistance, createArrayOfChamferDistance, createAnErrorImage
-from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,optimization
+from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     errorCorSag_before = ErrorOfRegistrationBtw2Slice(ptCorSag_Cor,ptCorSag_Sag,SliceCorBeforeReg,SliceSagBeforeReg) #Error of registration between coronal and sagittal
     
     #Simulated data and Motion Correction
-    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo = optimization(listWithMvt) #Algorithm of motion correction
+    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo = global_optimization(listWithMvt) #Algorithm of motion correction
 
     SliceAxAfterReg,SliceCorAfterReg,SliceSagAfterReg = create3VolumeFromAlist(listWithMvt) #Create 3 list of slices that represents the volume Axial, Coronal and Sagittal with simulation motion corrected by the algorithm
     
