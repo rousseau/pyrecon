@@ -9,7 +9,7 @@ import numpy as np
 import time
 import os
 import argparse
-from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,optimization
+from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
 import nibabel as nib
 
 if __name__ == '__main__':
@@ -29,12 +29,12 @@ if __name__ == '__main__':
     listSlice = []
     
     #Create a list of slices from the images
-    Orientation = ['Axial','Coronal','Sagittal']
+    #Orientation = ['Axial','Coronal','Sagittal']
     for i in range(len(args.input)):
         im, inmask = loadimages(args.input[i],args.imask[i])
         datamask = inmask.get_fdata().squeeze()
         mask = nib.Nifti1Image(datamask, inmask.affine)
-        loadSlice(im, mask, listSlice, Orientation[i])
+        loadSlice(im, mask, listSlice, i)
     
     #normalize the data with a standart distribution
     listSlice = normalization(listSlice)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     costGlobal[0] = cost
     
     #Simulated data and Motion Correction
-    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo = optimization(listSlice) #Algorithm of motion correction
+    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo = global_optimization(listSlice) #Algorithm of motion correction
     ge_mvtCorrected,gn_mvtCorrected,gi_mvtCorrected,gu_mvtCorrected = computeCostBetweenAll2Dimages(listSlice) #Compute 2 grid for the MSE
     cost = costFromMatrix(ge_mvtCorrected,gn_mvtCorrected)
     costGlobal[1] = cost
