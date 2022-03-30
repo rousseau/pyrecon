@@ -694,7 +694,7 @@ def global_optimization(listSlice):
     threshold=OptimizationThreshold(gridError,gridNbpoint)
     #2 - Register togeter the slices that are bad-gister
     print('step 2 :', "the bad slices are register")
-    resworst=badSliceOptimisation(listSlice,threshold,resall[0],resall[1],resall[2],resall[3],resall[4],resall[5],resall[6],resall[7],resall[8],resall[9],resall[10],resall[11])
+    resworst=badSliceOptimisation(listSlice,threshold,Previous_parameters,resall[0],resall[1],resall[2],resall[3],resall[4],resall[5],resall[6],resall[7],resall[8],resall[9],resall[10],resall[11])
     #returns parameters used to validate the registration
     EvolutionError=resworst[4];EvolutionDice=resworst[5];EvolutionGridError=resworst[6];EvolutionGridNbpoint=resworst[7];EvolutionGridInter=resworst[8];EvolutionGridUnion=resworst[9];EvolutionParameters=resworst[10];EvolutionTransfo=resworst[11]
     return np.array(EvolutionError),np.array(EvolutionDice),np.array(EvolutionGridError),np.array(EvolutionGridNbpoint),np.array(EvolutionGridInter),np.array(EvolutionGridUnion),np.array(EvolutionParameters),np.array(EvolutionTransfo)
@@ -864,7 +864,7 @@ def allSlicesOptimisation(listSlice,gridError,gridNbpoint,gridInter,gridUnion,Ev
                 
     return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
 
-def badSliceOptimisation(listSlice,threshold,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
+def badSliceOptimisation(listSlice,threshold,PreviousParameters,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
     """
     
     Register only the best slices together -> ie the slices that have a MSE below the threshold
@@ -911,6 +911,12 @@ def badSliceOptimisation(listSlice,threshold,gridError,gridNbpoint,gridInter,gri
     
     threshold=OptimizationThreshold(gridError,gridNbpoint)
     gridWeight=matrixOfWeight(gridError, gridNbpoint, threshold)
+    
+    for i_slice in range(nbSlice):
+        if gridWeight[0,i_slice] == 0:
+            slicei = listSlice[i_slice] 
+            slicei.set_parameters(PreviousParameters[:,i_slice])
+
     
     for d in vectd:
                

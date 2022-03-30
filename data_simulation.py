@@ -17,22 +17,24 @@ from scipy.ndimage import map_coordinates
 from scipy.ndimage import distance_transform_cdt
 import random as rd
 
-def create3VolumeFromAlist(listSlice):
+def createVolumesFromAlist(listSlice):
     
-    SliceAx = []
-    SliceCor = []
-    SliceSag = []
-    
+    orientation = []; images=[]; mask=[]
     for s in listSlice:
-        if s.get_orientation()=='Axial':
-           SliceAx.append(s)
-        elif s.get_orientation()=='Coronal':
-           SliceCor.append(s)
-        elif s.get_orientation()=='Sagittal':
-           SliceSag.append(s)
+        s_or = s.get_orientation()
+        if s_or in orientation:
+            index_orientation = orientation.index(s_or)
+            images[index_orientation].append(s)
+            mask[index_orientation].append(s.get_mask())
         else:
-            print('error : image orientation must be either Axial, Coronal or Sagittal')
-    return SliceAx,SliceCor,SliceSag
+            orientation.append(s_or)
+            images.append([])
+            mask.append([])
+            index_orientation = orientation.index(s_or)
+            images[index_orientation].append(s)
+            mask[index_orientation].append(s.get_mask())
+                
+    return images, mask
 
 def findCommonPointbtw2V(Volume1,Volume2):
     
@@ -109,7 +111,8 @@ def findCommonPointbtw2V(Volume1,Volume2):
             #print('2 :', pv2_inw)
                      
             if ~((pv1_inw==pv2_inw).all()) :
-                print("error : Points are not the same")        
+                print("error : Points are not the same")
+                break
             
     return np.array(listPointVolume1),np.array(listPointVolume2)
 
