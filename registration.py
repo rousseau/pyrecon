@@ -695,7 +695,6 @@ def global_optimization(listSlice):
     #2 - Register togeter the slices that are bad-gister
     print('step 2 :', "the bad slices are register")
     resworst=badSliceOptimisation(listSlice,threshold,resall[0],resall[1],resall[2],resall[3],resall[4],resall[5],resall[6],resall[7],resall[8],resall[9],resall[10],resall[11])
-   
     #returns parameters used to validate the registration
     EvolutionError=resworst[4];EvolutionDice=resworst[5];EvolutionGridError=resworst[6];EvolutionGridNbpoint=resworst[7];EvolutionGridInter=resworst[8];EvolutionGridUnion=resworst[9];EvolutionParameters=resworst[10];EvolutionTransfo=resworst[11]
     return np.array(EvolutionError),np.array(EvolutionDice),np.array(EvolutionGridError),np.array(EvolutionGridNbpoint),np.array(EvolutionGridInter),np.array(EvolutionGridUnion),np.array(EvolutionParameters),np.array(EvolutionTransfo)
@@ -751,7 +750,7 @@ def SimplexOptimization(delta,x0,i_slice,listSlice,gridError,gridNbpoint,gridInt
     costMse=costFromMatrix(gridError,gridNbpoint) #MSE after optimisation
     costDice=costFromMatrix(gridInter,gridUnion) #Dice after optimisation
     
-    return costMse,costDice
+    return costMse,costDice,gridError,gridNbpoint,gridInter,gridUnion
     
 def OptimizationThreshold(gridError,gridNbpoint):
     """
@@ -836,12 +835,13 @@ def allSlicesOptimisation(listSlice,gridError,gridNbpoint,gridInter,gridUnion,Ev
             
                 slicei=listSlice[i_slice]
                 x0=slicei.get_parameters()
-                costMse,costDice=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
+                costMse,costDice,gridError,gridNbpoint,gridInter,gridUnion=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
                 print('costMse :', costMse, 'costDice :', costDice)
                 
                 
             costMse=costFromMatrix(gridError,gridNbpoint)
             costDice=costFromMatrix(gridInter,gridUnion)
+            print('final MSE :', costMse, 'final DICE :', costDice)
             EvolutionError.append(costMse)
             EvolutionDice.append(costDice)
             EvolutionGridError.extend(gridError.copy())
@@ -929,14 +929,18 @@ def badSliceOptimisation(listSlice,threshold,gridError,gridNbpoint,gridInter,gri
                            print('index slice: ',i_slice)
                            
                            x0=slicei.get_parameters()
-                           costMse,costDice=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
+                           costMse,costDice,gridError,gridNbpoint,gridInter,gridUnion=SimplexOptimization(delta, x0, i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), initial_s, 10000)
                            print('costMse :', costMse, 'costDice :', costDice)
         
         for i_slice in range(nbSlice):
             slicei = listSlice[i_slice]
             EvolutionParameters.extend(slicei.get_parameters())
             EvolutionTransfo.extend(slicei.get_transfo())
-            
+        
+        
+        costMse=costFromMatrix(gridError,gridNbpoint)
+        costDice=costFromMatrix(gridInter,gridUnion)
+        print('final MSE :', costMse, 'final DICE :', costDice)
         EvolutionError.append(costMse)
         EvolutionGridError.extend(gridError.copy())
         EvolutionGridNbpoint.extend(gridNbpoint.copy())

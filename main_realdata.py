@@ -8,30 +8,27 @@ Created on Thu Feb 24 16:24:49 2022
 import numpy as np
 import time
 import os
-import argparse
 from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
 import nibabel as nib
+from input_argparser import InputArgparser
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
     
-    #load images and masks (in the order, axial, sagittal, coronnal)
-    parser.add_argument('-i','--input',help='Input Image',type=str,action='append')
-    parser.add_argument('--imask',help='Mask of the images',type=str,action='append')
-    parser.add_argument('--imvt',help='Range of motion simulation',type=int,action='append')
-    parser.add_argument('-o','--output',help='Output Image',type=str,required = True)
-    args = parser.parse_args()
+    #input arguments :
+    input_parser = InputArgparser()
+    input_parser.add_filenames(required=True)
+    input_parser.add_filenames_masks()
+    input_parser.add_dir_output(required=True)
+    args = input_parser.parse_args()
     
     start = time.time()
     costGlobal = np.zeros(2)
     
     #loading image
     listSlice = []
-    
-    #Create a list of slices from the images
-    #Orientation = ['Axial','Coronal','Sagittal']
-    for i in range(len(args.input)):
-        im, inmask = loadimages(args.input[i],args.imask[i])
+    #Load images, mask and create a list of slices from the images
+    for i in range(len(args.filenames)):
+        im, inmask = loadimages(args.filenames[i],args.filenames_masks[i])
         datamask = inmask.get_fdata().squeeze()
         mask = nib.Nifti1Image(datamask, inmask.affine)
         loadSlice(im, mask, listSlice, i)
@@ -49,35 +46,43 @@ if __name__ == '__main__':
     cost = costFromMatrix(ge_mvtCorrected,gn_mvtCorrected)
     costGlobal[1] = cost
     
-    file = args.output
+    file = args.dir_output
     if not os.path.exists(file):
         os.makedirs(file)
-        
-    strEE = file + '/ErrorEvolution.dat'
-    ErrorEvolution.tofile(strEE)
     
-    strED = file + '/DiceEvolution.dat'
-    DiceEvolution.tofile(strED)
+    nbit = len(ErrorEvolution)
+    nbSlice=len(listSlice)
     
-    strEGE = file + '/EvolutionGridError.dat'
-    EvolutionGridError.tofile(strEGE)
+    strEE = file + '/ErrorEvolution.npz'
+    np.savez_compressed(strEE,ErrorEvolution)
     
-    strEGN = file + '/EvolutionGridNbpoint.dat'
-    EvolutionGridNbpoint.tofile(strEGN)
+    strED = file + '/DiceEvolution.npz'
+    np.savez_compressed(strED,DiceEvolution)
     
-    strEGI = file + '/EvolutionGridInter.dat'
-    EvolutionGridInter.tofile(strEGI)
+    strEGE = file + '/EvolutionGridError.npz'
+    EvolutionGridError = np.reshape(EvolutionGridError,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGE,EvolutionGridError)
     
-    strEGU = file + '/EvolutionGridUnion.dat'
-    EvolutionGridUnion.tofile(strEGU)
+    strEGN = file + '/EvolutionGridNbpoint.npz'
+    EvolutionGridNbpoint = np.reshape(EvolutionGridNbpoint,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGN,EvolutionGridNbpoint)
     
-    strEP = file + '/EvolutionParameters.dat'
-    EvolutionParameters.tofile(strEP)
+    strEGI = file + '/EvolutionGridInter.npz'
+    EvolutionGridInter = np.reshape(EvolutionGridInter,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGI,EvolutionGridInter)
     
-    strET = file + '/EvolutionTranfo.dat'
-    EvolutionTransfo.tofile(strET)
+    strEGU = file + '/EvolutionGridUnion.npz'
+    EvolutionGridUnion = np.reshape(EvolutionGridUnion,[nbit,nbSlice,nbSlice])
+    np.savez_compressed(strEGU,EvolutionGridUnion)
     
-    strCG = file + '/CostGlobal.dat'
+    strEP = file + '/EvolutionParameters.npz'
+    EvolutionParameters = np.reshape(EvolutionParameters,[nbit,nbSlice,6])
+    np.savez_compressed(strEP,EvolutionParameters)
+    
+    strET = file + '/EvolutionTransfo.npz'
+    EvolutionTransfo = np.reshape(EvolutionTransfo,[nbit,nbSlice,4,4])
+    np.savez_compressed(strET,EvolutionTransfo)
+    strCG = file + '/CostGlobal.npz'
     costGlobal.tofile(strCG)
     
     end = time.time()
