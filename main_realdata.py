@@ -11,7 +11,6 @@ import os
 from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
 import nibabel as nib
 from input_argparser import InputArgparser
-import Result
 import pickle
 
 if __name__ == '__main__':
