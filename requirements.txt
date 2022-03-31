@@ -3,3 +3,5 @@ scipy
 numba
 nibabel
 jupyter
+matplotlib
+scikit-image
