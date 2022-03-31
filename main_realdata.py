@@ -11,6 +11,8 @@ import os
 from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
 import nibabel as nib
 from input_argparser import InputArgparser
+import Result
+import pickle
 
 if __name__ == '__main__':
     
@@ -53,37 +55,42 @@ if __name__ == '__main__':
     nbit = len(ErrorEvolution)
     nbSlice=len(listSlice)
     
-    strEE = file + '/ErrorEvolution.npz'
-    np.savez_compressed(strEE,ErrorEvolution)
+    #strEE = file + '/ErrorEvolution.npz'
+    #np.savez_compressed(strEE,ErrorEvolution)
     
-    strED = file + '/DiceEvolution.npz'
-    np.savez_compressed(strED,DiceEvolution)
+    #strED = file + '/DiceEvolution.npz'
+    #np.savez_compressed(strED,DiceEvolution)
     
-    strEGE = file + '/EvolutionGridError.npz'
+    #strEGE = file + '/EvolutionGridError.npz'
     EvolutionGridError = np.reshape(EvolutionGridError,[nbit,nbSlice,nbSlice])
-    np.savez_compressed(strEGE,EvolutionGridError)
+    #np.savez_compressed(strEGE,EvolutionGridError)
     
-    strEGN = file + '/EvolutionGridNbpoint.npz'
+    #strEGN = file + '/EvolutionGridNbpoint.npz'
     EvolutionGridNbpoint = np.reshape(EvolutionGridNbpoint,[nbit,nbSlice,nbSlice])
-    np.savez_compressed(strEGN,EvolutionGridNbpoint)
+    #np.savez_compressed(strEGN,EvolutionGridNbpoint)
     
-    strEGI = file + '/EvolutionGridInter.npz'
+    #strEGI = file + '/EvolutionGridInter.npz'
     EvolutionGridInter = np.reshape(EvolutionGridInter,[nbit,nbSlice,nbSlice])
-    np.savez_compressed(strEGI,EvolutionGridInter)
+    #np.savez_compressed(strEGI,EvolutionGridInter)
     
-    strEGU = file + '/EvolutionGridUnion.npz'
+    #strEGU = file + '/EvolutionGridUnion.npz'
     EvolutionGridUnion = np.reshape(EvolutionGridUnion,[nbit,nbSlice,nbSlice])
-    np.savez_compressed(strEGU,EvolutionGridUnion)
+    #np.savez_compressed(strEGU,EvolutionGridUnion)
     
-    strEP = file + '/EvolutionParameters.npz'
+    #strEP = file + '/EvolutionParameters.npz'
     EvolutionParameters = np.reshape(EvolutionParameters,[nbit,nbSlice,6])
-    np.savez_compressed(strEP,EvolutionParameters)
+    #np.savez_compressed(strEP,EvolutionParameters)
     
-    strET = file + '/EvolutionTransfo.npz'
+    #strET = file + '/EvolutionTransfo.npz'
     EvolutionTransfo = np.reshape(EvolutionTransfo,[nbit,nbSlice,4,4])
-    np.savez_compressed(strET,EvolutionTransfo)
-    strCG = file + '/CostGlobal.npz'
-    costGlobal.tofile(strCG)
+    #np.savez_compressed(strET,EvolutionTransfo)
+    #strCG = file + '/CostGlobal.npz'
+    #costGlobal.tofile(strCG)
+    
+    res_obj = {'listimages':args.filenames, 'listmask':args.filenames_masks, 'ErrorEvolution':ErrorEvolution, 'DiceEvolution':DiceEvolution, 'EvolutionGridError':EvolutionGridError, 'EvolutionGridNbpoint':EvolutionGridNbpoint, 'EvolutionGridInter':EvolutionGridInter, 'EvolutionGridUnion':EvolutionGridUnion, 'EvolutionParameters':EvolutionParameters,'EvolutionTransfo':EvolutionTransfo}
+    pickle_name = args.dir_output + '.pickle'
+    print(pickle_name)
+    pickle.dump(res_obj,open(pickle_name,'wb'))
     
     end = time.time()
     elapsed = end - start
