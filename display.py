@@ -14,6 +14,10 @@ import nibabel as nib
 from skimage.color import gray2rgb
 
 
+def Histo(MSE):
+    histoMse =  plt.hist(MSE,range=(min(MSE),max(MSE)),bins='auto')
+    return histoMse
+
 def show_slice(slices):  # definition de la fonction show_slice qui prend en paramètre une image
     # ""Function di display row of image slices""
     fig, axes = plt.subplots(1, len(slices))
@@ -22,104 +26,210 @@ def show_slice(slices):  # definition de la fonction show_slice qui prend en par
         axes[i].imshow(slice.T, cmap="gray", origin="lower")
 
 
-def plotsegment(slice, pointImg, ok, nbpoint,title=' ',mask=np.nan,index=np.nan):
+def plotsegment(Slice, pointImg, ok, nbpoint,ax,title=' ',mask=np.nan,index=np.nan,nbpointSlice=None):
+    """
+    The function plotSegment display a slice with it segment of intersection
 
-    if ok < 1:
+    Inputs :
+        
+    slice : slice 
+        type slice, contains all the necessary information about the slice, including data and mask
+    pointImg : 3D array 
+        point that delineate the segment of intersection
+    ok : integer
+        1 if there is an intersection, 0 else
+    nbpoint : integer
+        number of point in the segment (before applying the mask)
+    title : string, OPTIONAL
+        title of the image,  the defalut is ' '
+    mask : 2D array,  OPTIONAL
+        mask associated the the slice, The default is np.nan.
+    index : 1D array, OPTIONAL
+        index of the part of the segment including in the mask (cf commonProfil). The default is np.nan.
+    nbpointSlice : interger, OPTION
+        Number of points in the segment, after aplying the mask. The default is None.
+    """
+    sliceimage=Slice.get_slice().get_fdata()
+    if ok < 1 or nbpoint==0:
+        
+        if ~np.isnan(mask).all():
+            ax.imshow(sliceimage.T*mask,cmap='gray',origin='lower')
+            ax.title(title)
+        else:
+           ax.imshow(sliceimage.T,cmap='gray',origin='lower')
+           ax.title(title) 
+    
+    else:
+        
+        pointInterpol = np.zeros((2, nbpoint))
+        pointInterpol[0, :] = np.linspace(pointImg[0, 0], pointImg[0, 1], nbpoint)
+        pointInterpol[1, :] = np.linspace(pointImg[1, 0], pointImg[1, 1], nbpoint)
+        
+        if  ~np.isnan(mask).all():
+           
+            img_with_mask = nib.Nifti1Image(sliceimage * mask, Slice.get_slice().affine)
+            pointInterpol = pointInterpol[:,index]
+            nbpoint = pointInterpol.shape[1]
+       
+        ax.imshow(img_with_mask.get_fdata().squeeze().T, cmap="gray", origin="lower")
+       
+        for i in range(nbpoint):
+            ax.plot(pointInterpol[0, i],pointInterpol[1, i], 'ro',markersize=1,label='%nbpoint')
+         
+        ax.text(0,0,"nbpoint : %d" %(nbpoint))
+        if  nbpointSlice!=None:
+            ax.text(0,0.1,"nbpointSlice : %d" %(nbpointSlice))
+        ax.set_title(title)
+    
+
+def displayIntensityProfil(commonVal1,index1,commonVal2,index2,index):
+    """
+    The function display the intensity profil for two slices along the segment of intersection
+
+    Inputs :
+    commonVal1 : 1D array
+        
+    index1 : 1D array
+        index of interest in the value commonVal1.
+    commonVal2 : 1D array
+        values of intensity along the segment
+    index2 : 1D array
+        index of interest in the value commonVal2
+    index : 1D array
+        union of the index of interest in the two array
+
+    """
+    print(index.size)
+    if index.size == 0 : 
         return 0
+    if index1.all()==False and ~index2.all()==False: 
+        index1 = index2.copy()
+    elif index2.all()==False and ~index1.all()==False:
+        index2=index1.copy()
+
     
-    pointInterpol = np.zeros((2, nbpoint))
-    pointInterpol[0, :] = np.linspace(pointImg[0, 0], pointImg[0, 1], nbpoint)
-    pointInterpol[1, :] = np.linspace(pointImg[1, 0], pointImg[1, 1], nbpoint)
-    sliceimage = slice.get_slice()
-    
-    if  ~np.isnan(mask).all():
-        print('test')
-        img_with_mask = nib.Nifti1Image((slice.get_slice().get_fdata()) * mask, slice.get_slice().affine)
-        sliceimage = img_with_mask
-        pointInterpol = pointInterpol[:,index]
-        nbpoint = pointInterpol.shape[1]
-   
     plt.figure()
-    plt.imshow(sliceimage.get_fdata().T, cmap="gray", origin="lower")
-   
-    for i in range(nbpoint):
-        plt.plot(pointInterpol[0, i],pointInterpol[1, i], 'ro',markersize=1,label='%nbpoint')
-        print(pointInterpol[:, i])
+    indiceIndex1 = np.where(index1 == True)[0]
+    size = np.shape(indiceIndex1)[0]
+    #print(indiceIndex1)
+    if(size>0):
+        plt.axvline(x=indiceIndex1[0]-index[0],color='r')
+        plt.axvline(x=indiceIndex1[size-1]-index[0],color='r')
+        plt.plot(commonVal1,color='r')
+            
+    indiceIndex2 = np.where(index2 == True)[0]
+    size = np.shape(indiceIndex2)[0]
+    #print(indiceIndex2)
+    if(size>0):
+        plt.axvline(x=indiceIndex2[0]-index[0],color='b')
+        plt.axvline(x=indiceIndex2[size-1]-index[0],color='b')
+        plt.plot(commonVal2,color='b')
+        plt.title('Intensity profil delineated by the mask')
     
-    plt.figtext(0,0,"nbpoint : %d" %(nbpoint))
-    plt.title(title)
-    
-def plotin3DSpace(slice):
-    
-    ax = plt.gca(projection='3d')
-    slice_image = slice.get_slice().get_fdata()
-    size = np.shape(slice_image)[0]
-    x = np.arange(0,size)
-    print(x)
-    xx, yy = np.meshgrid(x,x,indexing='ij')
-    xx = np.reshape(xx,(-1))
-    yy = np.reshape(yy,(-1))
-    img_coordinates = np.zeros((4,size*size),dtype=int)
-    img_coordinates[0,:] = xx
-    img_coordinates[1,:] = yy
-    img_coordinates[3,:] = np.ones((1,size*size))
-    slicedata = slice_image[img_coordinates[0,:],img_coordinates[1,:]]
-    M = slice.get_transfo() 
 
-    slice3D = M @ img_coordinates
+def indexMse(gridError,gridNbpoint,numSlice):
+    """
+    The function computes the Mean Square Error between slice 1 and its orthogonal slices
+    and return an array of the MSE between slice1 and each slice
+
+    Inputs :
+    girdError : 
+        2D array, contains the SE between each pair of slices
+    gridNbpoint : 
+        2D array, contains the number of common point on the intersection between each pair of slices
+    numSlice : 
+        The slice of interest
+
+    Ouptputs : 
+    MSE :
+        Array containing the MSE between slice1 and its orthogonal slices
+    NBPOINT : 
+        Array contaning the number of point in the union between each point
+
+    """
     
-    #step of reconstruction
-    minX = min(slice3D[0,:])
-    maxX = max(slice3D[0,:])
-    minY = min(slice3D[1,:])
-    maxY = max(slice3D[1,:])
-    minZ = min(slice3D[2,:])
-    maxZ = max(slice3D[3,:])
+    size,size=gridError.shape
+    MSE = np.zeros(size)
+    NBPOINT = np.zeros(size)
+    for i_slice2 in range(size):
+            newError = gridError[max(numSlice,i_slice2),min(numSlice,i_slice2)]
+            commonPoint = gridNbpoint[max(numSlice,i_slice2),min(numSlice,i_slice2)]
+            MSE[i_slice2] = newError
+            NBPOINT[i_slice2] = commonPoint
+    return MSE,NBPOINT 
+
+def indexGlobalMse(gridError,gridNbpoint):
+    """
+    The function computes the Mean Square Error between each slices and its orthogonal slices 
     
-    resolution = min(slice.get_slice().header.get_zooms())
+    IInputs :
+    girdError : 
+        2D array, contains the SE between each pair of slices
+    gridNbpoint : 
+        2D array, contains the number of common point on the intersection between each pair of slices
+
+    Ouptputs : 
+    MSE_GLOB :
+        Array containing the MSE between each slice and its orthogonal slices
+    NBPOINT : 
+        Array contaning the number of point in the union between each point
+
+    """
     
-    nbpointX = int(np.ceil((maxX-minX)/resolution) + 1)
-    nbpointY = int(np.ceil((maxY-minY)/resolution) + 1)
-    nbpointZ = int(np.ceil((maxZ-minZ)/resolution) + 1)
+    size,size=gridError.shape
+    MSE_GLOB = np.zeros(size)
+    NBPOINT_GLOB= np.zeros(size)
+     
+    for i_slice1 in range(size):
+         errorSlice, nbpointSlice = indexMse(gridError,gridNbpoint,i_slice1)
+         globalErrorSlice = sum(errorSlice)
+         globalnbpointSlice = sum(nbpointSlice)
+         NBPOINT_GLOB[i_slice1] = globalnbpointSlice
+         MSE_GLOB[i_slice1] = globalErrorSlice
+    
+
+    return NBPOINT_GLOB,MSE_GLOB 
+  
 
     
-    i = np.linspace(minX,maxX,nbpointX)   
-    j = np.linspace(minY,maxY,nbpointY)
-    z = np.linspace(minZ,maxZ,nbpointZ)
-    print(z)
-    
-    grid = np.meshgrid(i,j,z,indexing='ij')
-    ii = np.reshape(grid[0],(-1))
-    jj = np.reshape(grid[1],(-1))
-    zz = np.reshape(grid[2],(-1))
-    
-    world_coordinates = np.zeros((np.shape(ii)[0],3))
-    world_coordinates[:,0] = ii
-    world_coordinates[:,1] = jj
-    world_coordinates[:,2] = zz
-    
-    
-    print(slice3D.T[:,0:3])
-    print(img_coordinates)
-    print(np.shape(slicedata))
-    slice3D = np.transpose(slice3D)
-    print(world_coordinates)
-    imginterpol = interpolate.griddata(slice3D[:,0:3],slicedata,world_coordinates,method='linear')
+def indexDice(slice1,listSlice):
+    """
+    The function computes the DICE (intersection over union) between slice1 and its orthonal slices
+    and return an array of the dice between slice1 and each slice.
 
-   
-    imginterpol = imginterpol.reshape((nbpointX,nbpointY,nbpointZ))
-    Z = np.array([zz])
-    print(Z)
-    print(gray2rgb(imginterpol).shape)
-    imginterpol = gray2rgb(imginterpol)
-    ax.plot_surface(ii,jj,Z,rstride=5,cstride=5,cmap='gray',facecolor=imginterpol)
-    #ax.plot_trisurf(ii,jj,zz,imginterpol,cmap='gray')
-    #ax.imshow(imginterpol, cmap="gray", origin="lower",aspect="auto")
-    #ax.plot_trisurf(world_coordinates[:,0], world_coordinates[:,1],world_coordinates[:,2],imginterpol)
-    #plt.show()
-    return slicedata,img_coordinates,world_coordinates
+    Inputs
+    slice1 : 
+        type slice, contains all the necessary information about the slice
     
-    
-    
-    
-    
+    listSlice : 
+        list of type slice, contains the images in the three orientations, axial,sagital and coronal
+
+    Outputs :
+    DICE : 
+        Array containing the DICE between slice1 and its orthogonal slice
+
+    """
+    INTERSECTION = np.zeros(len(listSlice))
+    UNION = np.zeros(len(listSlice))
+    indice = 0
+    for slice2 in listSlice:
+        if slice1.get_orientation() != slice2.get_orientation(): #there is no intersection between slices and its orthogonal slices
+            newIntersection,newUnion = DICElocal(slice1,slice2)
+            INTERSECTION[indice]=newIntersection
+            UNION[indice] = newUnion
+            indice = indice+1
+    return INTERSECTION,UNION
+
+def indexGlobalDice(listSlice):
+     INTERSECTION = np.zeros(len(listSlice))
+     UNION = np.zeros(len(listSlice))
+     indice=0
+     for slice1 in listSlice:
+         intersectionSlice, unionSlice = indexDice(slice1,listSlice)
+         globalIntersectionSlice = sum(intersectionSlice)
+         globalUnionSlice = sum(unionSlice)
+         INTERSECTION[indice] = globalIntersectionSlice
+         UNION[indice] = globalUnionSlice
+         indice=indice+1
+     return INTERSECTION,UNION  
+
