@@ -49,11 +49,11 @@ class InputArgparser(object):
         self._add_argument(dict(locals()))   
         
         
-    def add_dir_output(
+    def add_output(
         self,
-        option_string="--dir_output",
+        option_string="--output",
         type=str,
-        help="Output directory.",
+        help="pickle wich contains all the output data",
         default=None,
         required=False,
                    ):
