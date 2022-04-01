@@ -10,10 +10,10 @@ python main.py \
 --filenames_masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
 --simulation_angle 3 \
 --simulation_translation 3 \
---dir_output test_simulation
+--output test_simulation
 ```
 
-where filenames and dir_output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames. simulation_angle  and simulation_translation represent the movement created in the image. Movement is simulated by applying a rigid transformation to the image. On the above exemple, the angle parameters of the rigid transformation are random number between -3 and 3 and translation parameters are random number comprised between -3 and 3.
+where filenames and output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames. simulation_angle  and simulation_translation represent the movement created in the image. Movement is simulated by applying a rigid transformation to the image. On the above exemple, the angle parameters of the rigid transformation are random number between -3 and 3 and translation parameters are random number comprised between -3 and 3.
 
 ## Real Data
 
@@ -24,10 +24,10 @@ Example :
 python main.py \
 --filenames image_axial.nii.gz image_coronal.nii.gz image_sagittal.nii.gz \
 --filenames_masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
---dir_output test_simulation
+--output test_simulation
 ```
 
-where filenames and dir_output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames.
+where filenames and output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames.
 
 # Visualisation
 The results can be visualize with **3Ddisplay.ipynb** and **3Ddisplay_realdata.ipynb**. Change image_dir='', mask_dir='' and res_dir='' to you data directory
