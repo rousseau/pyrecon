@@ -53,7 +53,7 @@ class InputArgparser(object):
         self,
         option_string="--output",
         type=str,
-        help="pickle wich contains all the output data",
+        help="joblib wich contains all the output data, there is no need to provide extension, ex 'result' ",
         default=None,
         required=False,
                    ):
