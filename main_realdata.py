@@ -11,15 +11,19 @@ import os
 from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
 import nibabel as nib
 from input_argparser import InputArgparser
-import pickle
+import joblib
+from os import getcwd
 
 if __name__ == '__main__':
+    
+    root=getcwd()
+    print(root)
     
     #input arguments :
     input_parser = InputArgparser()
     input_parser.add_filenames(required=True)
     input_parser.add_filenames_masks()
-    input_parser.add_dir_output(required=True)
+    input_parser.add_output(required=True)
     args = input_parser.parse_args()
     
     start = time.time()
@@ -29,13 +33,14 @@ if __name__ == '__main__':
     listSlice = []
     #Load images, mask and create a list of slices from the images
     for i in range(len(args.filenames)):
-        im, inmask = loadimages(args.filenames[i],args.filenames_masks[i])
+        im, inmask = loadimages(args.filenames[i],args.filenames_masks[i]) 
         datamask = inmask.get_fdata().squeeze()
         mask = nib.Nifti1Image(datamask, inmask.affine)
         loadSlice(im, mask, listSlice, i)
     
     #normalize the data with a standart distribution
     listSlice = normalization(listSlice)
+    listSLicessMvt=listSlice.copy()
     
     gridError, gridNbpoint, gridInter, gridUnion = computeCostBetweenAll2Dimages(listSlice)
     cost = costFromMatrix(gridError,gridNbpoint)
@@ -47,7 +52,7 @@ if __name__ == '__main__':
     cost = costFromMatrix(ge_mvtCorrected,gn_mvtCorrected)
     costGlobal[1] = cost
     
-    file = args.dir_output
+    file = args.output
     if not os.path.exists(file):
         os.makedirs(file)
     
@@ -86,10 +91,11 @@ if __name__ == '__main__':
     #strCG = file + '/CostGlobal.npz'
     #costGlobal.tofile(strCG)
     
-    res_obj = {'listimages':args.filenames, 'listmask':args.filenames_masks, 'ErrorEvolution':ErrorEvolution, 'DiceEvolution':DiceEvolution, 'EvolutionGridError':EvolutionGridError, 'EvolutionGridNbpoint':EvolutionGridNbpoint, 'EvolutionGridInter':EvolutionGridInter, 'EvolutionGridUnion':EvolutionGridUnion, 'EvolutionParameters':EvolutionParameters,'EvolutionTransfo':EvolutionTransfo}
-    pickle_name = args.dir_output + '.pickle'
-    print(pickle_name)
-    pickle.dump(res_obj,open(pickle_name,'wb'))
+    res_obj = [('listSlice',listSLicessMvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo)]
+
+    joblib_name = root + '/' + args.output + '.joblib' + '.gz' 
+    print(joblib_name)
+    joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     
     end = time.time()
     elapsed = end - start

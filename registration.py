@@ -741,7 +741,7 @@ def SimplexOptimization(delta,x0,i_slice,listSlice,gridError,gridNbpoint,gridInt
     initial_s[6,:]=P6
                                                 
     X,Y = gridError.shape
-    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,gridError.copy(),gridNbpoint.copy(),gridInter.copy(),gridUnion.copy(),gridWeight.copy(),threshold),method='Nelder-Mead',options={"disp" : True,"maxiter" : 20, "maxfev":1e6, "xatol" : 1e-2, "fatol" : 1e-4, "initial_simplex" : initial_s , "adaptive" :  False})
+    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,gridError.copy(),gridNbpoint.copy(),gridInter.copy(),gridUnion.copy(),gridWeight.copy(),threshold),method='Nelder-Mead',options={"disp" : False,"maxiter" : 20, "maxfev":1e6, "xatol" : 1e-2, "fatol" : 1e-4, "initial_simplex" : initial_s , "adaptive" :  False})
     #optimisation of the cost function using the simplex method                                    
     
     x_opt = NM.x #best parameter obtains after registration
