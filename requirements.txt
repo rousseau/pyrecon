@@ -5,3 +5,4 @@ nibabel
 jupyter
 matplotlib
 scikit-image
+joblib
