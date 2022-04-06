@@ -17,7 +17,6 @@ from os import getcwd
 if __name__ == '__main__':
     
     root=getcwd()
-    print(root)
     
     #input arguments :
     input_parser = InputArgparser()
@@ -94,7 +93,6 @@ if __name__ == '__main__':
     res_obj = [('listSlice',listSLicessMvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo)]
 
     joblib_name = root + '/' + args.output + '.joblib' + '.gz' 
-    print(joblib_name)
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     
     end = time.time()
