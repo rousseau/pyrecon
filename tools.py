@@ -6,8 +6,39 @@ Created on Mon Nov  8 10:00:47 2021
 @author: mercier
 """
 import numpy as np
+from numpy.linalg import eig,inv
+from scipy.linalg import expm,fractional_matrix_power
+
+def debug_meanMatrix(R_mean,Trans,parameters):
+    np.real(R_mean)
+    res=np.zeros((4,4));res[3,3]=1
+    res[0:3,0:3]=R_mean;res[0:3,3]=Trans
+    
+    r_matrix=rigidMatrix(parameters)
+    print('res',res)
+    print('r_mean',R_mean)
+    
+    equal=np.all(res==r_matrix)
+    print(equal)
+    return equal
+
+def log_cplx(x):
+    res = np.log(abs(x)) + np.angle(x)*1j
+    return  res
 
 
+def computeMeanRotation(R1,dist1,R2,dist2):
+    M=R2 @ inv(R1)
+    d,v=eig(M)
+    tmp = log_cplx(d)
+    A = v @ np.diag(tmp) @ inv(v)
+    R_mean= expm(A/2) @ R1
+    #print('R_mean :', R_mean)
+    return R_mean
+
+def computeMeanTranslation(T1,dist1,T2,dist2):
+    T_mean=((dist2) * T1 + (dist1) * T2)/(dist1 + dist2)
+    return T_mean
 
 def rotationCenter(mask):
     """
@@ -100,12 +131,18 @@ def ParametersFromRigidMatrix(rigidMatrix):
     p=np.zeros(6)
     
     p[3]=rigidMatrix[0,3]
+    print('t1:',p[3])
     p[4]=rigidMatrix[1,3]
+    print('t2:',p[4])
     p[5]=rigidMatrix[2,3]
+    print('t3:',p[5])
     
     beta=np.arcsin(-rigidMatrix[0,2])
+    print('beta :',beta)
     gamma=np.arctan2(rigidMatrix[1,2]/np.cos(beta),rigidMatrix[2,2]/np.cos(beta))
+    print('gamma :',gamma)
     alpha=np.arctan2(rigidMatrix[0,1]/np.cos(beta),rigidMatrix[0,0]/np.cos(beta))
+    print('alpha :',alpha)
     p[0]=(180.0*gamma)/np.pi
     p[1]=(180.0*beta)/np.pi
     p[2]=(180.0*alpha)/np.pi
@@ -123,26 +160,23 @@ def computeAllErrorsFromGrid(gridError,gridNbpoint):
         var_nbpoint = sum((gridNbpoint[i_slice,:])) + sum(gridNbpoint[:,i_slice])
         ArrayError[i_slice] = var_error/var_nbpoint 
     return ArrayError
+  
 
-
-
-def transfoMoy(M1,nbSlice1,M2,nbSlice2,nbSlice,Slice):
+def createVolumesFromAlist(listSlice):
     
-    a=np.abs(nbSlice-nbSlice1)
-    print(nbSlice)
-    print(nbSlice1)
-    print('a=',a)
-    b=np.abs(nbSlice-nbSlice2)
-    print('b=',b)
-    MtotB=(b*M1+a*M2)/(a+b)
-    slicemask=Slice.get_mask()
-    affine=Slice.get_slice().affine
-    rotC = rotationCenter(slicemask) #Compute the barycenter of the image
-    centerMatrix = np.eye(4)
-    invcenterMatrix = np.eye(4)
-    center = affine @ rotC
-    centerMatrix[0:3,3] = -center[0:3]
-    invcenterMatrix[0:3,3] = +center[0:3]
-    MB=np.linalg.inv(invcenterMatrix)@MtotB@np.linalg.inv(affine)@np.linalg.inv(centerMatrix)
-    return MB     
+    orientation = []; images=[]; mask=[]
+    for s in listSlice:
+        s_or = s.get_orientation()
+        if s_or in orientation:
+            index_orientation = orientation.index(s_or)
+            images[index_orientation].append(s)
+            mask[index_orientation].append(s.get_mask())
+        else:
+            orientation.append(s_or)
+            images.append([])
+            mask.append([])
+            index_orientation = orientation.index(s_or)
+            images[index_orientation].append(s)
+            mask[index_orientation].append(s.get_mask())
                 
+    return images, mask
