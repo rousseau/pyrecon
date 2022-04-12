@@ -13,13 +13,14 @@ from sliceObject import SliceObject
 from scipy.optimize import minimize
 import random as rd
 import time
-from tools import createVolumesFromAlist
+from tools import createVolumesFromAlist, computeMeanRotation, computeMeanTranslation, ParametersFromRigidMatrix, rigidMatrix, rotationCenter, debug_meanMatrix
 import os
 import argparse
 import numba
 from numba import jit,njit
 from multiprocessing import Pool
 from functools import partial
+
 
 @jit(nopython=True)
 def intersectionLineBtw2Planes(M1,M2) : 
@@ -558,8 +559,9 @@ def cost_fct(x,i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion,
     slicei.set_parameters(x)
     updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion)
     #updateMatrixOfWeight(gridError,gridNbpoint,gridWeight,i_slice,threshold)
-    errorWithWeight = gridWeight * gridError 
-    res = costFromMatrix(errorWithWeight.copy(),gridNbpoint.copy())
+    #errorWithWeight = gridWeight * gridError
+    tmpgrid = gridErrorWithWeight(gridWeight,gridError,i_slice,True)
+    res = costFromMatrix(tmpgrid,gridNbpoint.copy())
     
     return res
 
@@ -697,7 +699,8 @@ def global_optimization(listSlice):
     print('step 2 :', "the bad slices are register")
     resworst=badSliceOptimisation(listSlice,Previous_parameters,resall[0],resall[1],resall[2],resall[3],resall[4],resall[5],resall[6],resall[7],resall[8],resall[9],resall[10],resall[11])
     #returns parameters used to validate the registration
-    EvolutionError=resworst[4];EvolutionDice=resworst[5];EvolutionGridError=resworst[6];EvolutionGridNbpoint=resworst[7];EvolutionGridInter=resworst[8];EvolutionGridUnion=resworst[9];EvolutionParameters=resworst[10];EvolutionTransfo=resworst[11]
+    resMean=MeanOptimisation(listSlice, resworst[0],resworst[1],resworst[2],resworst[3],resworst[4],resworst[5],resworst[6],resworst[7],resworst[8],resworst[9],resworst[10],resworst[11])
+    EvolutionError=resMean[0];EvolutionDice=resMean[1];EvolutionGridError=resMean[2];EvolutionGridNbpoint=resMean[3];EvolutionGridInter=resMean[4];EvolutionGridUnion=resMean[5];EvolutionParameters=resMean[6];EvolutionTransfo=resMean[7]
    
     return np.array(EvolutionError),np.array(EvolutionDice),np.array(EvolutionGridError),np.array(EvolutionGridNbpoint),np.array(EvolutionGridInter),np.array(EvolutionGridUnion),np.array(EvolutionParameters),np.array(EvolutionTransfo)
     
@@ -825,52 +828,65 @@ def allSlicesOptimisation(listSlice,gridError,gridNbpoint,gridInter,gridUnion,Ev
 
     images,mask=createVolumesFromAlist(listSlice)
     nbImages=len(images)
-    
+    nbSlice=len(listSlice)
     #proc=Process(target=SliceOptimisation(5, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), 10000, initial_s, EvolutionError, EvolutionDice, EvolutionGridError, EvolutionGridNbpoint, EvolutionGridInter, EvolutionGridUnion, EvolutionParameters, EvolutionTransfo))
     #procs.append(proc)
     #proc.start()
     
-    
-    for d in vectd: #optimize each slices for differents size of simplex
-        index_pre=0
-        for n_image in range(nbImages):
-            start = time.time()
-            nbSliceImageN=len(images[n_image])
-            randomIndex= np.arange(nbSliceImageN)
-            np.random.shuffle(randomIndex)  
-            index=randomIndex+index_pre
-            with Pool(nbImages) as p:
-                tmpfun=partial(allSliceOptimisation1Image,d,listSlice,gridError,gridNbpoint,gridInter,gridUnion,np.ones((nbSlice,nbSlice)),10000,initial_s) 
-                x_opt=p.map(tmpfun,index)
-            for i_slice in range(nbSliceImageN):
-                listSlice[randomIndex[i_slice]+index_pre].set_parameters(x_opt[i_slice])
-            gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)
-            costMse=costFromMatrix(gridError,gridNbpoint)
-            costDice=costFromMatrix(gridInter,gridUnion)
-            print('final MSE :', costMse, 'final DICE :', costDice)
-            index_pre=index_pre+len(images[n_image])
-        
-        EvolutionError.append(costMse)
-        EvolutionDice.append(costDice)
-        EvolutionGridError.extend(gridError.copy())
-        EvolutionGridNbpoint.extend(gridNbpoint.copy())
-        EvolutionGridInter.extend(gridInter.copy())
-        EvolutionGridUnion.extend(gridUnion.copy())
-                            
-        end = time.time()
-        elapsed = end - start
-                    
-        print('MSE: ', costMse)
-        print('Dice: ', costDice) 
-        print(f'Temps d\'exécution : {elapsed}')
-                    
-        for i in range(nbSlice):
-            slicei=listSlice[i]
-            EvolutionParameters.extend(slicei.get_parameters())
-            EvolutionTransfo.extend(slicei.get_transfo())
-        
-    return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
+    current_cost = costFromMatrix(gridError, gridNbpoint)
+    maxIt=0
 
+    for d in vectd: #optimize each slices for differents size of simplex
+        
+        previous_cost=2
+        maxIt=0
+        print("d :", d,"maxIt", maxIt)
+        
+        while previous_cost>(current_cost+0.001) and maxIt<50:
+            
+            index_pre=0
+            for n_image in range(nbImages):
+                start = time.time()
+                nbSliceImageN=len(images[n_image])
+                randomIndex= np.arange(nbSliceImageN)
+                np.random.shuffle(randomIndex) 
+                index=randomIndex+index_pre
+                with Pool() as p:
+                    tmpfun=partial(allSliceOptimisation1Image,d,listSlice,gridError,gridNbpoint,gridInter,gridUnion,np.ones((nbSlice,nbSlice)),10000,initial_s) 
+                    x_opt=p.map(tmpfun,index)
+                for i_slice in range(nbSliceImageN):
+                    listSlice[randomIndex[i_slice]+index_pre].set_parameters(x_opt[i_slice])
+                gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)
+                costMse=costFromMatrix(gridError,gridNbpoint)
+
+                costDice=costFromMatrix(gridInter,gridUnion)
+                index_pre=index_pre+len(images[n_image])
+                
+               
+            print('detla :',  d, 'iteration :', maxIt, 'final MSE :', costMse, 'final DICE :', costDice)
+            previous_cost=current_cost
+            current_cost=costMse
+            maxIt=maxIt+1
+            EvolutionError.append(costMse)
+            EvolutionDice.append(costDice)
+            EvolutionGridError.extend(gridError.copy())
+            EvolutionGridNbpoint.extend(gridNbpoint.copy())
+            EvolutionGridInter.extend(gridInter.copy())
+            EvolutionGridUnion.extend(gridUnion.copy())
+                            
+            end = time.time()
+            elapsed = end - start
+                    
+            print('MSE: ', costMse)
+            print('Dice: ', costDice) 
+            print(f'Temps d\'exécution : {elapsed}')
+                    
+            for i in range(nbSlice):
+                slicei=listSlice[i]
+                EvolutionParameters.extend(slicei.get_parameters())
+                EvolutionTransfo.extend(slicei.get_transfo())
+    return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
+    
 
 def allSliceOptimisation1Image(d,listSlice,gridError,gridNbpoint,gridInter,gridUnion,gridWeight,threshold,initial_s,nImage):
     
@@ -945,64 +961,191 @@ def badSliceOptimisation(listSlice,PreviousParameters,gridError,gridNbpoint,grid
     print('threshold :',threshold)
     gridWeight=matrixOfWeight(gridError, gridNbpoint, threshold)
     
-    bad_register=0
-    for i_slice in range(nbSlice):
-        if gridWeight[0,i_slice] == 0:
-            slicei = listSlice[i_slice] 
-            slicei.set_parameters(PreviousParameters[:,i_slice])
-            bad_register=bad_register+1
-    
-    gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)        
-    print('nb slices mal recalee :', bad_register)
+    # bad_register=0
+    # for i_slice in range(nbSlice):
+    #     okpre=False;okpost=False;nbSlice1=0;nbSlice2=0
+    #     if gridWeight[0,i_slice]==0:
+    #         for i in range(i_slice,0,-1):
+    #             if gridWeight[0,i]==1 :
+    #                 while (listSlice[i].get_orientation()==listSlice[i_slice].get_orientation()):
+    #                     nbSlice1=i
+    #                     okpre=True
+    #                     break
+    #         for j in range(i_slice,nbSlice):
+    #            if gridWeight[0,j]==1:
+    #                while (listSlice[j].get_orientation()==listSlice[i_slice].get_orientation()):
+    #                     nbSlice2=j
+    #                     okpost=True
+    #                     break
+    #     if okpre==True and okpost==True:
+    #         Slice=listSlice[i_slice];Slice1=listSlice[nbSlice1];Slice2=listSlice[nbSlice2]
+    #         pS1=Slice1.get_parameters(); pS2=Slice2.get_parameters() 
+    #         MS1=rigidMatrix(pS1);MS2=rigidMatrix(pS2)
+    #         RotS1=MS1[0:3,0:3];RotS2=MS2[0:3,0:3]
+    #         print('RotS1 :',RotS1,'RotS2 :',RotS2)
+    #         TransS1=MS1[0:3,3];TransS2=MS2[0:3,3]
+    #         print('TransS1 :',TransS1)
+    #         print('TransS2 :',TransS2)
+    #         Rot=computeMeanRotation(RotS1,RotS2)
+    #         Trans=computeMeanTranslation(TransS1,TransS2)
+    #         M=np.zeros((4,4))
+    #         M[0:3,0:3]=Rot;M[0:3,3]=Trans
+    #         p=ParametersFromRigidMatrix(M)
+    #         print('before :',Slice1.get_parameters(),'parameters : ',p,'After :',Slice2.get_parameters())
+    #         Slice.set_parameters(p)
+            
+
+    #gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)        
+    # print('nb slices mal recalee :', bad_register)
     images,mask=createVolumesFromAlist(listSlice)
     nbImages=len(images)    
-    
-    #procs=[]
-    #proc=Process(target=SliceOptimisation(5, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), 10000, initial_s, EvolutionError, EvolutionDice, EvolutionGridError, EvolutionGridNbpoint, EvolutionGridInter, EvolutionGridUnion, EvolutionParameters, EvolutionTransfo))
-    #procs.append(proc)
-    #proc.start()
+    # nbSlice=len(listSlice)
+    # #procs=[]
+    # #proc=Process(target=SliceOptimisation(5, listSlice, gridError, gridNbpoint, gridInter, gridUnion, np.ones((nbSlice,nbSlice)), 10000, initial_s, EvolutionError, EvolutionDice, EvolutionGridError, EvolutionGridNbpoint, EvolutionGridInter, EvolutionGridUnion, EvolutionParameters, EvolutionTransfo))
+    # #procs.append(proc)
+    # #proc.start()
     
     for d in vectd:
         index_pre=0
-        for n_image in range(nbImages):
-            start = time.time()
-            nbSliceImageN=len(images[n_image])
-            randomIndex= np.arange(nbSliceImageN)
-            np.random.shuffle(randomIndex)  
-            index=randomIndex+index_pre
-            with Pool(nbImages) as p:
-                tmpfun=partial(badSliceOptimisation1Image,d,listSlice,gridError,gridNbpoint,gridInter,gridUnion,gridWeight,threshold,initial_s) 
-                x_opt=p.map(tmpfun,index)
-            for i_slice in range(nbSliceImageN):
-                listSlice[randomIndex[i_slice]+index_pre].set_parameters(x_opt[i_slice])
-                
-            gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)
-            costMse=costFromMatrix(gridError,gridNbpoint)
-            costDice=costFromMatrix(gridInter,gridUnion)
-            index_pre=index_pre+len(images[n_image])
-        print('final MSE :', costMse, 'final DICE :', costDice)
-        EvolutionError.append(costMse)
-        EvolutionDice.append(costDice)
-        EvolutionGridError.extend(gridError.copy())
-        EvolutionGridNbpoint.extend(gridNbpoint.copy())
-        EvolutionGridInter.extend(gridInter.copy())
-        EvolutionGridUnion.extend(gridUnion.copy())
-                            
-        end = time.time()
-        elapsed = end - start
-                    
-        print('MSE: ', costMse)
-        print('Dice: ', costDice) 
-        print(f'Temps d\'exécution : {elapsed}')
-                    
-        for i in range(nbSlice):
-            slicei=listSlice[i]
-            EvolutionParameters.extend(slicei.get_parameters())
-            EvolutionTransfo.extend(slicei.get_transfo())
+        maxIt=0
+        previous_cost=2
+        start=time.time()
+        current_cost=costFromMatrix(gridError, gridNbpoint)
+        while(previous_cost>current_cost+0.01) and maxIt<50:
+            for n_image in range(nbImages):
+                nbSliceImageN=len(images[n_image])
+                randomIndex= np.arange(nbSliceImageN)
+                np.random.shuffle(randomIndex)  
+                index=randomIndex+index_pre
+             #for i in :
+                with Pool() as p:
+                    tmpfun=partial(badSliceOptimisation1Image,d,listSlice,gridError,gridNbpoint,gridInter,gridUnion,gridWeight,threshold,initial_s) 
+                    x_opt=p.map(tmpfun,index)
+                #x_opt=tmpfun(i_slice)
+                for i_slice in range(nbSliceImageN):
+                    listSlice[randomIndex[i_slice]+index_pre].set_parameters(x_opt[i_slice])
+                #updateCostBetweenAllImageAndOne(i_slice, listSlice, gridError, gridNbpoint, gridInter, gridUnion)
+                gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)
+                costMse=costFromMatrix(gridError,gridNbpoint)
+                costDice=costFromMatrix(gridInter,gridUnion)
+                index_pre=index_pre+len(images[n_image])
+            previous_cost=current_cost
+            current_cost=costMse
+            maxIt=maxIt+1
+            print('final MSE :', costMse, 'final DICE :', costDice)
+            EvolutionError.append(costMse)
+            EvolutionDice.append(costDice)
+            EvolutionGridError.extend(gridError.copy())
+            EvolutionGridNbpoint.extend(gridNbpoint.copy())
+            EvolutionGridInter.extend(gridInter.copy())
+            EvolutionGridUnion.extend(gridUnion.copy())
+            
+                                
+            end = time.time()
+            elapsed = end - start
+                        
+            print('MSE: ', costMse)
+            print('Dice: ', costDice) 
+            print(f'Temps d\'exécution : {elapsed}')
+                        
+            for i in range(nbSlice):
+                slicei=listSlice[i]
+                EvolutionParameters.extend(slicei.get_parameters())
+                EvolutionTransfo.extend(slicei.get_transfo())
             
     return gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
 
+def MeanOptimisation(listSlice,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
+    
+    nbSlice=len(listSlice)
+    threshold=OptimizationThreshold(gridError,gridNbpoint)
+    print('threshold :',threshold)
+    gridWeight=matrixOfWeight(gridError, gridNbpoint, threshold)
+    
+    for i_slice in range(nbSlice):
+         print('i_slice :',i_slice)
+         okpre=False;okpost=False;nbSlice1=0;nbSlice2=0;dist1=0;dist2=0
+         slicei=listSlice[i_slice]
+         if gridWeight[0,i_slice]==0:
+             for i in range(i_slice,0,-1):
+                 if gridWeight[0,i]==1 :
+                     while (listSlice[i].get_orientation()==listSlice[i_slice].get_orientation()):
+                         nbSlice1=i
+                         dist1=np.abs(i_slice-nbSlice1)
+                         print('dist1 :',dist1)
+                         okpre=True
+                         break
+             for j in range(i_slice,nbSlice):
+                if gridWeight[0,j]==1:
+                    while (listSlice[j].get_orientation()==listSlice[i_slice].get_orientation()):
+                         nbSlice2=j
+                         dist2=np.abs(i_slice-nbSlice2)
+                         print('dist2 :',dist2)
+                         okpost=True
+                         break
+             if okpre==True and okpost==True:
+                 Slice1=listSlice[nbSlice1];Slice2=listSlice[nbSlice2]
+                 ps1=Slice1.get_parameters();ps2=Slice2.get_parameters();
+                 MS1=rigidMatrix(ps1);MS2=rigidMatrix(ps2)
+                 RotS1=MS1[0:3,0:3];RotS2=MS2[0:3,0:3]
+                 TransS1=MS1[0:3,3];TransS2=MS2[0:3,3]
+                 print('TransS1 :',TransS1)
+                 print('TransS2 :',TransS2)
+                 Rot=computeMeanRotation(RotS1,dist1,RotS2,dist2)
+                 Trans=computeMeanTranslation(TransS1,dist1,TransS2,dist2)
+                 print('Trans :',Trans)
+                 Mtot=np.zeros((4,4))
+                 Mtot[0:3,0:3]=Rot;Mtot[0:3,3]=Trans
+                 p=ParametersFromRigidMatrix(Mtot)
+                 debug_meanMatrix(Rot,Trans,p)
+                 print('before :',Slice1.get_parameters(),'parameters : ',p,'After :',Slice2.get_parameters())
+                 slicei.set_parameters(p)
+             elif okpre==True and okpost==False:
+                 Slice1=listSlice[nbSlice1]
+                 ps1=Slice1.get_parameters()
+                 slicei.set_parameters(p)
+             elif okpost==True and okpre==False:
+                 Slice2=listSlice[nbSlice2]
+                 ps2=Slice2.get_parameters()
+                 slicei.set_parameters(p)
+             
+             delta=5
+             initial_s = np.zeros((7,6))
+             vectd = np.linspace(delta,1,delta,dtype=int) 
+            
+             for d in vectd:
+                 maxIt=0
+                 previous_cost=2
+                 current_cost=costFromMatrix(gridError, gridNbpoint)
+                 
+                 while(previous_cost>current_cost+0.01)and maxIt<50:
+                     
+                     x0=slicei.get_parameters()
+                     costMse,costDice,gridError,gridNbpoint,gridInter,gridUnion,x_opt = SimplexOptimization(d,x0,i_slice,listSlice,gridError,gridNbpoint,gridInter,gridUnion,gridWeight,initial_s,threshold)
+                     slicei.set_parameters(x_opt)
+                     maxIt=maxIt+1
+                     previous_cost=current_cost
+                     current_cost=costMse
+                     print('deltat :', d,'maxIt :', maxIt, 'mse : ',costMse, 'dice :', costDice)
 
+     
+    gridError,gridNbpoint,gridUnion,gridInter=computeCostBetweenAll2Dimages(listSlice)
+    costMse=costFromMatrix(gridError,gridNbpoint)
+    costDice=costFromMatrix(gridInter,gridUnion)
+    print('final MSE :', costMse, 'final DICE :', costDice)
+    EvolutionError.append(costMse)
+    EvolutionDice.append(costDice)
+    EvolutionGridError.extend(gridError.copy())
+    EvolutionGridNbpoint.extend(gridNbpoint.copy())
+    EvolutionGridInter.extend(gridInter.copy())
+    EvolutionGridUnion.extend(gridUnion.copy())
+                                   
+    for i in range(nbSlice):
+        slicei=listSlice[i]
+        EvolutionParameters.extend(slicei.get_parameters())
+        EvolutionTransfo.extend(slicei.get_transfo())
+        
+    return EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo
 # def worstSliceOptimization(listSlice,threshold,Previous_parameters,gridError,gridNbpoint,gridInter,gridUnion,EvolutionError,EvolutionDice,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo):
 #     """
     
