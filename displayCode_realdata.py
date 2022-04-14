@@ -100,8 +100,8 @@ class Viewer3D:
         self.previousname2=name2
         
         #initialisation of napari viewer with the default values
-        self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',opacity=1,ndisplay=3,visible=True)
-        self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',opacity=1,visible=True)
+        self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,ndisplay=3,visible=True)
+        self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
         napari.run()
         
         print("Cost Before Registration : ", self.ErrorEvolution[0])
@@ -237,7 +237,7 @@ class Viewer3D:
                     n=n-1
                 self.numImg1 = numImg1 + sum 
                 
-            self.visu_withnapari(self.numImg1,self.numImg2)
+        self.visu_withnapari(self.numImg1,self.numImg2)
             
         #display lines of intersection intersection on images
         widgets.interact(self.DisplayProfil,
@@ -564,6 +564,12 @@ class Viewer3D:
         image2=self.listSlice[numImg2].get_slice().get_fdata()
         affine1=self.Transfo[numImg1,:,:]
         affine2=self.Transfo[numImg2,:,:]
+
+        #hack to get very thin slices (by modifying the slice thickness)
+        header1 = self.listSlice[numImg1].get_slice().header
+        header2 = self.listSlice[numImg2].get_slice().header        
+        affine1[:3, :3] *= (1,1,0.1/header1["pixdim"][3])
+        affine2[:3, :3] *= (1,1,0.1/header2["pixdim"][3])
         
         error1=sum(self.EvolutionGridError[self.nbit-1,:,numImg1])+sum(self.EvolutionGridError[self.nbit-1,numImg1,:])
         nbpoint1=sum(self.EvolutionGridNbpoint[self.nbit-1,:,numImg2])+sum(self.EvolutionGridNbpoint[self.nbit-1,numImg1,:])
@@ -575,8 +581,8 @@ class Viewer3D:
         MSE2=error2/nbpoint2
         name2='2 : Mse : %f, Slice : %d' %(MSE2,numImg2)
         
-        self.viewer.add_image(image1,affine=affine1,name=name1,blending='opaque',opacity=1,visible=True)
-        self.viewer.add_image(image2,affine=affine2,name=name2,blending='opaque',opacity=1,visible=True)
+        self.viewer.add_image(image1,affine=affine1,name=name1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
+        self.viewer.add_image(image2,affine=affine2,name=name2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
         
         self.previousname1=name1
         self.previousname2=name2
@@ -606,8 +612,8 @@ class Viewer3D:
             self.previousname1=name1
             self.previousname2=name2
         
-            self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',opacity=1,ndisplay=3,visible=True)
-            self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',opacity=1,visible=True)
+            self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,ndisplay=3,visible=True)
+            self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',rendering='translucent',interpolation='nearest', opacity=1,visible=True)
             napari.run()
 
 def choose_joblib(joblib_name): 
