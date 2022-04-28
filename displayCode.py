@@ -77,7 +77,7 @@ class Viewer3D:
         
         
         self.Nlast=self.EvolutionGridError[self.nbit-1,:,:].copy()
-        self.Dlast=self.EvolutionGridNbpoint[self.nbit-1,:,:]
+        self.Dlast=self.EvolutionGridNbpoint[self.nbit-1,:,:].copy()
         self.lastMse=self.Nlast/self.Dlast
         self.valMax=np.max(self.lastMse[np.where(~np.isnan(self.lastMse))])
         
@@ -86,6 +86,11 @@ class Viewer3D:
         image2=self.listSlice[self.numImg2].get_slice().get_fdata()
         affine1=self.Transfo[self.numImg1,:,:]
         affine2=self.Transfo[self.numImg2,:,:]
+        
+        header1 = self.listSlice[self.numImg1].get_slice().header
+        header2 = self.listSlice[self.numImg1].get_slice().header        
+        affine1[:3, :3] *= (1,1,0.1/header1["pixdim"][3])
+        affine2[:3, :3] *= (1,1,0.1/header2["pixdim"][3])
         
         error1=sum(self.EvolutionGridError[self.nbit-1,:,self.numImg1])+sum(self.EvolutionGridError[self.nbit-1,self.numImg1,:])
         nbpoint1=sum(self.EvolutionGridNbpoint[self.nbit-1,:,self.numImg2])+sum(self.EvolutionGridNbpoint[self.nbit-1,self.numImg1,:])
@@ -100,8 +105,8 @@ class Viewer3D:
         self.previousname1=name1
         self.previousname2=name2
         
-        self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',opacity=1,ndisplay=3,visible=True)
-        self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',opacity=1,visible=True)
+        self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,ndisplay=3,visible=True)
+        self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
         napari.run()
         
         print("Cost Before Registration : ", self.ErrorEvolution[0])
@@ -198,13 +203,12 @@ class Viewer3D:
                 
         nbImage1 = len(data_img1)-1
         nbImage2 = len(data_img2)-1
-        ListImage1 = range(0,nbImage1)
-        ListImage2 = range(0,nbImage2)
-        
+
         widgets.interact(
         self.chooseSlice12,numImg1 = widgets.IntSlider(
         min=0,
         max=nbImage1,
+        value=np.ceil(nbImage1)/2,
         description='Slice in 1:',
         disabled=False,
         ),
@@ -212,6 +216,7 @@ class Viewer3D:
         numImg2 = widgets.IntSlider(
         min=0,
         max=nbImage2,
+        value=np.ceil(nbImage2)/2,
         description='Slice in 2:',
         disabled=False,
         ))    
@@ -384,6 +389,7 @@ class Viewer3D:
             M1=slice_img1.get_transfo();M2=slice_img2.get_transfo();res=min(slice_img1.get_slice().header.get_zooms())
             pointImg1,pointImg2,nbpoint,ok = commonSegment(image1,M1,image2,M2,res)
             nbpoint=np.int32(nbpoint[0,0]);ok=np.int32(ok[0,0])
+
             
             if ok>0:
                 val1,index1,nbpointSlice1=sliceProfil(slice_img1, pointImg1, nbpoint)
@@ -441,9 +447,9 @@ class Viewer3D:
                         std_after_ac = np.std(ErrorAfter)
 
                         strbr = 'before registration : %f +/- %f'  %(mean_before_ac,std_before_ac)
-                        #display(strbr)
+                        display(strbr)
                         strar = 'after registration : %f +/- %f' %(mean_after_ac,std_after_ac)
-                        #display(strar)
+                        display(strar)
                     
     
     
@@ -606,13 +612,19 @@ class Viewer3D:
     """
     def visu_withnapari(self,numImg1,numImg2):
         
-        self.viewer.layers.remove(self.previousname1)
-        self.viewer.layers.remove(self.previousname2)
+        self.viewer.layers.remove(self.viewer.layers[0])
+        self.viewer.layers.remove(self.viewer.layers[0])
         
         image1=self.listSlice[numImg1].get_slice().get_fdata()
         image2=self.listSlice[numImg2].get_slice().get_fdata()
-        affine1=self.Transfo[numImg1,:,:]
-        affine2=self.Transfo[numImg2,:,:]
+        affine1=self.Transfo[numImg1,:,:].copy()
+        affine2=self.Transfo[numImg2,:,:].copy()
+        
+        header1 = self.listSlice[self.numImg1].get_slice().header
+        header2 = self.listSlice[self.numImg1].get_slice().header        
+        affine1[:3, :3] *= (1,1,0.1/header1["pixdim"][3])
+        affine2[:3, :3] *= (1,1,0.1/header2["pixdim"][3])
+
         
         error1=sum(self.EvolutionGridError[self.nbit-1,:,numImg1])+sum(self.EvolutionGridError[self.nbit-1,numImg1,:])
         nbpoint1=sum(self.EvolutionGridNbpoint[self.nbit-1,:,numImg2])+sum(self.EvolutionGridNbpoint[self.nbit-1,numImg1,:])
@@ -624,8 +636,8 @@ class Viewer3D:
         MSE2=error2/nbpoint2
         name2='2 : Mse : %f, Slice : %d' %(MSE2,numImg2)
         
-        self.viewer.add_image(image1,affine=affine1,name=name1,blending='opaque',opacity=1,visible=True)
-        self.viewer.add_image(image2,affine=affine2,name=name2,blending='opaque',opacity=1,visible=True)
+        self.viewer.add_image(image1,affine=affine1,name=name1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
+        self.viewer.add_image(image2,affine=affine2,name=name2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
         
         self.previousname1=name1
         self.previousname2=name2
@@ -639,8 +651,14 @@ class Viewer3D:
             
             image1=self.listSlice[self.numImg1].get_slice().get_fdata()
             image2=self.listSlice[self.numImg2].get_slice().get_fdata()
-            affine1=self.Transfo[self.numImg1,:,:]
-            affine2=self.Transfo[self.numImg2,:,:]
+
+            affine1=self.Transfo[self.numImg1,:,:].copy()
+            affine2=self.Transfo[self.numImg2,:,:].copy()
+            
+            header1 = self.listSlice[self.numImg1].get_slice().header
+            header2 = self.listSlice[self.numImg1].get_slice().header        
+            affine1[:3, :3] *= (1,1,0.1/header1["pixdim"][3])
+            affine2[:3, :3] *= (1,1,0.1/header2["pixdim"][3])
         
             error1=sum(self.EvolutionGridError[self.nbit-1,:,self.numImg1])+sum(self.EvolutionGridError[self.nbit-1,self.numImg1,:])
             nbpoint1=sum(self.EvolutionGridNbpoint[self.nbit-1,:,self.numImg2])+sum(self.EvolutionGridNbpoint[self.nbit-1,self.numImg1,:])
@@ -655,8 +673,8 @@ class Viewer3D:
             self.previousname1=name1
             self.previousname2=name2
         
-            self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',opacity=1,ndisplay=3,visible=True)
-            self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',opacity=1,visible=True)
+            self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,ndisplay=3,visible=True)
+            self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
             napari.run()
 
 def choose_joblib(joblib_name): 

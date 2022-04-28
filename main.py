@@ -8,9 +8,8 @@ Created on Tue Feb  1 14:29:22 2022
 import numpy as np
 import time
 import os
-import argparse
-from data_simulation import createMvt,findCommonPointbtw2V,  ErrorOfRegistrationBtw2Slice, ChamferDistance, createArrayOfChamferDistance, createAnErrorImage
-from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
+from data_simulation import createMvt,findCommonPointbtw2V,  ErrorOfRegistrationBtw2Slice, ChamferDistance, createArrayOfChamferDistance
+from registration import loadSlice,loadimages, normalization,global_optimization
 from input_argparser import InputArgparser
 import joblib
 from os import getcwd
@@ -39,7 +38,6 @@ if __name__ == '__main__':
     
     #Create a list of slices from the images
     for i in range(len(args.filenames)):
-        print(i)
         im, inmask = loadimages(args.filenames[i], args.filenames_masks[i])
         loadSlice(im, inmask, listSlice, i)
 
@@ -51,14 +49,12 @@ if __name__ == '__main__':
     for i1 in range(len(images)):
         for i2 in range(len(images)):
             if i1 < i2:
-               print('i1 :', i1, 'i2 :', i2)
                ptimg1img2_img1, ptimg1img2_img2 = findCommonPointbtw2V(images[i1],images[i2]) #list of point between Axial and Sagittal
                listptimg1img2_img1.append(ptimg1img2_img1)
                listptimg1img2_img2.append(ptimg1img2_img2)
     
     nbimages=len(images)
-    print(nbimages)
-    print(len(listSlice))
+
     
     
     
@@ -81,50 +77,46 @@ if __name__ == '__main__':
         for i2 in range(len(images)):
             if i1 < i2:
                errorimg1img2_before = ErrorOfRegistrationBtw2Slice(listptimg1img2_img1[i],listptimg1img2_img2[i],imagesmvt[i1],imagesmvt[i2])
-               print('error_image:', errorimg1img2_before)
                listerrorimg1img2_before.append(errorimg1img2_before)
                i=i+1
     
     #Simulated data and Motion Correction
-    ErrorEvolution,DiceEvolution,EvolutionGridError,EvolutionGridNbpoint,EvolutionGridInter,EvolutionGridUnion,EvolutionParameters,EvolutionTransfo = global_optimization(listWithMvt) #Algorithm of motion correction
+    dicRes = global_optimization(listWithMvt) #Algorithm of motion correction
     
-    file = args.output
-    if not os.path.exists(file):
-        os.makedirs(file)
         
+    ErrorEvolution=dicRes["evolutionerror"]
+    DiceEvolution=dicRes["evolutiondice"]
     nbit = len(ErrorEvolution)
     nbSlice=len(listSlice)
-    print(nbSlice)
     
-    #strEE = file + '/ErrorEvolution'
+    #strEE = file + '/ErrorEvolution.npz'
     #np.savez_compressed(strEE,ErrorEvolution)
     
-    #strED = file + '/DiceEvolution'
+    #strED = file + '/DiceEvolution.npz'
     #np.savez_compressed(strED,DiceEvolution)
     
-    #strEGE = file + '/EvolutionGridError'
-    EvolutionGridError = np.reshape(EvolutionGridError,[nbit,nbSlice,nbSlice])
+    #strEGE = file + '/EvolutionGridError.npz'
+    EvolutionGridError = np.reshape(dicRes["evolutiongriderror"],[nbit,nbSlice,nbSlice])
     #np.savez_compressed(strEGE,EvolutionGridError)
     
-    #strEGN = file + '/EvolutionGridNbpoint'
-    EvolutionGridNbpoint = np.reshape(EvolutionGridNbpoint,[nbit,nbSlice,nbSlice])
+    #strEGN = file + '/EvolutionGridNbpoint.npz'
+    EvolutionGridNbpoint = np.reshape(dicRes["evolutiongridnbpoint"],[nbit,nbSlice,nbSlice])
     #np.savez_compressed(strEGN,EvolutionGridNbpoint)
     
-    #strEGI = file + '/EvolutionGridInter'
-    EvolutionGridInter = np.reshape(EvolutionGridInter,[nbit,nbSlice,nbSlice])
+    #strEGI = file + '/EvolutionGridInter.npz'
+    EvolutionGridInter = np.reshape(dicRes["evolutiongridinter"],[nbit,nbSlice,nbSlice])
     #np.savez_compressed(strEGI,EvolutionGridInter)
     
-    #strEGU = file + '/EvolutionGridUnion'
-    EvolutionGridUnion = np.reshape(EvolutionGridUnion,[nbit,nbSlice,nbSlice])
+    #strEGU = file + '/EvolutionGridUnion.npz'
+    EvolutionGridUnion = np.reshape(dicRes["evolutiongridunion"],[nbit,nbSlice,nbSlice])
     #np.savez_compressed(strEGU,EvolutionGridUnion)
     
-    #strEP = file + '/EvolutionParameters'
-    EvolutionParameters = np.reshape(EvolutionParameters,[nbit,nbSlice,6])
+    #strEP = file + '/EvolutionParameters.npz'
+    EvolutionParameters = np.reshape(dicRes["evolutionparameters"],[nbit,nbSlice,6])
     #np.savez_compressed(strEP,EvolutionParameters)
     
-    #strET = file + '/EvolutionTransfo'
-    EvolutionTransfo = np.reshape(EvolutionTransfo,[nbit,nbSlice,4,4])
-    #np.savez_compressed(strET,EvolutionTransfo)
+    #strET = file + '/EvolutionTransfo.npz'
+    EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,nbSlice,4,4])
     
     listCorrected=[]
     for i_slice in range(nbSlice):
@@ -153,13 +145,13 @@ if __name__ == '__main__':
               
                errorimg1img2_after = ErrorOfRegistrationBtw2Slice(listptimg1img2_img1[i],listptimg1img2_img2[i],images_corrected[i1],images_corrected[i2])
                listErrorAfter.append(errorimg1img2_after)
-               print('error_image:', errorimg1img2_after)
+
                
                im, inmask = loadimages(args.filenames[i1], args.filenames_masks[i1])
                imgChamferDistancei1 = ChamferDistance(inmask)
                cimg1img2 = createArrayOfChamferDistance(imgChamferDistancei1,listptimg1img2_img1[i])
                listColorMap.append(cimg1img2)
-               print('error_image:', listerrorimg1img2_before[i])
+
                
                strEB='ErrorBefore%d%d' %(i1,i2)
                tupleEB=(strEB,listerrorimg1img2_before[i])
@@ -179,7 +171,6 @@ if __name__ == '__main__':
 
     res_obj = [('listSlice',listSlicessmvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo)]
     res_obj.extend(listNameColorMap);res_obj.extend(listNameErrorBefore);res_obj.extend(listNameErrorAfter)
-    print('key :', [p[0] for p in res_obj])
     joblib_name = root + '/' + args.output + '.joblib' + '.gz' 
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     end = time.time()
