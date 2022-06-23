@@ -8,6 +8,21 @@ Created on Mon Nov  8 10:00:47 2021
 import numpy as np
 from numpy.linalg import eig,inv
 from scipy.linalg import expm,fractional_matrix_power
+from scipy.ndimage.filters import gaussian_filter
+from nibabel import Nifti1Image
+
+
+def denoising(listSlice,sigma):
+    blurlist=[]
+    for i_slice in range(len(listSlice)):
+        slicei=listSlice[i_slice].copy()
+        imgi=slicei.get_slice().get_fdata()
+        imgi_modified = gaussian_filter(imgi,sigma=sigma)
+        newSlice=Nifti1Image(imgi_modified, slicei.get_slice().affine)
+        slicei.set_slice(newSlice)
+        blurlist.append(slicei)
+    return blurlist
+
 
 def debug_meanMatrix(R_mean,Trans,parameters):
     np.real(R_mean)
@@ -28,11 +43,12 @@ def log_cplx(x):
 
 
 def computeMeanRotation(R1,dist1,R2,dist2):
-    M=R2 @ inv(R1)
+    M= R2 @ inv(R1)
     d,v=eig(M)
     tmp = log_cplx(d)
     A = v @ np.diag(tmp) @ inv(v)
-    R_mean= expm(A/2) @ R1
+    R_mean= expm(A*dist1/(dist1+dist2)) @ (np.exp(dist2/(dist1+dist2))*R1)
+    R_mean=np.real(R_mean)
     #print('R_mean :', R_mean)
     return R_mean
 
@@ -131,18 +147,18 @@ def ParametersFromRigidMatrix(rigidMatrix):
     p=np.zeros(6)
     
     p[3]=rigidMatrix[0,3]
-    print('t1:',p[3])
+    #print('t1:',p[3])
     p[4]=rigidMatrix[1,3]
-    print('t2:',p[4])
+    #print('t2:',p[4])
     p[5]=rigidMatrix[2,3]
-    print('t3:',p[5])
+    #print('t3:',p[5])
     
     beta=np.arcsin(-rigidMatrix[0,2])
-    print('beta :',beta)
+    #print('beta :',beta)
     gamma=np.arctan2(rigidMatrix[1,2]/np.cos(beta),rigidMatrix[2,2]/np.cos(beta))
-    print('gamma :',gamma)
+    #print('gamma :',gamma)
     alpha=np.arctan2(rigidMatrix[0,1]/np.cos(beta),rigidMatrix[0,0]/np.cos(beta))
-    print('alpha :',alpha)
+    #print('alpha :',alpha)
     p[0]=(180.0*gamma)/np.pi
     p[1]=(180.0*beta)/np.pi
     p[2]=(180.0*alpha)/np.pi
