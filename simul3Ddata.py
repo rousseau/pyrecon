@@ -55,10 +55,15 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
     transfoAx = np.array([[1,0,0,0],[0,1,0,0],[0,0,sliceRes,0],[0,0,0,1]]) #Rotation to obtain an axial orientation
     axAffine = imageAffine @ transfoAx
     
+    parametersAx=np.zeros(z,6)
+    parametersCor=np.zeros(y,6)
+    parametersSag=np.zeros(x,6)
+    
     for index in vectz: #Create the axial image
         
         if mvt==False: #if no movment, T is the identity
             T = np.eye(4)
+            parametersAx[i]= np.array([0,0,0,0,0,0])
         else : #else create the movment with random parameters
             a1 = rd.random()*(RangeAngle) - (RangeAngle)/2
             a2 = rd.random()*(RangeAngle) - (RangeAngle)/2
@@ -67,7 +72,7 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
             t2 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             t3 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             T = rigidMatrix([a1,a2,a3,t1,t2,t3])
-        
+            parametersAx[i]= np.array([a1,a2,a3,t1,t2,t3])
         
         coordinate_in_lr = np.zeros((4,X*Y*6)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
         output = np.zeros(X*Y*6) #output of the interpolation
@@ -128,6 +133,7 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
     
         if mvt==False: #if no movment, T is the identity
             T = np.eye(4)
+            parametersCor[i]= np.array([0,0,0,0,0,0])
         else : #else create the movment with random parameters
             a1 = rd.random()*(RangeAngle) - (RangeAngle)/2
             a2 = rd.random()*(RangeAngle) - (RangeAngle)/2
@@ -136,6 +142,7 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
             t2 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             t3 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             T = rigidMatrix([a1,a2,a3,t1,t2,t3])
+            parametersCor[i]= np.array([a1,a2,a3,t1,t2,t3])
         
 
         coordinate_in_lr = np.zeros((4,X*Z*6))
@@ -195,6 +202,7 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
     
         if mvt==False: #if no movment, T is the identity
             T = np.eye(4)
+            parametersSag[i]= np.array([0,0,0,0,0,0])
         else : #else create the movment with random parameters
             a1 = rd.random()*(RangeAngle) - (RangeAngle)/2
             a2 = rd.random()*(RangeAngle) - (RangeAngle)/2
@@ -203,6 +211,7 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
             t2 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             t3 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             T = rigidMatrix([a1,a2,a3,t1,t2,t3])
+            parametersSag[i]= np.array([a1,a2,a3,t1,t2,t3])
 
 
         coordinate_in_lr = np.zeros((4,Z*Y*6))
@@ -254,7 +263,7 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
     VolumeCoronal = nib.Nifti1Image(img_coronal, corAffine)
     VolumeSagittal = nib.Nifti1Image(img_sagittal, sagAffine)
     
-    return Volumeaxial,VolumeCoronal,VolumeSagittal   
+    return Volumeaxial,parametersAx,VolumeCoronal,parametersCor,VolumeSagittal,parametersSag 
 
 
 
