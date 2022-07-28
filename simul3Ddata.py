@@ -10,10 +10,9 @@ import numpy as np
 import nibabel as nib
 from tools import rigidMatrix
 from data_simulation import create3VolumeFromAnImage
-from tools import rigidMatrix
+from tools import rigidMatrix, rotationCenter
 from scipy.ndimage import map_coordinates
 import random as rd
-
 
 
 def psf(x_0,x): 
@@ -24,7 +23,16 @@ def psf(x_0,x):
     
     return psf
 
-def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
+def extract_mask(NiftiMask):
+   
+    mask=NiftiMask.get_fdata()
+    X,Y,Z=NiftiMask.shape
+    mask=mask>0
+    newMask = nib.Nifti1Image(mask.astype(int),NiftiMask.affine)
+    
+    return newMask
+
+def simulateMvt(image,AngleMinMax,TransMinMax,orientation,mask=np.nan,mvt=True):
     """
     The function create 3 orthogonals volume with a 3D mri image
 
@@ -32,39 +40,51 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
     image : 3D mri volume
 
     Returns :
-    Volumeaxial : Volume in axial orientation
-    VolumeCoronal : Volume in sagittal orientation
-    VolumeSagittal : Volume in corronal orientation
+    Volume: Volume in the choosen orientation
+
 
     """
     X,Y,Z = image.shape
-    sliceRes = 3 #number of slice to subsample the image, in the final volume, we take only 1 over sliceRes images
-    z = int(Z/sliceRes)
-    y = int(Y/sliceRes)
-    x = int(X/sliceRes)
-    img_axial = np.zeros((X,Y,z))
-    img_coronal = np.zeros((X,Z,y))
-    img_sagittal = np.zeros((Z,Y,x))
-    vectz = np.linspace(0,Z-1,z,dtype=int)
-    vecty = np.linspace(0,Y-1,y,dtype=int)
-    vectx = np.linspace(0,X-1,x,dtype=int)
+    sliceRes = 6 #number of slice to subsample the image, in the final volume, we take only 1 over sliceRes images
+        
+    if orientation=='axial':
+        S1=X;S2=Y;S3=Z
+        transfo = np.array([[1,0,0,0],[0,1,0,0],[0,0,sliceRes,0],[0,0,0,1]]) #Rotation to obtain an axial orientation
+      
+    elif orientation=='coronal':
+        S1=X;S2=Z;S3=Y
+        transfo = np.array([[1,0,0,0],[0,0,sliceRes,0],[0,1,0,0],[0,0,0,1]])
+        
     
+    elif orientation=='sagittal':
+        S1=Z;S2=Y;S3=X
+        transfo = np.array([[0,0,sliceRes,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
+   
+    else :
+        print('unkown orientation, choose between axial, coronal and sagittal')
+        return 0
     
-    i=0
+    s3=int(S3/sliceRes)
+    imgLr = np.zeros((S1,S2,s3))
+    parameters=np.zeros((s3,6))
+    TransfoLR=np.zeros((s3,4,4))
+    vect = np.linspace(0,s3-1,s3,dtype=int)
+    print(vect)
     imageAffine = image.affine
-    transfoAx = np.array([[1,0,0,0],[0,1,0,0],[0,0,sliceRes,0],[0,0,0,1]]) #Rotation to obtain an axial orientation
-    axAffine = imageAffine @ transfoAx
+    LRAffine = imageAffine @ transfo
+    print(LRAffine)
     
-    parametersAx=np.zeros(z,6)
-    parametersCor=np.zeros(y,6)
-    parametersSag=np.zeros(x,6)
+    if ~np.all(np.isnan(mask)):
+        newMask=np.zeros((S1,S2,s3))
     
-    for index in vectz: #Create the axial image
+    for i in vect: #Create the axial image
         
         if mvt==False: #if no movment, T is the identity
             T = np.eye(4)
-            parametersAx[i]= np.array([0,0,0,0,0,0])
+            parameters[i,:]= np.array([0,0,0,0,0,0])
         else : #else create the movment with random parameters
+            RangeAngle=AngleMinMax[1]-AngleMinMax[0]
+            RangeTranslation=TransMinMax[1]-TransMinMax[0]
             a1 = rd.random()*(RangeAngle) - (RangeAngle)/2
             a2 = rd.random()*(RangeAngle) - (RangeAngle)/2
             a3 = rd.random()*(RangeAngle) - (RangeAngle)/2
@@ -72,16 +92,16 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
             t2 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             t3 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
             T = rigidMatrix([a1,a2,a3,t1,t2,t3])
-            parametersAx[i]= np.array([a1,a2,a3,t1,t2,t3])
+            parameters[i,:]= np.array([a1,a2,a3,t1,t2,t3])
         
-        coordinate_in_lr = np.zeros((4,X*Y*6)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
-        output = np.zeros(X*Y*6) #output of the interpolation
+        coordinate_in_lr = np.zeros((4,S1*S2*6)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
+        output = np.zeros(S1*S2*6) #output of the interpolation
         
         #create the coordinate of points of the slice i in the LR image, with 6 points per voxel, center in 0
-        ii = np.arange(0,X) 
-        jj = np.arange(0,Y)
+        ii = np.arange(0,S1) 
+        jj = np.arange(0,S2)
 
-        zz = np.linspace(-0.45,0.4,6)
+        zz = np.linspace(-0.45,0.45,6)
         
         iv,jv = np.meshgrid(ii,jj,indexing='ij')
         
@@ -98,185 +118,51 @@ def create3VolumeFromAnImage(image,RangeAngle,RangeTranslation,mvt):
         coordinate_in_lr[0,:] = iv
         coordinate_in_lr[1,:] = jv
         coordinate_in_lr[2,:] = zv + i
-        coordinate_in_lr[3,:] = np.ones(X*Y*6)
+        coordinate_in_lr[3,:] = np.ones(S1*S2*6)
         
         #the transformation is applied at the center of the image
-        center = np.ones(4); center[0] = int(X/2); center[1] = int(Y/2); center[2] = i; center[3]= 1
-        center = axAffine @ center
+        if np.all(np.isnan(mask)):
+            center = np.ones(4); center[0] = int(S1/2); center[1] = int(S2/2); center[2] = i; center[3]= 1
+        else:
+            center=rotationCenter(mask[:,:,i])
+        
+        center = LRAffine @ center
+        
         matrix_center = np.eye(4); matrix_center[0:3,3]=-center[0:3]
         matrix_invcenter = np.eye(4); matrix_invcenter[0:3,3]=center[0:3]
 
         #corresponding position in the hr image
-        coordinate_in_world = matrix_invcenter @ T @ matrix_center @ axAffine @ coordinate_in_lr
+        TransfoLR[i,:,:] = matrix_invcenter @ T @ matrix_center @ LRAffine
+        coordinate_in_world = matrix_invcenter @ T @ matrix_center @ LRAffine @ coordinate_in_lr
         coordinate_in_hr = np.linalg.inv(image.affine) @ coordinate_in_world
         
         #interpolate the corresponding values in HR image
         map_coordinates(image.get_fdata(),coordinate_in_hr[0:3,:],output=output,order=1,mode='constant',cval=np.nan,prefilter=False)
-        new_slice = np.reshape(output,(X,Y,6))
-
+        new_slice = np.reshape(output,(S1,S2,6))
+        
         #compute intensity value in lr image using the psf
         var=0
-        for v in range(X):
-            for w in range(Y):
-                img_axial[v,w,i] = sum(psf(0,zz) * new_slice[v,w,:]) / 6
+        for v in range(S1):
+            for w in range(S2):
+                imgLr[v,w,i] = sum(psf(0,zz) * new_slice[v,w,:]) / 6
                 var=var+6
+        
+        if ~np.all(np.isnan(mask)):
+            outputMask=np.zeros((S1*S2*6))
+            map_coordinates(mask,coordinate_in_hr[0:3,:],output=outputMask,order=1,mode='constant',cval=np.nan,prefilter=False)
+            new_slice = np.reshape(outputMask,(S1,S2,6))
+            var=0
+            for v in range(S1):
+                for w in range(S2):
+                    newMask[v,w,i] = sum(psf(0,zz) * new_slice[v,w,:]) / 6
+                    var=var+6
         
         i=i+1
         
+    Volume = nib.Nifti1Image(imgLr,LRAffine)
     
+    if ~np.all(np.isnan(mask)):
+        VolumeMask = nib.Nifti1Image(newMask,LRAffine)
+        return Volume,VolumeMask,parameters,TransfoLR
     
-    transfoCor = np.array([[1,0,0,0],[0,0,sliceRes,0],[0,1,0,0],[0,0,0,1]]) #Rotation to obtain a coronal orientation
-    corAffine =  imageAffine @ transfoCor
-    
-    i=0
-    for index in vecty: #create the coronal image
-    
-        if mvt==False: #if no movment, T is the identity
-            T = np.eye(4)
-            parametersCor[i]= np.array([0,0,0,0,0,0])
-        else : #else create the movment with random parameters
-            a1 = rd.random()*(RangeAngle) - (RangeAngle)/2
-            a2 = rd.random()*(RangeAngle) - (RangeAngle)/2
-            a3 = rd.random()*(RangeAngle) - (RangeAngle)/2
-            t1 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
-            t2 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
-            t3 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
-            T = rigidMatrix([a1,a2,a3,t1,t2,t3])
-            parametersCor[i]= np.array([a1,a2,a3,t1,t2,t3])
-        
-
-        coordinate_in_lr = np.zeros((4,X*Z*6))
-        output = np.zeros(X*Z*6)
-        
-        ii = np.arange(0,X)
-        jj = np.arange(0,Z)
-        
-        zz = np.linspace(-0.45,0.4,6)
-
-        
-        iv,jv = np.meshgrid(ii,jj,indexing='ij')
-        
-        iv = np.reshape(iv, (-1))
-        jv = np.reshape(jv, (-1))
-        
-        iv,zv = np.meshgrid(iv,zz,indexing='ij')
-        jv,zv = np.meshgrid(jv,zz,indexing='ij')
-        
-        iv = np.reshape(iv, (-1))
-        jv = np.reshape(jv, (-1))
-        zv = np.reshape(zv, (-1))
-
-        
-        coordinate_in_lr[0,:] = iv
-        coordinate_in_lr[1,:] = jv
-        coordinate_in_lr[2,:] = zv + i 
-        coordinate_in_lr[3,:] = np.ones(X*Z*6)
-
-        center = np.ones(4); center[0] = int(X/2); center[1] = int(Z/2); center[2] = i; center[3]= 1
-        center = axAffine @ center
-        matrix_center = np.eye(4); matrix_center[0:3,3]=-center[0:3]
-        matrix_invcenter = np.eye(4); matrix_invcenter[0:3,3]=center[0:3]
-
-        coordinate_in_world = matrix_invcenter @ T @ matrix_center @ corAffine @ coordinate_in_lr
-        coordinate_in_hr = np.linalg.inv(image.affine) @ coordinate_in_world
-
-        
-        map_coordinates(image.get_fdata(),coordinate_in_hr[0:3,:],output=output,order=1,mode='constant',cval=np.nan,prefilter=False)
-        
-        new_slice = np.reshape(output,(X,Z,6))
-
-
-        var=0
-        for v in range(X):
-            for w in range(Z):
-                img_coronal[v,w,i] = sum(psf(0,zz) * new_slice[v,w,:]) / 6
-                var=var+6
-
-        i=i+1
-
-    transfoSag = np.array([[0,0,sliceRes,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]]) #Rotation to obtain a sagittal orientation
-    sagAffine =   imageAffine @ transfoSag
-
-    i=0
-    for index in vectx: #create the sagital image
-    
-        if mvt==False: #if no movment, T is the identity
-            T = np.eye(4)
-            parametersSag[i]= np.array([0,0,0,0,0,0])
-        else : #else create the movment with random parameters
-            a1 = rd.random()*(RangeAngle) - (RangeAngle)/2
-            a2 = rd.random()*(RangeAngle) - (RangeAngle)/2
-            a3 = rd.random()*(RangeAngle) - (RangeAngle)/2
-            t1 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
-            t2 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
-            t3 = rd.random()*(RangeTranslation) - (RangeTranslation)/2
-            T = rigidMatrix([a1,a2,a3,t1,t2,t3])
-            parametersSag[i]= np.array([a1,a2,a3,t1,t2,t3])
-
-
-        coordinate_in_lr = np.zeros((4,Z*Y*6))
-        output = np.zeros(Z*Y*6)
-        
-        ii = np.arange(0,Z)
-        jj = np.arange(0,Y)
-        
-        zz = np.linspace(-0.45,0.4,6)
-        
-        iv,jv = np.meshgrid(ii,jj,indexing='ij')
-        
-        iv = np.reshape(iv, (-1))
-        jv = np.reshape(jv, (-1))
-        
-        iv,zv = np.meshgrid(iv,zz,indexing='ij')
-        jv,zv = np.meshgrid(jv,zz,indexing='ij')
-        
-        iv = np.reshape(iv, (-1))
-        jv = np.reshape(jv, (-1))
-        zv = np.reshape(zv, (-1))
-        
-        
-        coordinate_in_lr[0,:] = iv
-        coordinate_in_lr[1,:] = jv
-        coordinate_in_lr[2,:] = zv + i
-        coordinate_in_lr[3,:] = np.ones(Z*Y*6)
-        
-        center = np.ones(4); center[0] = int(Z/2); center[1] = int(Y/2); center[2] = i; center[3]= 1
-        center = axAffine @ center
-        matrix_center = np.eye(4); matrix_center[0:3,3]=-center[0:3]
-        matrix_invcenter = np.eye(4); matrix_invcenter[0:3,3]=center[0:3]
-
-        coordinate_in_world = matrix_invcenter @ T @ matrix_center @ sagAffine @ coordinate_in_lr
-        coordinate_in_hr = np.linalg.inv(image.affine) @ coordinate_in_world
-        
-        map_coordinates(image.get_fdata(),coordinate_in_hr[0:3,:],output=output,order=1,mode='constant',cval=np.nan,prefilter=False)
-        new_slice = np.reshape(output,(Z,Y,6))
-        
-        var=0
-        for v in range(Z):
-            for w in range(Y):
-                img_sagittal[v,w,i] = sum(psf(0,zz) * new_slice[v,w,:]) / 6
-                var=var+6
-
-        i=i+1
-
-    Volumeaxial = nib.Nifti1Image(img_axial,  axAffine)
-    VolumeCoronal = nib.Nifti1Image(img_coronal, corAffine)
-    VolumeSagittal = nib.Nifti1Image(img_sagittal, sagAffine)
-    
-    return Volumeaxial,parametersAx,VolumeCoronal,parametersCor,VolumeSagittal,parametersSag 
-
-
-
-#test des fonctions : 
-    
-#Image Isotrope : 
-HRnifti = nib.load('/home/mercier/Documents/donnee/simulation/dhcp_T2w_iso1mm.nii.gz')
-HRimage = HRnifti.get_fdata()
-
-LrAxNifti,LrCorNifti,LrSagNifti = create3VolumeFromAnImage(HRnifti)
-
-nib.save(LrAxNifti,'LrAxNifti.nii.gz')
-
-nib.save(LrCorNifti,'LrCorNifti.nii.gz')
-
-nib.save(LrSagNifti,'LrSagNifti.nii.gz')
+    return Volume,parameters,TransfoLR
