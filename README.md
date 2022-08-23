@@ -30,4 +30,4 @@ python main.py \
 where filenames and output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames.
 
 # Visualisation
-The results can be visualize with **3Ddisplay.ipynb** and **3Ddisplay_realdata.ipynb**. Change image_dir='', mask_dir='' and res_dir='' to you data directory
+The results can be visualize with **3Ddisplay.ipynb** and **3Ddisplay_realdata.ipynb**. You can select directly the pass to the joblib directory
