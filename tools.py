@@ -7,24 +7,45 @@ Created on Mon Nov  8 10:00:47 2021
 """
 import numpy as np
 from numpy.linalg import eig,inv
-from scipy.linalg import expm,fractional_matrix_power
+from scipy.linalg import expm
 from scipy.ndimage.filters import gaussian_filter
 from nibabel import Nifti1Image
 
 
+
 def denoising(listSlice,sigma):
+    """
+    
+    Apply a gaussian filter to each slices in in a list
+    
+    Input
+
+    listSlice : list wich contains slices from all stacks
+    sigma : parameters from the gaussian filter
+
+    Returns
+
+    blurlist : A new list of slices with all slices blurred
+
+    """
+    #Initialization
     blurlist=[]
+    
     for i_slice in range(len(listSlice)):
         slicei=listSlice[i_slice].copy()
         imgi=slicei.get_slice().get_fdata()
-        imgi_modified = gaussian_filter(imgi,sigma=sigma)
-        newSlice=Nifti1Image(imgi_modified, slicei.get_slice().affine)
+        imgi_modified = gaussian_filter(imgi,sigma=sigma) #applied gaussian filter to the image of the slice
+        newSlice=Nifti1Image(imgi_modified, slicei.get_slice().affine) #create a new slice based on the modified image
         slicei.set_slice(newSlice)
         blurlist.append(slicei)
     return blurlist
 
 
 def debug_meanMatrix(R_mean,Trans,parameters):
+    """
+    function to debug the men of rigid matrix
+
+    """
     np.real(R_mean)
     res=np.zeros((4,4));res[3,3]=1
     res[0:3,0:3]=R_mean;res[0:3,3]=Trans
@@ -43,16 +64,24 @@ def log_cplx(x):
 
 
 def computeMeanRotation(R1,dist1,R2,dist2):
-    M= R2 @ inv(R1)
-    d,v=eig(M)
+    """
+    function to compute the mean of rotations, taking into account the distance from the two rotation 
+    
+    """
+    M = R2 @ inv(R1)
+    d,v = eig(M)
     tmp = log_cplx(d)
     A = v @ np.diag(tmp) @ inv(v)
-    R_mean= expm(A*dist1/(dist1+dist2)) @ (np.exp(dist2/(dist1+dist2))*R1)
+    #R_mean= expm(A*dist1/(dist1+dist2)) @ (np.exp(dist2/(dist1+dist2))*R1)
+    R_mean=expm(A/2) @ R1
     R_mean=np.real(R_mean)
-    #print('R_mean :', R_mean)
+    
     return R_mean
 
 def computeMeanTranslation(T1,dist1,T2,dist2):
+    """
+    function to compute the mean of translation
+    """
     T_mean=((dist2) * T1 + (dist1) * T2)/(dist1 + dist2)
     return T_mean
 
@@ -143,46 +172,38 @@ def rigidMatrix(parameters):
 
 
 def ParametersFromRigidMatrix(rigidMatrix):
+   
+    """
+    Find parameters associated with a rigidMatrix (3 parameters for rotation and 3 parameters for transaltion)
+    """
     
     p=np.zeros(6)
     
     p[3]=rigidMatrix[0,3]
-    #print('t1:',p[3])
     p[4]=rigidMatrix[1,3]
-    #print('t2:',p[4])
     p[5]=rigidMatrix[2,3]
-    #print('t3:',p[5])
     
     beta=np.arcsin(-rigidMatrix[0,2])
-    #print('beta :',beta)
     gamma=np.arctan2(rigidMatrix[1,2]/np.cos(beta),rigidMatrix[2,2]/np.cos(beta))
-    #print('gamma :',gamma)
     alpha=np.arctan2(rigidMatrix[0,1]/np.cos(beta),rigidMatrix[0,0]/np.cos(beta))
-    #print('alpha :',alpha)
     p[0]=(180.0*gamma)/np.pi
     p[1]=(180.0*beta)/np.pi
     p[2]=(180.0*alpha)/np.pi
+ 
     
     return p
 
-#useful function for optimization shemes
-def computeAllErrorsFromGrid(gridError,gridNbpoint):
-    nbSlice,nbSlice = gridError.shape
-    ArrayError = np.zeros(nbSlice)
-    var_error = 0
-    var_nbpoint = 0
-    for i_slice in range(nbSlice):
-        var_error = sum(gridError[:,i_slice]) + sum(gridError[:,i_slice])
-        var_nbpoint = sum((gridNbpoint[i_slice,:])) + sum(gridNbpoint[:,i_slice])
-        ArrayError[i_slice] = var_error/var_nbpoint 
-    return ArrayError
   
 
 def createVolumesFromAlist(listSlice):
+   
+    """
+    re-create the differents original stacks of the list (ex : Axial, Sagittal, Coronal)
+    """
     
     orientation = []; images=[]; mask=[]
     for s in listSlice:
-        s_or = s.get_orientation()
+        s_or = s.get_orientation()#s.get_index_image()
         if s_or in orientation:
             index_orientation = orientation.index(s_or)
             images[index_orientation].append(s)
@@ -196,3 +217,42 @@ def createVolumesFromAlist(listSlice):
             mask[index_orientation].append(s.get_mask())
                 
     return images, mask
+
+def matrixOfWeight(gridError,gridNbpoint,gridInter,gridUnion,threshold,threshold_dice):
+    """
+    Compute a binary matrix which represent if a slice is well-register of bad-register. Each column of the matrix represent a slice
+
+    Inputs 
+    gridError : triangular matrix representing the square error between each slices
+    gridNbpoint : triangular matrix representing the number of common point between each slices
+    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
+        
+    Ouptuts 
+    Weight : The binary matrix
+
+    """
+    X,Y = gridError.shape
+    mWeight = np.zeros((X,Y))
+    mDice = np.zeros((X,Y))
+    valWeight = 0
+    valDice = 0
+    
+    for i_slice in range(Y):
+       if (sum(gridNbpoint[i_slice,:])+sum(gridNbpoint[:,i_slice])) == 0:
+           valWeight = 10
+       else :
+           valWeight = (sum(gridError[:,i_slice])+sum(gridError[i_slice,:]))/(sum(gridNbpoint[i_slice,:])+sum(gridNbpoint[:,i_slice]))
+       if (sum(gridUnion[i_slice,:])+sum(gridUnion[:,i_slice])) == 0 :
+           valDice = 0
+       else :
+           valDice = (sum(gridInter[:,i_slice])+sum(gridInter[i_slice,:]))/(sum(gridUnion[i_slice,:])+sum(gridUnion[:,i_slice]))
+       
+       mWeight[:,i_slice]=(valWeight*np.ones(X))
+       mDice[:,i_slice]=(valDice*np.ones(X))
+       print('mDice :',mDice)
+        
+
+    Weight = ((mWeight < threshold) * (mDice > threshold_dice))
+    print('Weight :',Weight)
+
+    return Weight
