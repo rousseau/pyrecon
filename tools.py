@@ -72,8 +72,8 @@ def computeMeanRotation(R1,dist1,R2,dist2):
     d,v = eig(M)
     tmp = log_cplx(d)
     A = v @ np.diag(tmp) @ inv(v)
-    #R_mean= expm(A*dist1/(dist1+dist2)) @ (np.exp(dist2/(dist1+dist2))*R1)
-    R_mean=expm(A/2) @ R1
+    #R_mean= expm(A*dist1/(dist1+dist2))2 @ (np.exp(dist2/(dist1+dist2))*R1)
+    R_mean=expm(A*dist1/(dist1+dist2)) @ R1
     R_mean=np.real(R_mean)
     
     return R_mean
@@ -98,32 +98,11 @@ def rotationCenter(mask):
     centerw : 2xD vector
    
     """    
-    shape = mask.shape
-    X = shape[0]
-    Y = shape[1]
-    center = np.zeros(2)
-
-    somme_x = 0
-    somme_y = 0
-    nbpoint = 0
-    
-    for i in range(X):
-        for j in range(Y):
-                if mask[i,j] > 0:
-                    somme_x = somme_x + i
-                    somme_y = somme_y + j
-                    nbpoint = nbpoint + 1
-    if nbpoint == 0: #in case there is no mask in the image, we consider the centre of rotation to be the center of the image
-        center[0]= int(X/2)
-        center[1]= int(Y/2)
-    else:
-        center[0] = int(somme_x/nbpoint)
-        center[1] = int(somme_y/nbpoint) 
-    
-    centerw = np.concatenate((center,np.array([0,1])))
+    index = np.where(mask>0)
+    center = np.sum(index,axis=1)/(np.sum(mask))
+    centerw = np.concatenate((center[0:2],np.array([0,1])))
     #centerw = sliceaffine @ centerw 
-    
-    
+       
     return centerw
 
 
@@ -218,41 +197,23 @@ def createVolumesFromAlist(listSlice):
                 
     return images, mask
 
-def matrixOfWeight(gridError,gridNbpoint,gridInter,gridUnion,threshold,threshold_dice):
-    """
-    Compute a binary matrix which represent if a slice is well-register of bad-register. Each column of the matrix represent a slice
 
-    Inputs 
-    gridError : triangular matrix representing the square error between each slices
-    gridNbpoint : triangular matrix representing the number of common point between each slices
-    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
-        
-    Ouptuts 
-    Weight : The binary matrix
+def image_center(bin_image):
+    index = np.where(bin_image>0)
+    res = np.sum(index,axis=1)/(np.sum(bin_image))
+    return res[0:3]
 
-    """
-    X,Y = gridError.shape
-    mWeight = np.zeros((X,Y))
-    mDice = np.zeros((X,Y))
-    valWeight = 0
-    valDice = 0
+def center_image_2_ref(bin_image,affine_image,center_ref,affine_ref):
     
-    for i_slice in range(Y):
-       if (sum(gridNbpoint[i_slice,:])+sum(gridNbpoint[:,i_slice])) == 0:
-           valWeight = 10
-       else :
-           valWeight = (sum(gridError[:,i_slice])+sum(gridError[i_slice,:]))/(sum(gridNbpoint[i_slice,:])+sum(gridNbpoint[:,i_slice]))
-       if (sum(gridUnion[i_slice,:])+sum(gridUnion[:,i_slice])) == 0 :
-           valDice = 0
-       else :
-           valDice = (sum(gridInter[:,i_slice])+sum(gridInter[i_slice,:]))/(sum(gridUnion[i_slice,:])+sum(gridUnion[:,i_slice]))
-       
-       mWeight[:,i_slice]=(valWeight*np.ones(X))
-       mDice[:,i_slice]=(valDice*np.ones(X))
-       print('mDice :',mDice)
-        
+    matrix_2_ref = np.eye(4,4)
+    center_world = affine_ref @ np.concatenate((center_ref,np.array([1])))
+    print(center_world)
+    matrix_2_ref[0:3,3] = center_world[0:3]
+    
+    return matrix_2_ref
+    
+    
+    # mWeight = np.zeros((X,Y))
 
-    Weight = ((mWeight < threshold) * (mDice > threshold_dice))
-    print('Weight :',Weight)
 
-    return Weight
+

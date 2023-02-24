@@ -5,15 +5,55 @@ Created on Mon Nov  8 10:09:43 2021
 
 @author: mercier
 """
-from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-from scipy import interpolate
+
+#from scipy.stats import norm
 import matplotlib.pyplot as plt
 import numpy as np
 import nibabel as nib
-from skimage.color import gray2rgb
 
 
+
+# def gaussianApproximation(gridError,gridNbpoint,N):
+#     vectMse = np.zeros([gridError.shape[0]])
+    
+#     for i in range(gridError.shape[0]): #compute between each slice and its orthogonal slices
+#         mse = sum(gridError[i,:]) + sum(gridError[:,i])
+#         point =  sum(gridNbpoint[i,:]) + sum(gridNbpoint[:,i])
+#         vectMse[i] = mse/point
+    
+#     vectMse = vectMse[~np.isnan(vectMse)]                    
+#     valMse = np.median(vectMse)
+#     std = 1.4826*np.median(np.abs(vectMse-valMse))
+#     x_min = min(vectMse)
+#     x_max = max(vectMse)
+#     x_mean = np.mean(vectMse)
+    
+#     x = np.linspace(x_min,x_max,N)
+#     y = norm.pdf(x,x_mean,std)
+#     return x,y
+    
+    
+
+def MaskProportion(slicei):
+    image = slicei.get_slice().get_fdata()
+    size=image.shape
+    pnum=0
+    for i in range(size[0]):
+        for j in range(size[1]):
+            pnum=pnum+image[i,j]
+    pdenum=size[0]*size[1]
+    return pnum/pdenum
+
+def nbpointIndex(listSlice):
+    nbSlice=len(listSlice)
+    indexnbpoint=np.zeros(nbSlice)
+    for i_slice in range(nbSlice):
+        slicei = listSlice[i_slice]
+        indexnbpoint[i_slice]=MaskProportion(slicei)
+    return indexnbpoint
+    
+    
+    
 def Histo(MSE):
     histoMse =  plt.hist(MSE,range=(min(MSE),max(MSE)),bins='auto')
     return histoMse
@@ -113,18 +153,24 @@ def displayIntensityProfil(commonVal1,index1,commonVal2,index2,index):
     size = np.shape(indiceIndex1)[0]
     #print(indiceIndex1)
     if(size>0):
-        plt.axvline(x=indiceIndex1[0]-index[0],color='r')
-        plt.axvline(x=indiceIndex1[size-1]-index[0],color='r')
-        plt.plot(commonVal1,color='r')
+        plt.axvline(x=indiceIndex1[0]-index[0],color='black',)
+        plt.axvline(x=indiceIndex1[size-1]-index[0],color='black')
+    plt.plot(commonVal1,color='black')
+    plt.xlabel('points')
+    plt.ylabel('intensity')
             
     indiceIndex2 = np.where(index2 == True)[0]
     size = np.shape(indiceIndex2)[0]
+    #print(size)
     #print(indiceIndex2)
     if(size>0):
-        plt.axvline(x=indiceIndex2[0]-index[0],color='b')
-        plt.axvline(x=indiceIndex2[size-1]-index[0],color='b')
-        plt.plot(commonVal2,color='b')
-        plt.title('Intensity profil delineated by the mask')
+        print('moi aussi!')
+        plt.axvline(x=indiceIndex2[0]-index[0],color='gray',ls='dotted')
+        plt.axvline(x=indiceIndex2[size-1]-index[0],color='gray',ls='dotted')
+    plt.plot(commonVal2,'.',color='gray')
+    plt.title('Intensity profil delineated by the mask')
+    plt.xlabel('points')
+    plt.ylabel('intensity')
     
 
 def indexMse(gridError,gridNbpoint,numSlice):
@@ -191,45 +237,5 @@ def indexGlobalMse(gridError,gridNbpoint):
     return NBPOINT_GLOB,MSE_GLOB 
   
 
-    
-def indexDice(slice1,listSlice):
-    """
-    The function computes the DICE (intersection over union) between slice1 and its orthonal slices
-    and return an array of the dice between slice1 and each slice.
 
-    Inputs
-    slice1 : 
-        type slice, contains all the necessary information about the slice
-    
-    listSlice : 
-        list of type slice, contains the images in the three orientations, axial,sagital and coronal
-
-    Outputs :
-    DICE : 
-        Array containing the DICE between slice1 and its orthogonal slice
-
-    """
-    INTERSECTION = np.zeros(len(listSlice))
-    UNION = np.zeros(len(listSlice))
-    indice = 0
-    for slice2 in listSlice:
-        if slice1.get_orientation() != slice2.get_orientation(): #there is no intersection between slices and its orthogonal slices
-            newIntersection,newUnion = DICElocal(slice1,slice2)
-            INTERSECTION[indice]=newIntersection
-            UNION[indice] = newUnion
-            indice = indice+1
-    return INTERSECTION,UNION
-
-def indexGlobalDice(listSlice):
-     INTERSECTION = np.zeros(len(listSlice))
-     UNION = np.zeros(len(listSlice))
-     indice=0
-     for slice1 in listSlice:
-         intersectionSlice, unionSlice = indexDice(slice1,listSlice)
-         globalIntersectionSlice = sum(intersectionSlice)
-         globalUnionSlice = sum(unionSlice)
-         INTERSECTION[indice] = globalIntersectionSlice
-         UNION[indice] = globalUnionSlice
-         indice=indice+1
-     return INTERSECTION,UNION  
 

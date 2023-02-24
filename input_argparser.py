@@ -9,6 +9,7 @@ Created on Tue Mar 29 14:52:47 2022
 import sys
 import six
 import argparse
+import numpy as np
 
 #from https://github.com/gift-surg/NiftyMIC/blob/553bce0824e7b40cd221897b683142d9aeee77d8/niftymic/utilities/input_arparser.py
 
@@ -48,6 +49,26 @@ class InputArgparser(object):
                     ):
         self._add_argument(dict(locals()))   
         
+    def add_nomvt(
+        self,
+        option_string="--nomvt",
+        nargs="+",
+        help="image data in nii.gz",
+        default=None,
+        required=False,
+                        ):
+        self._add_argument(dict(locals()))
+            
+    def add_nomvt_mask(
+        self,
+        option_string="--nomvt_masks",
+        nargs="+",
+        help="mask of the data in nii.gz",
+        default=None,
+        required=False,
+        ):
+        self._add_argument(dict(locals()))  
+        
         
     def add_output(
         self,
@@ -59,22 +80,33 @@ class InputArgparser(object):
                    ):
         self._add_argument(dict(locals()))
         
-    def add_simulation_angle(
+        
+    def add_simulation(
         self,
-        option_string="--simulation_angle",
-        type=int,
-        help="Bound of the simulated angles, in degree (ex : if 3, simulated angle are comprised between -3 and 3",
-        default=0,
+        option_string="--simulation",
+        nargs="+",
+        help=" ",
+        default=None,
+        required=False,
                     ):
         self._add_argument(dict(locals()))
         
-    def add_simulation_translation(
+    def add_ablation(
         self,
-        option_string="--simulation_translation",
-        type=int,
-        help="Bound of the simulated translation, in mm (ex : if 3, simulated translation are comprised between -3 and 3",
-        default=0,
-                    ):
+        option_string="--ablation",
+        type=str,
+        default="all",
+        required=False,
+            ):
+        self._add_argument(dict(locals()))
+        
+    def add_hyperparameters(
+        self,
+        option_string="--hyperparameters",
+        nargs="+",
+        default=None,
+        required=False,
+            ):
         self._add_argument(dict(locals()))
         
     def _add_argument(self, allvars):

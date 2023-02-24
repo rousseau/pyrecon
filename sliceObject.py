@@ -19,7 +19,7 @@ A new slice takes into parameters :
 """    
 
 class SliceObject: 
-    def __init__(self,sliceimage,slicemask,orientation,num_slice) :
+    def __init__(self,sliceimage,slicemask,orientation,num_slice,num_image) :
         
         self.__sliceimage = sliceimage  
         self.__parameter = np.zeros(6) #initial parameters of the rigid transform 
@@ -34,7 +34,8 @@ class SliceObject:
         self.__mask = slicemask #mask associated to the image
         self.__orientation = orientation #image of the slice (0 1 or 2)
         self.__num = num_slice
-
+        self.__image = num_image
+        self.ok = 1
 
     #get and set functions : 
     def get_parameters(self): #return the parameters of the rigid transformation
@@ -61,12 +62,16 @@ class SliceObject:
         return self.__mask
     
     def get_center(self):
-        return self.__invcenter[0:3,3] 
+        return self.__center[0:3,3]
     
     def get_index_slice(self):
         return self.__num
     
     def copy(self):
-        copy = SliceObject(self.__sliceimage, self.__mask, self.__orientation,self.__num)
+        copy = SliceObject(self.__sliceimage, self.__mask, self.__orientation,self.__num,self.__image)
         copy.set_parameters(self.__parameter)
         return copy
+   
+    def get_index_image(self):
+        return self.__image
+    

@@ -7,172 +7,172 @@ Created on Tue Feb  1 14:29:22 2022
 """ 
 import numpy as np
 import time
-import os
-from data_simulation import createMvt,findCommonPointbtw2V,  ErrorOfRegistrationBtw2Slice, ChamferDistance, createArrayOfChamferDistance
-from registration import loadSlice,loadimages, normalization,global_optimization
+from data_simulation import findCommonPointbtw2V,  ErrorOfRegistrationBtw2Slice, ChamferDistance, createArrayOfChamferDistance
+from registration import normalization,global_optimisation
+from load import loadSlice,loadimages
 from input_argparser import InputArgparser
 import joblib
-from os import getcwd
+from os import getcwd, path, mkdir
 from tools import createVolumesFromAlist
+from rec_ebner import convert2EbnerParam
+
+
 
 if __name__ == '__main__':
-    
+        
     root=getcwd()
     
     input_parser = InputArgparser()
     
-    #load images and masks (in the order, axial, sagittal, coronnal)
-    input_parser.add_filenames(required=True)
-    input_parser.add_filenames_masks()
-    input_parser.add_simulation_angle()
-    input_parser.add_simulation_translation()
-    input_parser.add_output(required=True)
+    
+    input_parser.add_filenames(required=True) #load images
+    input_parser.add_filenames_masks() #load masks
+    input_parser.add_simulation() #load simulated transformation
+    input_parser.add_output(required=True) #output name
+    input_parser.add_nomvt() #load images with no movement
+    input_parser.add_ablation(required=True)
+    input_parser.add_hyperparameters()
     
     args = input_parser.parse_args()
     
     start = time.time()
     costGlobal = np.zeros(3)
     
-    #loading image
-    listSlice = []
+    
+    listSlice = [] 
+    listnomvt = []
     
     #Create a list of slices from the images
     for i in range(len(args.filenames)):
-        im, inmask = loadimages(args.filenames[i], args.filenames_masks[i])
-        loadSlice(im, inmask, listSlice, i)
+        im, inmask = loadimages(args.filenames[i], args.filenames_masks[i]) 
+        
+        print(args.filenames[i])
+        print(im.shape)
+        loadSlice(im, inmask, listSlice, i,i)
+        
+        im, inmask = loadimages(args.nomvt[i], args.filenames_masks[i])
+        loadSlice(im, inmask, listnomvt, i,i)
 
     #normalize the data with a standart distribution
-    listSlice = normalization(listSlice)
-    listSlicessmvt=listSlice.copy()
-    images,mask = createVolumesFromAlist(listSlice.copy())
+    image,mask = createVolumesFromAlist(listSlice)
+    listSliceNorm = []
+    
+    print(len(image))
+    for m in image:
+        listSliceNorm = listSliceNorm + normalization(m)
+    
+    listSlice = listSliceNorm
+    
+    #Algorithm of motion correction
+    ablation = args.ablation
+    print('hyperparameters :',args.hyperparameters)
+    print('ablation :', ablation)
+    dicRes, rejectedSlices = global_optimisation(args.hyperparameters,listSlice,ablation) 
+    
+    #result of registration
+    ErrorEvolution=dicRes["evolutionerror"]
+    DiceEvolution=dicRes["evolutiondice"]
+    nbit = len(ErrorEvolution)
+    nbSlice=len(listSlice)
+    EvolutionGridError = np.reshape(dicRes["evolutiongriderror"],[nbit,nbSlice,nbSlice])
+    EvolutionGridNbpoint = np.reshape(dicRes["evolutiongridnbpoint"],[nbit,nbSlice,nbSlice])
+    EvolutionGridInter = np.reshape(dicRes["evolutiongridinter"],[nbit,nbSlice,nbSlice])
+    EvolutionGridUnion = np.reshape(dicRes["evolutiongridunion"],[nbit,nbSlice,nbSlice])
+    EvolutionParameters = np.reshape(dicRes["evolutionparameters"],[nbit,nbSlice,6])
+    EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,nbSlice,4,4])
+    
+    images,mask = createVolumesFromAlist(listnomvt.copy())
     listptimg1img2_img1=[];listptimg1img2_img2=[]
     for i1 in range(len(images)):
         for i2 in range(len(images)):
             if i1 < i2:
-               ptimg1img2_img1, ptimg1img2_img2 = findCommonPointbtw2V(images[i1],images[i2]) #list of point between Axial and Sagittal
+               ptimg1img2_img1, ptimg1img2_img2 = findCommonPointbtw2V(images[i1],images[i2],rejectedSlices) #common points between volumes when no movement
                listptimg1img2_img1.append(ptimg1img2_img1)
                listptimg1img2_img2.append(ptimg1img2_img2)
     
-    nbimages=len(images)
-
+    transfo = args.simulation #the simulated transformation
     
+    images,mask = createVolumesFromAlist(listnomvt.copy()) 
     
-    
-    #Simulated data, before motion correction
-    listWithMvt = listSlice.copy() 
-    m1 = args.simulation_angle
-    mvtAngle = [-m1,m1]
-    m2 = args.simulation_translation
-    mvtTrans = [-m2,m2]
-    motion_parameters = createMvt(listWithMvt, mvtAngle,mvtTrans) #Simulate a mvt of the slices
-   
-    
-    imagesmvt, mskmvt = createVolumesFromAlist(listWithMvt) #Create 3 list of slices that represents the volumes, axial, coronal and sagittal from the listWithMvt (list with simulated motion)
-    
-    listSlice = normalization(listSlice)
-    images,mask = createVolumesFromAlist(listSlice.copy())
     listerrorimg1img2_before=[];
     i=0
     for i1 in range(len(images)):
         for i2 in range(len(images)):
             if i1 < i2:
-               errorimg1img2_before = ErrorOfRegistrationBtw2Slice(listptimg1img2_img1[i],listptimg1img2_img2[i],imagesmvt[i1],imagesmvt[i2])
+               transfo1 = np.load(transfo[i1])
+               transfo2 = np.load(transfo[i2])
+               #error of registration between volumes before registration
+               errorimg1img2_before = ErrorOfRegistrationBtw2Slice(listptimg1img2_img1[i],listptimg1img2_img2[i],images[i1],images[i2],transfo1,transfo2)
                listerrorimg1img2_before.append(errorimg1img2_before)
                i=i+1
-    
-    #Simulated data and Motion Correction
-    dicRes = global_optimization(listWithMvt) #Algorithm of motion correction
-    
-        
-    ErrorEvolution=dicRes["evolutionerror"]
-    DiceEvolution=dicRes["evolutiondice"]
-    nbit = len(ErrorEvolution)
-    nbSlice=len(listSlice)
-    
-    #strEE = file + '/ErrorEvolution.npz'
-    #np.savez_compressed(strEE,ErrorEvolution)
-    
-    #strED = file + '/DiceEvolution.npz'
-    #np.savez_compressed(strED,DiceEvolution)
-    
-    #strEGE = file + '/EvolutionGridError.npz'
-    EvolutionGridError = np.reshape(dicRes["evolutiongriderror"],[nbit,nbSlice,nbSlice])
-    #np.savez_compressed(strEGE,EvolutionGridError)
-    
-    #strEGN = file + '/EvolutionGridNbpoint.npz'
-    EvolutionGridNbpoint = np.reshape(dicRes["evolutiongridnbpoint"],[nbit,nbSlice,nbSlice])
-    #np.savez_compressed(strEGN,EvolutionGridNbpoint)
-    
-    #strEGI = file + '/EvolutionGridInter.npz'
-    EvolutionGridInter = np.reshape(dicRes["evolutiongridinter"],[nbit,nbSlice,nbSlice])
-    #np.savez_compressed(strEGI,EvolutionGridInter)
-    
-    #strEGU = file + '/EvolutionGridUnion.npz'
-    EvolutionGridUnion = np.reshape(dicRes["evolutiongridunion"],[nbit,nbSlice,nbSlice])
-    #np.savez_compressed(strEGU,EvolutionGridUnion)
-    
-    #strEP = file + '/EvolutionParameters.npz'
-    EvolutionParameters = np.reshape(dicRes["evolutionparameters"],[nbit,nbSlice,6])
-    #np.savez_compressed(strEP,EvolutionParameters)
-    
-    #strET = file + '/EvolutionTransfo.npz'
-    EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,nbSlice,4,4])
-    
+
     listCorrected=[]
     for i_slice in range(nbSlice):
         s=listSlice[i_slice]
-        x=EvolutionParameters[nbit-1,i_slice,:]
+        x=EvolutionParameters[-1,i_slice,:]
         s.set_parameters(x)
-        listCorrected.append(s)
+        listCorrected.append(s) #list with the corrected parameters
         
-    images_corrected, msk_corrected = createVolumesFromAlist(listCorrected) #Create 3 list of slices that represents the volume Axial, Coronal and Sagittal with simulation motion corrected by the algorithm
-    
-    #Error of registration after motion correction. It is expected to be smaller than the one before correction.
-    
-    #Compute the Chamfer distance between the points considered when computed the error of registration. The chamfer distance corresponds to the distance between the center of an image and each points.
+    images_corrected, msk_corrected = createVolumesFromAlist(listCorrected) 
     
     
-    
-    #Compute a list of point that will be used to validate the quality of the registration
-    #Create a 3 list from of images corresponding to the three volumes
+
     
     i=0;listNameErrorBefore=[];listNameErrorAfter=[];listNameColorMap=[];listErrorAfter=[];listColorMap=[]
     for i1 in range(len(images)):
         for i2 in range(len(images)):
             if i1 < i2:
+               transfo1 = np.load(transfo[i1])
+               transfo2 = np.load(transfo[i2])
                
-               #ptimg1img2_img1, ptimg1img2_img2 = findCommonPointbtw2V(images[i1],images[i2]) #list of point between Axial and Sagittal
-              
-               errorimg1img2_after = ErrorOfRegistrationBtw2Slice(listptimg1img2_img1[i],listptimg1img2_img2[i],images_corrected[i1],images_corrected[i2])
+               #error of registration between volumes after registration
+               errorimg1img2_after = ErrorOfRegistrationBtw2Slice(listptimg1img2_img1[i],listptimg1img2_img2[i],images_corrected[i1],images_corrected[i2],np.linalg.inv(transfo1),np.linalg.inv(transfo2))
                listErrorAfter.append(errorimg1img2_after)
 
                
                im, inmask = loadimages(args.filenames[i1], args.filenames_masks[i1])
                imgChamferDistancei1 = ChamferDistance(inmask)
-               cimg1img2 = createArrayOfChamferDistance(imgChamferDistancei1,listptimg1img2_img1[i])
-               listColorMap.append(cimg1img2)
+               cimg1img2 = createArrayOfChamferDistance(imgChamferDistancei1,listptimg1img2_img1[i]) 
+               listColorMap.append(cimg1img2) #the color of points depend of chamfer distance
 
-               
                strEB='ErrorBefore%d%d' %(i1,i2)
                tupleEB=(strEB,listerrorimg1img2_before[i])
                listNameErrorBefore.append(tupleEB)
-               #np.savez_compressed(strEB,listerrorimg1img2_before[i])
                
                strEA='ErrorAfter%d%d' %(i1,i2)
                tupleEA=(strEA,errorimg1img2_after)
                listNameErrorAfter.append(tupleEA)
-               #np.savez_compressed(strEA,errorimg1img2_after)
                
                strC ='colormap%d%d' %(i1,i2)
                tupleC=(strC,cimg1img2)
                listNameColorMap.append(tupleC)
-               #np.savez_compressed(strC,cimg1img2)
+               
                i=i+1
 
-    res_obj = [('listSlice',listSlicessmvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo)]
+    #save result in a joblib
+    res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo),('RejectedSlices',rejectedSlices)]
     res_obj.extend(listNameColorMap);res_obj.extend(listNameErrorBefore);res_obj.extend(listNameErrorAfter)
     joblib_name = root + '/' + args.output + '.joblib' + '.gz' 
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     end = time.time()
     elapsed = end - start
-    print(f'Temps d\'exécution : {elapsed}')
+    
+    res = joblib.load(open(joblib_name,'rb'))
+    key=[p[0] for p in res]
+    element=[p[1] for p in res]
+    listSlice=element[key.index('listSlice')]
+    
+
+    list_prefixImage = []
+    for string_name in args.filenames:
+        name_file = string_name.split('/')[-1]
+        name = name_file.replace('.nii.gz','')
+        list_prefixImage.append(name)
+        
+    parent_dir = getcwd() + '/'
+    directory = args.output + '_mvt'
+    path = path.join(parent_dir, directory)
+    mkdir(path) 
+    convert2EbnerParam(res,list_prefixImage,path)
+    
+    

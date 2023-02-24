@@ -10,15 +10,18 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 import ipywidgets as widgets
 import numpy as np
-from registration import loadSlice, commonSegment, computeCostBetweenAll2Dimages,costFromMatrix, global_optimization, commonProfil, sliceProfil, updateCostBetweenAllImageAndOne,cost_fct, normalization, loadimages 
-from data_simulation import createMvt, SimulImageWth0Transform, ErrorInParametersEstimation, createVolumesFromAlist
-from display import displayIntensityProfil, plotsegment, indexMse, indexGlobalMse, Histo
+from registration import  commonSegment, computeCostBetweenAll2Dimages,costFromMatrix, global_optimisation, commonProfil, sliceProfil, updateCostBetweenAllImageAndOne,cost_fct, normalization, OptimisationThreshold 
+from load import loadSlice, loadimages
+from data_simulation import createMvt
+from display import displayIntensityProfil, plotsegment, indexMse, indexGlobalMse, Histo, nbpointIndex, gaussianApproximation
 import warnings
 from input_argparser import InputArgparser
 from os import listdir,getcwd,chdir
 from os.path import isfile, join, splitext
 import joblib
 import napari
+from tools import createVolumesFromAlist
+from scipy import stats
 warnings.filterwarnings("ignore")
 
 class Viewer3D:
@@ -63,13 +66,9 @@ class Viewer3D:
         self.nbit = len(self.ErrorEvolution) #total number of iteration
    
         self.EvolutionGridError = element[key.index('EvolutionGridError')] #Evolution of the error grid on each iteration
-        
         self.EvolutionGridNbpoint = element[key.index('EvolutionGridNbpoint')] #Evolution of the nbpoint grid on each iteration
-
-        self.EvolutionGridInter= element[key.index('EvolutionGridInter')] #Evolution of the intersection grid on each iteration
-        
+        self.EvolutionGridInter= element[key.index('EvolutionGridInter')] #Evolution of the intersection grid on each iteration 
         self.EvolutionGridUnion= element[key.index('EvolutionGridUnion')] #Evolution of the union grid on each iteration
-
         self.EvolutionParameters = element[key.index('EvolutionParameters')] #Evolution of the parameters on each iteration
         
         EvolutionTransfo = element[key.index('EvolutionTransfo')] #Evolution of the rigid transformation on each iteration
@@ -112,6 +111,9 @@ class Viewer3D:
         self.viewer = napari.view_image(image1,affine=affine1,name=self.previousname2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,ndisplay=3,visible=True)
         self.viewer.add_image(image2,affine=affine2,name=self.previousname1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
         napari.run()
+        
+        self.RejectedSlices = element[key.index('RejectedSlices')]
+        print(self.RejectedSlices)
         
         print("Cost Before Registration : ", self.ErrorEvolution[0])
         print("Cost After Registration : ", self.ErrorEvolution[self.nbit-1])
@@ -251,8 +253,10 @@ class Viewer3D:
         display('error',self.Nlast[max(self.numImg1,self.numImg2),min(self.numImg1,self.numImg2)])
         display('nbpoint',self.Dlast[max(self.numImg1,self.numImg2),min(self.numImg1,self.numImg2)])
         display('MSE',self.Nlast[max(self.numImg1,self.numImg2),min(self.numImg1,self.numImg2)]/self.Dlast[max(self.numImg1,self.numImg2),min(self.numImg1,self.numImg2)])
-    
-        self.visu_withnapari()
+        
+        slice1=self.listSlice[self.numImg1]
+        slice2=self.listSlice[self.numImg2]
+        self.visu_withnapari(slice1,slice2,self.numImg1,self.numImg2)
             
         #display lines of intersection intersection on images
         widgets.interact(self.DisplayProfil,
@@ -304,13 +308,37 @@ class Viewer3D:
     """
     def ErrorDisplay(self,nit):
             
+            print(self.RejectedSlices)
+            rejectedSlices = self.RejectedSlices
+            
             fig = plt.figure(figsize=(8, 8))
             cx  = plt.subplot()
-            N = self.EvolutionGridError[nit,:,:] 
-            D = self.EvolutionGridNbpoint[nit,:,:]
+            N = self.EvolutionGridError[nit,:,:].copy() 
+            D = self.EvolutionGridNbpoint[nit,:,:].copy()
             MSE = N/D
-            im = cx.imshow(MSE,vmin=0,vmax=self.valMax)
+            
+            for i_slice in range(len(self.listSlice)):
+                
+                slicei = self.listSlice[i_slice]
+                orientation =  slicei.get_orientation()
+                index_slice = slicei.get_index_slice()
+                info_slicei = (orientation,index_slice)
+                if info_slicei in rejectedSlices :
+                    for i_slice2 in range(len(self.listSlice)):
+                        slice2_orientation = self.listSlice[i_slice2].get_orientation()
+                        if (slice2_orientation != orientation) :
+                            if (i_slice>i_slice2) :
+                                N[i_slice,i_slice2]=100 
+                                D[i_slice,i_slice2]=1 
+                            else : 
+                                N[i_slice2,i_slice]=100
+                                D[i_slice2,i_slice]=1
+            
+            
+            
+            im = cx.imshow(N/D,vmin=0,vmax=self.valMax)
             cbar = fig.colorbar(im,ax=cx)
+            
             for i in range(1,len(self.images)):
                 n=i-1; sum=0;
                 while n>=0:
@@ -322,15 +350,18 @@ class Viewer3D:
 
             plt.show()
             
+            
+            
+            
     """
     Method of the class Viwer3D, display the error in parameters estimation in case of a simulation
     """
     def ErrorParametersDisplay(self,nit):
         
         NBPOINT_GLOB, ERROR_GLOB = indexGlobalMse(self.Nlast,self.Dlast) 
-        lastmse=NBPOINT_GLOB/ERROR_GLOB
+        lastmse=ERROR_GLOB/NBPOINT_GLOB
         a=np.where(np.isnan(lastmse))
-        lastmse[a]=10
+        lastmse[a]=0
         nbpoint, error=indexGlobalMse(self.EvolutionGridError[nit,:,:],self.EvolutionGridNbpoint[nit,:,:])
         cmse=error/nbpoint
         b=np.where(np.isnan(cmse))
@@ -412,6 +443,9 @@ class Viewer3D:
                 plotsegment(slice_img2,pointImg2,ok,nbpoint,ax2,title2,mask=slice_img2.get_mask(),index=index,nbpointSlice=nbpointSlice2) 
                 fig.tight_layout()
                 plt.show()
+                
+            
+            self.visu_withnapari(slice_img1,slice_img2,self.numImg1,self.numImg2)
             
     """
     Method of the class Viewer3D that gives the error and the number of point for each slices
@@ -420,12 +454,15 @@ class Viewer3D:
             
             #compute the error : case error is mse
             self.error=error
+            
+            N=len(self.listSlice)
+            
+            
+            
             if self.error=='mse':
                 
                 Num=self.EvolutionGridError[nit,:,:]
                 Denum=self.EvolutionGridNbpoint[nit,:,:]
-                LastNum=self.EvolutionGridError[5,:,:]
-                LastDenum=self.EvolutionGridNbpoint[5,:,:]
                 NumImg1Row=self.EvolutionGridError[nit,self.numImg1,:];NumImg1Col=self.EvolutionGridError[nit,:,self.numImg1]
                 DenumImg1Row=self.EvolutionGridNbpoint[nit,self.numImg1,:];DenumImg1Col=self.EvolutionGridNbpoint[nit,:,self.numImg1]
                 NumImg2Row=self.EvolutionGridError[nit,self.numImg2,:];NumImg2Col=self.EvolutionGridError[nit,:,self.numImg2]
@@ -438,7 +475,9 @@ class Viewer3D:
                 ax3_title_2='Histogram of the MSE between slice %d in image %s and its orthogonal slices' %(self.iImg2,self.orientation2)
                 ax1_title_GLOB='Global MSE between each slices'
                 ax3_title_GLOB='Histogram of the Global MSE'
-                
+                lab='MSE'
+                Threshold = OptimisationThreshold(Num,Denum)
+                x_gauss,y_gauss = gaussianApproximation(Num,Denum,N)
                 
             if self.error=='dice':
                 
@@ -456,9 +495,16 @@ class Viewer3D:
                 ax3_title_2='Histogram of the DICE between slice %d in image %s and its orthogonal slices' %(self.iImg2,self.orientation2)
                 ax1_title_GLOB='Global DICE between each slices'
                 ax3_title_GLOB='Histogram of the Global DICE'
-                
+                display("Dice", np.where((Denum==0)*(Num!=0)))
+                display("check :", (Num/Denum)[30,7])
+                display("Num :", Num[30,7], "Denum :", Denum[30,7])
+                lab='DICE'
+            
+               
             indexError1, indexNbpoint1=indexMse(Num,Denum,self.numImg1) 
             indexError2, indexNbpoint2=indexMse(Num,Denum,self.numImg2)
+            maskproportion = nbpointIndex(self.listSlice)
+
                 
             size_indexError1=indexError1.shape[0]
             size_indexError2=indexError2.shape[0]
@@ -493,36 +539,44 @@ class Viewer3D:
             size_error=NBPOINT_GLOB.shape[0]
             MSE_GLOB=np.zeros(size_error)
             
+            
 
             for i in range(size_error):
                 MSE_GLOB[i] = ERROR_GLOB[i]/NBPOINT_GLOB[i]
-               
+                
+            
+             
+            MSE_GLOB = MSE_GLOB[np.where(~np.isnan(MSE_GLOB)*~np.isinf(MSE_GLOB))]
+            mu = np.mean(MSE_GLOB)
+            sigma = np.sqrt(sum((MSE_GLOB-mu)**2)/mu)
+            h = (3.49*sigma)/(N**(1/3)) 
+            display(h)
+            display(min(MSE_GLOB))
+            display(max(MSE_GLOB))
+            bins=np.linspace(min(MSE_GLOB),max(MSE_GLOB),int(h))
+            
             #compute the threshold value, used in the second part of the registation process
             if self.error=='mse':
-                LAST_POINT, LAST_ERROR = indexGlobalMse(LastNum,LastDenum)
-                LAST_MSE=np.zeros(size_error)
-                for i in range(size_error):
-                    LAST_MSE[i] = LAST_ERROR[i]/LAST_POINT[i]   
-                threshold=1.25*np.median(LAST_MSE[~np.isnan(LAST_MSE)])
-
-            
+                bins = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,1.5]
+            else : 
+                bins = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1] 
+           
             if  np.any(~np.isnan(indexMse1)):
                 fig=plt.figure(figsize=(30, 8))
                 ax1=plt.subplot(1,2,1)
                 ax1.set_ylabel(ylabel_ax1)
-                plotmse= ax1.scatter(range(self.nbSlice),indexMse1,label='MSE')
-                if self.error=='mse':
-                    ax1.hlines(y=threshold,xmin=0,xmax=self.nbSlice-1,lw=2,color='r')
+                plotmse= ax1.scatter(range(self.nbSlice),indexMse1,label=lab)
                 ax2 = ax1.twinx()
-                plotnbpoint= ax2.scatter(range(self.nbSlice),indexNbpoint1,c='orange',label='Nbpoint')
+                plotnbpoint= ax2.scatter(range(self.nbSlice),maskproportion,c='orange',label='mask_size')
                 plt.legend(handles=[plotmse,plotnbpoint])
                 ax2.set_ylabel(ylabel_ax2)
                 ax1.set_title(ax1_title_1)
                 ax1.set_xlabel('Slices')
                 fig.tight_layout()
-                indexHistoMse1=(indexMse1[np.where(~np.isnan(indexMse1))])
+                indexHistoMse1=(indexMse1[np.where(~np.isnan(indexMse1)*~np.isinf(indexMse1))])
                 ax3=plt.subplot(1,2,2)
-                histoMse=ax3.hist(indexHistoMse1)
+                histoMse1, bin_edges=np.histogram(indexHistoMse1,bins)
+                ax3.bar(bin_edges[:-1], histoMse1/sum(histoMse1),align='edge',edgecolor='black',width=0.1)
                 ax3.set_title(ax3_title_1)
                 fig.tight_layout()
                 plt.show()
@@ -531,18 +585,17 @@ class Viewer3D:
                 fig=plt.figure(figsize=(30, 8))
                 ax1=plt.subplot(1,2,1)
                 ax1.set_ylabel(ylabel_ax1)
-                plotmse = ax1.scatter(range(self.nbSlice),indexMse2,label='MSE')
-                if self.error=='mse':
-                    ax1.hlines(y=threshold,xmin=0,xmax=self.nbSlice-1,lw=2,color='r')
+                plotmse = ax1.scatter(range(self.nbSlice),indexMse2,label=lab)
                 ax2 = ax1.twinx()
-                plotnbpoint = ax2.scatter(range(self.nbSlice),indexNbpoint2,c='orange',label='Nbpoint')
+                plotnbpoint = ax2.scatter(range(self.nbSlice),maskproportion,c='orange',label='size_mask')
                 plt.legend(handles =[plotmse,plotnbpoint])
                 ax2.set_ylabel(ylabel_ax2)
                 plt.title(ax1_title_2)
                 fig.tight_layout()
-                indexHistoMse2=(indexMse2[np.where(~np.isnan(indexMse2))])
+                indexHistoMse2=(indexMse2[np.where(~np.isnan(indexMse2)*~np.isinf(indexMse2))])
                 ax3=plt.subplot(1,2,2)
-                histoMse2=ax3.hist(indexHistoMse2)
+                histoMse2, bin_edges=np.histogram(indexHistoMse2,bins)
+                ax3.bar(bin_edges[:-1], histoMse2/sum(histoMse2),align='edge',edgecolor='black',width=0.1)
                 ax3.set_title(ax3_title_2)
                 fig.tight_layout()
                 plt.show()
@@ -551,18 +604,28 @@ class Viewer3D:
                 fig=plt.figure(figsize=(30, 8))
                 ax1=plt.subplot(1,2,1)
                 ax1.set_ylabel(ylabel_ax1)
-                plotmse = ax1.scatter(range(self.nbSlice),MSE_GLOB,label='MSE')
-                if self.error=='mse':
-                    ax1.hlines(y=threshold,xmin=0,xmax=self.nbSlice-1,lw=2,color='r')
+                plotmse = ax1.scatter(range(self.nbSlice),MSE_GLOB,label=lab)
                 ax2 = ax1.twinx()
-                pltnbpoint = ax2.scatter(range(self.nbSlice),NBPOINT_GLOB,c='orange',label='Nbpoint')
+                pltnbpoint = ax2.scatter(range(self.nbSlice),maskproportion,c='orange',label='size_mask')
                 plt.legend(handles=[plotmse,plotnbpoint])
                 ax2.set_ylabel(ylabel_ax2)
                 plt.title(ax1_title_GLOB)
                 fig.tight_layout()
                 ax3=plt.subplot(1,2,2)
-                HistoMSE_GLOB=(MSE_GLOB[np.where(~np.isnan(MSE_GLOB))])
-                histoGlobal=ax3.hist(HistoMSE_GLOB)
+                HistoMSE_GLOB=MSE_GLOB[~np.isnan(MSE_GLOB)]
+                histoGlobal, bin_edges=np.histogram(HistoMSE_GLOB,bins)
+                print(bin_edges,histoGlobal,histoGlobal/sum(histoGlobal))
+                ax3.bar(bin_edges[:-1], histoGlobal/sum(histoGlobal),align='edge',edgecolor='black',width=0.1)
+                if self.error == 'mse':
+                    fit_alpha, fit_loc, fit_scale = stats.gamma.fit(HistoMSE_GLOB)
+                    print(fit_alpha, fit_loc, fit_scale)
+                    x = np.linspace(min(HistoMSE_GLOB),max(HistoMSE_GLOB),100)
+                    pdf = stats.gamma.pdf(bin_edges[:-1],fit_alpha,fit_loc,fit_scale)
+                    print(pdf)
+                    ax3.plot(bin_edges[:-1],pdf/sum(pdf),color='coral')
+                    #ax3.axvline(x=Threshold2,color='blue')
+                    
+
                 ax3.set_title(ax3_title_GLOB)
                 fig.tight_layout()
                 plt.show()
@@ -570,33 +633,41 @@ class Viewer3D:
     """
     Method of the class Viewer3D, allow to visualize two slices in real word coordinate system with napari
     """
-    def visu_withnapari(self):
+    def visu_withnapari(self,slice1,slice2,numImg1,numImg2):
         
-        
+        display(self.viewer.layers[0])
         self.viewer.layers.remove(self.viewer.layers[0])
+        display(self.viewer.layers[0])
         self.viewer.layers.remove(self.viewer.layers[0])
         
-        image1=self.listSlice[self.numImg1].get_slice().get_fdata()
-        image2=self.listSlice[self.numImg2].get_slice().get_fdata()
+        #image1=self.listSlice[numImg1].get_slice().get_fdata()
+        #image2=self.listSlice[numImg2].get_slice().get_fdata()
+        #affine1=self.Transfo[numImg1,:,:].copy()
+        #affine2=self.Transfo[numImg2,:,:].copy()
+        image1=slice1.get_slice().get_fdata()
+        image1[np.where(np.isnan(image1))]=0
+        image2=slice2.get_slice().get_fdata()
+        image2[np.where(np.isnan(image2))]=0
+        affine1 = slice1.get_transfo()
+        affine2 = slice2.get_transfo()
         
-        affine1=self.Transfo[self.numImg1,:,:].copy()
-        affine2=self.Transfo[self.numImg2,:,:].copy()
-        
-        #hack to get very thin slices (by modifying the slice thickness)
         header1 = self.listSlice[self.numImg1].get_slice().header
-        header2 = self.listSlice[self.numImg2].get_slice().header  
+        header2 = self.listSlice[self.numImg2].get_slice().header        
         affine1[:3, :3] *= (1,1,0.1/header1["pixdim"][3])
         affine2[:3, :3] *= (1,1,0.1/header2["pixdim"][3])
 
+        
         error1=sum(self.EvolutionGridError[self.nbit-1,:,self.numImg1])+sum(self.EvolutionGridError[self.nbit-1,self.numImg1,:])
-        nbpoint1=sum(self.EvolutionGridNbpoint[self.nbit-1,:,self.numImg1])+sum(self.EvolutionGridNbpoint[self.nbit-1,self.numImg1,:])
+        nbpoint1=sum(self.EvolutionGridNbpoint[self.nbit-1,:,numImg1])+sum(self.EvolutionGridNbpoint[self.nbit-1,self.numImg1,:])
         MSE1=error1/nbpoint1
         name1='1 : Mse : %f, Slice : %d' %(MSE1,self.numImg1)
+        print('name1 :',name1)
         
         error2=sum(self.EvolutionGridError[self.nbit-1,:,self.numImg2])+sum(self.EvolutionGridError[self.nbit-1,self.numImg2,:])
-        nbpoint2=sum(self.EvolutionGridNbpoint[self.nbit-1,:,self.numImg2])+sum(self.EvolutionGridNbpoint[self.nbit-1,self.numImg2,:])
+        nbpoint2=sum(self.EvolutionGridNbpoint[self.nbit-1,:,numImg2])+sum(self.EvolutionGridNbpoint[self.nbit-1,self.numImg2,:])
         MSE2=error2/nbpoint2
         name2='2 : Mse : %f, Slice : %d' %(MSE2,self.numImg2)
+        print('name2 :',name2)
         
         self.viewer.add_image(image1,affine=affine1,name=name1,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)
         self.viewer.add_image(image2,affine=affine2,name=name2,blending='opaque',rendering='translucent',interpolation='nearest',opacity=1,visible=True)

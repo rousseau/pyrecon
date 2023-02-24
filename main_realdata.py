@@ -7,12 +7,14 @@ Created on Thu Feb 24 16:24:49 2022
 """
 import numpy as np
 import time
-import os
-from registration import loadSlice,loadimages, normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimization
+from registration import normalization,computeCostBetweenAll2Dimages,costFromMatrix,global_optimisation
+from load import loadSlice,loadimages
 import nibabel as nib
 from input_argparser import InputArgparser
 import joblib
-from os import getcwd
+from os import getcwd, path, mkdir
+from rec_ebner import convert2EbnerParam
+from tools import image_center,center_image_2_ref
 
 if __name__ == '__main__':
     
@@ -23,58 +25,47 @@ if __name__ == '__main__':
     input_parser.add_filenames(required=True)
     input_parser.add_filenames_masks()
     input_parser.add_output(required=True)
+    input_parser.add_ablation(required=True)
+    input_parser.add_hyperparameters()
     args = input_parser.parse_args()
+    
+    
     
     start = time.time()
     costGlobal = np.zeros(2)
     
+    list_prefixImage = []
+    for string_name in args.filenames:
+        name_file = string_name.split('/')[-1]
+        name = name_file.replace('.nii.gz','')
+        list_prefixImage.append(name)
+    print('list of images :',list_prefixImage)
+    
+    
+    
     #loading image
     listSlice = []
     #Load images, mask and create a list of slices from the images
+    image_pre=[]
     for i in range(len(args.filenames)):
         im, inmask = loadimages(args.filenames[i],args.filenames_masks[i]) 
         Affine = im.affine
        
         datamask = inmask.get_fdata().squeeze()
         mask = nib.Nifti1Image(datamask, inmask.affine)
-        # if  i==0:
-        #     nx_img1=Affine[0:3,0].copy()
-        #     ny_img1=Affine[0:3,1].copy()
-        #     nz_img1=np.cross(nx_img1,ny_img1)
-        #     nx_img1_norm=nx_img1/np.linalg.norm(nx_img1)
-        #     ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
-        #     nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
-        #     loadSlice(im,mask,listSlice,0)
-        #     print('nx_img1 :', nx_img1, 'ny_img1 :', ny_img1, 'nz_img1 :', nz_img1)
-        #     print('nx_img1_norm :', nx_img1_norm,'ny_img1_norm', ny_img1_norm,'nz_img1_norm', nz_img1_norm)
-        #     print(i,' : Axial')
-            
-        # else:
-        #     nx=Affine[0:3,0].copy()
-        #     ny=Affine[0:3,1].copy()
-        #     nz=np.cross(nx,ny)
-        #     nz_norm=nz/np.linalg.norm(nz)
-        #     orx=np.sqrt((nz_norm[0]-nx_img1_norm[0])**2+(nz_norm[1]-nx_img1_norm[1])**2+(nz_norm[2]-nx_img1_norm[2])**2)
-        #     ory=np.sqrt((nz_norm[0]-ny_img1_norm[0])**2+(nz_norm[1]-ny_img1_norm[1])**2+(nz_norm[2]-ny_img1_norm[2])**2)
-        #     orz=np.sqrt((nz_norm[0]-nz_img1_norm[0])**2+(nz_norm[1]-nz_img1_norm[1])**2+(nz_norm[2]-nz_img1_norm[2])**2)
-        #     if min(orx,ory,orz)==orx:
-        #         loadSlice(im,mask,listSlice,1)
-        #         print('orx :', orx, 'ory :', ory, 'orz :', orz)
-        #         print(i, ' : Coronal')
-                
-        #     elif min(orx,ory,orz)==ory:
-        #         loadSlice(im,mask,listSlice,2)
-        #         print('orx :', orx, 'ory :', ory, 'orz :', orz)
-        #         print(i ,' : Sagittal')
-                
-        #     else:
-        #         loadSlice(im,mask,listSlice,0)
-        #         print('orx :', orx, 'ory :', ory, 'orz :', orz)
-        #         print(i , ' : Axial')
-        loadSlice(im,mask,listSlice,i//2)
-        print(i,i//2)
-            
-    
+        
+        if  i==0:
+            loadSlice(im,mask,listSlice,0,i) 
+            image_pre.append(im)
+            center_ref = image_center(mask.get_fdata())
+            ref_affine = im.affine
+        else:
+            new_affine = center_image_2_ref(im.get_fdata(),im.affine,center_ref,ref_affine)
+            translation=new_affine[0:3,3]
+            loadSlice(im,mask,listSlice,i,i)
+
+           
+   
     #normalize the data with a standart distribution
     listSlice = normalization(listSlice)
     listSlicessMvt=listSlice.copy()
@@ -84,7 +75,9 @@ if __name__ == '__main__':
     costGlobal[0] = cost
     
     #Simulated data and Motion Correction
-    dicRes = global_optimization(listSlice) #Algorithm of motion correction
+    ablation = args.ablation
+    #Apply motion correction
+    dicRes,rejectedSlices = global_optimisation(args.hyperparameters,listSlice,ablation) #Algorithm of motion correction
     ge_mvtCorrected,gn_mvtCorrected,gi_mvtCorrected,gu_mvtCorrected = computeCostBetweenAll2Dimages(listSlice) #Compute 2 grid for the MSE
     cost = costFromMatrix(ge_mvtCorrected,gn_mvtCorrected)
     costGlobal[1] = cost
@@ -95,11 +88,6 @@ if __name__ == '__main__':
     nbit = len(ErrorEvolution)
     nbSlice=len(listSlice)
     
-    #strEE = file + '/ErrorEvolution.npz'
-    #np.savez_compressed(strEE,ErrorEvolution)
-    
-    #strED = file + '/DiceEvolution.npz'
-    #np.savez_compressed(strED,DiceEvolution)
     
     #strEGE = file + '/EvolutionGridError.npz'
     EvolutionGridError = np.reshape(dicRes["evolutiongriderror"],[nbit,nbSlice,nbSlice])
@@ -126,8 +114,8 @@ if __name__ == '__main__':
     #np.savez_compressed(strET,EvolutionTransfo)
     #strCG = file + '/CostGlobal.npz'
     #costGlobal.tofile(strCG)
-    
-    res_obj = [('listSlice',listSlicessMvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo)]
+
+    res_obj = [('listSlice',listSlicessMvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo),('RejectedSlices',rejectedSlices)]
 
     joblib_name = root + '/' + args.output + '.joblib' + '.gz' 
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
@@ -135,3 +123,17 @@ if __name__ == '__main__':
     end = time.time()
     elapsed = end - start
     print(f'Temps d\'exécution : {elapsed}')
+
+    res = joblib.load(open(joblib_name,'rb'))
+    key=[p[0] for p in res]
+    element=[p[1] for p in res]
+    listSlice=element[key.index('listSlice')]
+    
+
+    
+    #save results for NiftyMIC
+    parent_dir = getcwd() + '/'
+    directory = args.output + '_mvt'
+    path = path.join(parent_dir, directory)
+    mkdir(path) 
+    convert2EbnerParam(res,list_prefixImage,path)
