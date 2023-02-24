@@ -1,7 +1,8 @@
 # Motion Correction of 2D MRI
-##Data simulation
+## Data simulation
 
 To simulate LR (low-resolution) data with inter-slice motion from HR (High-resolution) image use the script **sciptSimulData.py**. The scipt simulates 3 LR images in 3 different orientation (Axial, Coronnal, and Sagittal) and save them in a specified directory, along with the simulated parameters and transformation.
+Already simulated data are available in data directory.
 
 ## Simulated Data
 
