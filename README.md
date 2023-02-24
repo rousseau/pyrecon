@@ -51,8 +51,8 @@ Corrected transformation for the slices are saved in 'res_registration_mvt'. The
 
 # Reconstruction with NiftyMIC
 
-It is possible to reconstruct the motion-corrected data from our algorithm with **NiftyMIC**[1] :
-After installing NiftyMIC (using docker is easier), call function : niftymic_reconstruct_volume_from_slices.py
+It is possible to reconstruct the motion-corrected data from our algorithm with NiftyMIC :
+After installing NiftyMIC (using docker is easier), call function : **niftymic_reconstruct_volume_from_slices.py**
 
 Example :
 ```
