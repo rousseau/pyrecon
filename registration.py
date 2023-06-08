@@ -16,9 +16,12 @@ from tools import createVolumesFromAlist, computeMeanRotation, computeMeanTransl
 from numba import jit
 from multiprocessing import Pool
 from functools import partial
-import outliers_detection_intersection 
 import display
+import scipy
+import pickle
+from outliers_detection_intersection import ErrorSlice, createVolumesFromAlistError
 
+loaded_model = pickle.load(open('my_model.pickle', "rb"))
 
 @jit(nopython=True)
 def intersectionLineBtw2Planes(M1,M2) : 
@@ -343,7 +346,7 @@ def sliceProfil(Slice,pointImg,nbpoint):
     #val_mask = interpol * interpolMask
     #index=val_mask>0
       
-    return interpol,index,np.shape(index[index==True])[0]
+    return interpol,index,np.sum(index)
 
 
 def commonProfil(val1,index1,val2,index2,nbpoint,intersection='union'):
@@ -417,7 +420,21 @@ def error(commonVal1,commonVal2):
     """
     return np.sum((commonVal1 - commonVal2)**2)
     
-
+def ncc(commonVal1,commonVal2):
+    
+    x=commonVal1[~np.isnan(commonVal1)]
+    y=commonVal2[~np.isnan(commonVal2)]
+    mux = np.mean(x)
+    muy = np.mean(y)
+    stdx = np.std(x)
+    #print(varx)
+    stdy = np.std(y)
+    #print(vary)
+    res=-1
+    if stdx>0 and stdy>0:
+        res = (1/(len(x)-1))*np.sum((x-mux)*(y-muy))/(stdx*stdy)
+        
+    return res
 
 
 def costLocal(slice1,slice2):
@@ -449,18 +466,29 @@ def costLocal(slice1,slice2):
     M1=slice1.get_transfo();M2=slice2.get_transfo()
     pointImg1,pointImg2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
     ok=np.int(ok[0,0]); nbpoint=np.int(nbpoint[0,0]) #ok and nbpoints are 2-size vectors to allow using numba with this function
-    newError=0; commonPoint=0; inter=0; union=0
+    newError=0; commonPoint=0; inter=0; union=0; ncc_var=-1; mse_coupe=(-1,-1)
+    #print(ok)
     
     if ok>0:
         val1,index1,nbpointSlice1=sliceProfil(slice1, pointImg1, nbpoint)  #profile in slice 1
+        #print(index1)
         val2,index2,nbpointSlice2=sliceProfil(slice2, pointImg2, nbpoint)  #profile in slice 2
+        #print(index2)
         commonVal1,commonVal2,index=commonProfil(val1, index1, val2, index2,nbpoint) #union between profile in slice 1 and 2 (used in the calcul of MSE and DICE)
         val1inter,val2inter,interpoint=commonProfil(val1, index1, val2, index2,nbpoint,'intersection') #intersection between profile in slice 1 and 2 (used in the calcul of DICE)
-        commonPoint=index.shape[0] #numbers of points along union profile (for MSE)
-        newError=error(commonVal1,commonVal2) #sumed squared error between the two profile
-        inter=interpoint.shape[0] #number of points along intersection profile (for DICE)
-        union=index.shape[0] #number of points along union profile (for DICE)
-    return newError,commonPoint,inter,union
+        #numbers of points along union profile (for MSE)
+        newError=error(commonVal1,commonVal2)
+        if len(val1inter) !=0:
+            mse_coupe=(error(val1inter,val2inter),len(val1inter))
+        commonPoint=len(commonVal1)
+        inter=len(val1inter) #number of points along intersection profile (for DICE)
+        union=nbpointSlice1+nbpointSlice2 #number of points along union profile (for DICE)
+        if len(commonVal1) != 0:
+            #print(commonVal1,commonVal2)
+            ncc_var=ncc(commonVal1,commonVal2)
+        
+        
+    return newError,commonPoint,2*inter,union,ncc_var,mse_coupe
 
 
 def updateCostBetweenAllImageAndOne(indexSlice,listSlice,gridError,gridNbpoint,gridInter,gridUnion):
@@ -488,13 +516,13 @@ def updateCostBetweenAllImageAndOne(indexSlice,listSlice,gridError,gridNbpoint,g
             if slice1.get_orientation() != slice2.get_orientation(): #we compute the error between slice1 and slice2 only if they are not from the same stacks
                             
                     if indexSlice > i_slice2 : #The error matrix is triangular as error between slice i and j is the same than between slice j and i. We choose to enter only the values when i>j.
-                        newError,commonPoint,inter,union=costLocal(slice1,slice2)
+                        newError,commonPoint,inter,union,ncc_var,_=costLocal(slice1,slice2)
                         gridError[indexSlice,i_slice2]=newError
                         gridNbpoint[indexSlice,i_slice2]=commonPoint
                         gridInter[indexSlice,i_slice2]=inter
                         gridUnion[indexSlice,i_slice2]=union
                     else:
-                        newError,commonPoint,inter,union=costLocal(slice2,slice1)
+                        newError,commonPoint,inter,union,ncc_var,_=costLocal(slice2,slice1)
                         gridError[i_slice2,indexSlice]=newError
                         gridNbpoint[i_slice2,indexSlice]=commonPoint
                         gridInter[i_slice2,indexSlice]=inter
@@ -552,7 +580,7 @@ def computeCostBetweenAll2Dimages(listSlice):
                 if slice2.ok ==1:
                         if (i_slice1 > i_slice2):
                             if slice1.get_orientation() != slice2.get_orientation():
-                                newError,commonPoint,inter,union=costLocal(slice1,slice2) #computed cost informations between two slices
+                                newError,commonPoint,inter,union,_,_=costLocal(slice1,slice2) #computed cost informations between two slices
                                 gridError[i_slice1,i_slice2]=newError 
                                 gridNbpoint[i_slice1,i_slice2]=commonPoint
                                 gridInter[i_slice1,i_slice2]=inter
@@ -594,22 +622,31 @@ def normalization(listSlice):
 
     """
    
-    mean_sum = 0
-    n = 0
-    std=0
-    var = []
-    for s in listSlice:  
-        data = s.get_slice().get_fdata()*s.get_mask()
-        X,Y,Z = data.shape
-        for x in range(X):
-            for y in range(Y):
-                if data[x,y,0]> 1e-10:
-                    mean_sum = mean_sum + data[x,y,0]
-                    n = n + 1
-                    var.append(data[x,y,0])
-    mean = mean_sum/n
-    std = np.sqrt((sum((np.array(var)-mean)*(np.array(var)-mean))/(n)))
-    
+    # mean_sum = 0
+    # n = 0
+    # std=0
+    # var = []
+    # for s in listSlice:  
+    #     data = s.get_slice().get_fdata()*s.get_mask()
+    #     X,Y,Z = data.shape
+    #     for x in range(X):
+    #         for y in range(Y):
+    #             if data[x,y,0]> 1e-10:
+    #                 mean_sum = mean_sum + data[x,y,0]
+    #                 n = n + 1
+    #                 var.append(data[x,y,0])
+    # mean = mean_sum/n
+    # std = np.sqrt((sum((np.array(var)-mean)*(np.array(var)-mean))/(n)))
+    # print('avant :',mean,std)
+    # std2 = np.std(var)
+    data  = np.concatenate([s.get_slice().get_fdata().reshape(-1) for s in listSlice])
+    mask = np.concatenate([s.get_mask().reshape(-1) for s in listSlice])
+    var = data[mask>0]
+    mean = np.mean(var)
+    std = np.std(var)
+    #print('mean :',mean)
+    #print('std :',std)
+    #print('maintenant :',mean,std)
     listSliceNorm = []
     for s in listSlice:
         slices = s.get_slice().get_fdata() 
@@ -704,157 +741,77 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     print('The DICE before optimisation is :', costDice)
     
 
-
     nbslice=len(listSlice)
     set_o=np.zeros(nbSlice)
     
 
     grid_slices=np.array([gridError,gridNbpoint,gridInter,gridUnion])
     set_r=np.zeros(nbSlice)
-    #First Step : sigma = 4.0 , d=b, x_opt, omega, 
-    #epsilon = sqrt(6*(erreur)^2)
+  
     if ablation=='no_gaussian':
-        hyperparameters[5] = 0
+         hyperparameters[5] = 0
     elif ablation=='no_dice':
-        hyperparameters[4] = 0 
-    
-    print('ablation :', ablation)
-    print('hyperparameters :', hyperparameters)
-    
+         hyperparameters[4] = 0
+    #hyperparameters[4]=0 #no dice
+    #hyperparameters[5]=0 #no gaussian filtering -> we find out it have no interest in the algorithm
+    # # print('ablation :', ablation)
+    # # print('hyperparameters :', hyperparameters)
+
     if hyperparameters[5] != 0 :
-        new_hyperparameters = np.array([hyperparameters[0],hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2),hyperparameters[4],hyperparameters[5]])
-        ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)  
-        grid_slices=np.array([ge,gn,gi,gu])
-        set_r=np.zeros(nbSlice)
-        #Second Step : sigma = 2.0, d=b/2, x_opt, omega
-        #epsilon = sqrt(6*(erreur/2)^2)
-        new_hyperparameters = np.array([hyperparameters[0]/2,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/2),hyperparameters[4],hyperparameters[5]/2])
-        ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)  
-        grid_slices=np.array([ge,gn,gi,gu])
-    #Third step : sigma = 0.0, d=b/4, x_opt, omega
-    #epsilon = sqrt(6*(erreur)^2/4)
+       new_hyperparameters = np.array([hyperparameters[0],hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2),hyperparameters[4],hyperparameters[5]])
+       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+       grid_slices=np.array([ge,gn,gi,gu])
+       set_r=np.zeros(nbSlice)
+    #     #Second Step : sigma = 2.0, d=b/2, x_opt, omega
+    #     #epsilon = sqrt(6*(erreur/2)^2)
+       new_hyperparameters = np.array([hyperparameters[0]/2,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/2),hyperparameters[4],hyperparameters[5]/2])
+       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+       grid_slices=np.array([ge,gn,gi,gu])
+    # #Third step : sigma = 0.0, d=b/4, x_opt, omega
+    # #epsilon = sqrt(6*(erreur)^2/4)
     if hyperparameters[4] != 0 :
-        new_hyperparameters = np.array([hyperparameters[0]/4,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/4),hyperparameters[4],0])
-        ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)  
-        grid_slices=np.array([ge,gn,gi,gu])
-    #Fourth step : sigma = 0.0 , d=b/8, x_opt, omega
-    #epsilon = sqrt(6*(erreur)^2/8)
-    new_hyperparameters = np.array([hyperparameters[0]/8,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/8),0,0])
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)  
+       new_hyperparameters = np.array([hyperparameters[0]/4,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/4),hyperparameters[4],0])
+       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+       grid_slices=np.array([ge,gn,gi,gu])
+
+    # #Fourth step : sigma = 0.0 , d=b/8, x_opt, omega
+    # #epsilon = sqrt(6*(erreur)^2/8)
+    new_hyperparameters = np.array([hyperparameters[0]/8,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/8),hyperparameters[4],0])
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
     grid_slices=np.array([ge,gn,gi,gu])
+    
+    ge=grid_slices[0,:,:]
+    gn=grid_slices[1,:,:]
+    gi=grid_slices[2,:,:]
+    gu=grid_slices[3,:,:]
+    
     
     union=np.zeros((nbSlice,nbSlice))
     intersection=np.zeros((nbSlice,nbSlice))
-    
-    nbSlice = len(listSlice)
-    nb_slice_matrix = np.zeros((nbSlice,nbSlice)) 
-    dist_union,dist_intersection,nb_slice_matrix = outliers_detection_intersection.compute_dice_error_for_each_slices(union,intersection,nb_slice_matrix,listSlice)
-    ratio = np.abs(dist_union - dist_intersection)
-    
-    Num=ratio
-    Denum=nb_slice_matrix
-    nb_glob, ratio_glob  = display.indexGlobalMse(Num,Denum)
-    diff=[e/n for (e,n) in zip(ratio_glob,nb_glob)]
-    diff=np.array(diff)
-    HistoDiff=diff[np.where((~np.isnan(diff) * ~np.isinf(diff)))]
-    fit_alpha, fit_loc, fit_scale = stats.gamma.fit(HistoDiff)
-    confidence = stats.gamma.interval(0.975,fit_alpha, fit_loc,fit_scale)
-    t_inter = confidence[1]
-    
-    Num=ge
-    Denum=gn
-    point_glob, error_glob = display.indexGlobalMse(Num,Denum)
-    mse=[e/n for (e,n) in zip(error_glob,point_glob)]
-    mse=np.array(mse)
-    HistoMSE=mse[np.where((~np.isnan(mse) * ~np.isinf(mse)))]
-    fit_alpha, fit_loc, fit_scale = stats.gamma.fit(HistoMSE)
-    confidence = stats.gamma.interval(0.975,fit_alpha, fit_loc,fit_scale)
-    t_mse = confidence[1]
-    
-    
-    
-    
-    mW = matrixOfWeight(ge, gn, union, intersection, listSlice,t_inter,t_mse)
-    set_o = np.abs(np.ones(nbSlice)-mW[0,:])
+
+
+    nbSlice=len(listSlice)
+    union=np.zeros((nbSlice,nbSlice))
+    intersection=np.zeros((nbSlice,nbSlice))
+
+    set_o = np.zeros(nbSlice)
     print("badly register : ",sum(set_o))
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)  
+    
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
     grid_slices=np.array([ge,gn,gi,gu])
-    
       
-    if ablation!='no_multistart':
-        grid_slices,dicRes=bad_slices_correction(listSlice,new_hyperparameters,set_o,grid_slices,dicRes,t_inter,t_mse)
+    #if ablation!='no_multistart':
+    set_o = detect_misregistered_slice(listSlice, grid_slices, loaded_model) 
+    print(set_o)
+    grid_slices,set_o,dicRes=correction_misregistered(listSlice,hyperparameters,set_o.copy(),grid_slices,dicRes)
    
-    
-    rejectedSlices=removeBadSlice(listSlice, grid_slices, t_inter, t_mse)
+
+    rejectedSlices=removeBadSlice(listSlice, set_o)
     #rejectedSlices=[]
     
     
     return dicRes, rejectedSlices
     
-
-def OptimisationThreshold(gridError,gridNbpoint):
-    """
-    Compute the threshold between well-register slices and bad-register slices
-    
-    Inputs 
-    gridError : triangular matrix representing the square error between each slices
-    gridNbpoint : triangular matrix representing the number of common point between each slices
-
-    Ouptut 
-    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
-        
-    """
-    
-    vectMse = np.zeros([gridError.shape[0]])
-    n=gridError.shape[0]
-    for i in range(n): #compute between each slice and its orthogonal slices
-        mse = sum(gridError[i,:]) + sum(gridError[:,i])
-        point =  sum(gridNbpoint[i,:]) + sum(gridNbpoint[:,i])
-        vectMse[i] = mse/point
-    
-    vectMse = vectMse[~np.isnan(vectMse)]                    
-    valMse = np.median(vectMse)
-    sortMse = np.sort(vectMse)
-    q1 = np.quantile(sortMse,0.25)
-    q3 = np.quantile(sortMse,0.75)
-    iqr=q3-q1
-    upper_fence = q3 + (1.5*iqr)
-
-    #std = 1.4826*np.median(np.abs(vectMse-valMse)) #the distribution of MSE is approximately gaussien so we take the 95% intervall
-    #threshold = np.mean(vectMse) + 6*std
-    threshold = upper_fence
-    
-    return threshold
-
-
-def MseThreshold(gridError,gridNbpoint):
-    """
-    Compute the threshold between well-register slices and bad-register slices
-    
-    Inputs 
-    gridError : triangular matrix representing the square error between each slices
-    gridNbpoint : triangular matrix representing the number of common point between each slices
-
-    Ouptut 
-    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
-        
-    """
-    
-    vectMse = np.zeros([gridError.shape[0]])
-    n=gridError.shape[0]
-    for i in range(n): #compute between each slice and its orthogonal slices
-        mse = sum(gridError[i,:]) + sum(gridError[:,i])
-        point =  sum(gridNbpoint[i,:]) + sum(gridNbpoint[:,i])
-        vectMse[i] = mse/point
-    
-    vectMse = vectMse[~np.isnan(vectMse)]                    
-    valMse = np.median(vectMse)
-    sortMse = np.sort(vectMse)
-
-    std = 1.4826*np.median(np.abs(vectMse-valMse)) #the distribution of MSE is approximately gaussien so we take the 95% intervall
-    threshold = np.mean(vectMse) + 6*std
-    
-    return threshold
     
 
 def updateResults(dicRes,gridError,gridNbpoint,gridInter,gridUnion,costMse,costDice,listSlice,nbSlice):
@@ -876,8 +833,6 @@ def updateResults(dicRes,gridError,gridNbpoint,gridInter,gridUnion,costMse,costD
         slicei=listSlice[i]
         dicRes["evolutionparameters"].extend(slicei.get_parameters()) #evolution of the parameters
         dicRes["evolutiontransfo"].extend(slicei.get_transfo()) #evolution of the global matrix applied to the image
-
-        
 
 
 def SliceOptimisation1Image(d,xatol,listSlice,gridError,gridNbpoint,gridInter,gridUnion,initial_s,finish,lamb,nImage):    
@@ -915,9 +870,6 @@ def SliceOptimisation1Image(d,xatol,listSlice,gridError,gridNbpoint,gridInter,gr
         costMse,costDice,gridError,gridNbpoint,gridInter,gridUnion,x_opt=SimplexOptimisation(delta,xatol, x0, nImage, listSlice, gridError, gridNbpoint, gridInter, gridUnion, initial_s, lamb)
         current_param=x_opt
         
-
-        
-
         if np.linalg.norm(previous_param-current_param)<1e-1:
             finish_val=1
     else:
@@ -925,14 +877,29 @@ def SliceOptimisation1Image(d,xatol,listSlice,gridError,gridNbpoint,gridInter,gr
 
     return x_opt,finish_val          
 
-def oneSliceCost(gridNum,gridDenum,i_slice):
+def oneSliceCost(grid_numerator,grid_denumerator,set_o,i_slice):
     """
     Compute the cost of one slice, using the two cost matrix. Can be used equally for MSE and DICE
     """
-    num=sum(gridNum[i_slice,:])+sum(gridNum[:,i_slice])
-    denum=sum(gridDenum[i_slice,:])+sum(gridDenum[:,i_slice])
+    set_outliers = np.abs(1-set_o.copy())
+    set_outliers[i_slice]=1
+    nbSlice=np.shape(grid_numerator)[0]
+    
+    grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_numerator*set_outliers,np.transpose(np.transpose(grid_numerator)*set_outliers))]
+    grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_denumerator*set_outliers,np.transpose(np.transpose(grid_denumerator)*set_outliers))]
+     
+    numerator = np.sum(grid_numerator_no_o)
+
+    num=np.array(grid_numerator_no_o)
+    num=np.reshape(num,(nbSlice,nbSlice))
+    num=np.sum(num[i_slice,:])+np.sum(num[:,i_slice])
+    denum=np.array(grid_denumerator_no_o)
+    denum=np.reshape(denum,(nbSlice,nbSlice))
+    denum=np.sum(denum[i_slice,:])+np.sum(denum[:,i_slice])
+    
+    
     if denum==0:
-        cost=0
+        cost=np.nan
     else:
         cost=num/denum
     if np.isinf(cost):
@@ -941,7 +908,7 @@ def oneSliceCost(gridNum,gridDenum,i_slice):
 
 
 
-def bad_slices_correction(listSlice,hyperparameters,set_o,grid_slices,dicRes,t_inter,t_mse):
+def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes):
     """
     This function aims to correct mis-registered slices
 
@@ -959,106 +926,146 @@ def bad_slices_correction(listSlice,hyperparameters,set_o,grid_slices,dicRes,t_i
     dicRes : results save for representation
 
     """
-    
-    gridError = grid_slices[0]
-    gridNbpoint = grid_slices[1]
-    gridInter = grid_slices[2]
-    gridUnion = grid_slices[3]
+    print(set_o.shape)
+    ge = grid_slices[0,:,:]
+    gn = grid_slices[1,:,:]
+    gi = grid_slices[2,:,:]
+    gu= grid_slices[3,:,:]
     before_correction = sum(set_o)
+    print(before_correction)
+     
+    nbSlice = len(listSlice)     
     while True:
-        nbSlice = len(listSlice) #number of slices total
-        for i_slice in range(nbSlice):
-                 
-            okpre=False;okpost=False;nbSlice1=0;nbSlice2=0;dist1=0;dist2=0
-            slicei=listSlice[i_slice]
-            if set_o[i_slice]==1:
-                for i in range(i_slice,0,-2):
-                    if listSlice[i].get_orientation()==listSlice[i_slice].get_orientation(): #check if the previous slice is from the same volume
-                        if set_o[i]==0 : #if the previous slice is well registered 
-                            nbSlice1=i
-                            dist1=np.abs(i_slice-nbSlice1)//2
-                            okpre=True
-                            break
-                for j in range(i_slice,nbSlice,2):
-                    if set_o[j]==0: #if the previous slice is well registered
-                        if listSlice[j].get_orientation()==listSlice[i_slice].get_orientation(): 
-                             nbSlice2=j
-                             dist2=np.abs(i_slice-nbSlice2)//2
-                             okpost=True
+        
+                
+         #number of slices total
+        print(set_o.shape)
+        for i_slice in range(0,nbSlice):
+            
+        #     #print('before:',listSlice[i_slice].get_parameters())
+        #     #print('Slice Cost Before:', oneSliceCost(ge,gn,set_o,i_slice))
+            
+             okpre=False;okpost=False;nbSlice1=0;nbSlice2=0;dist1=0;dist2=0
+             slicei=listSlice[i_slice]
+             x_pre=slicei.get_parameters()
+             print(set_o[i_slice])
+             if set_o[i_slice]==1:
+                 print(i_slice)
+                 for i in range(i_slice,0,-2):
+                     if listSlice[i].get_orientation()==listSlice[i_slice].get_orientation(): #check if the previous slice is from the same volume
+                         if set_o[i]==0 : #if the previous slice is well registered 
+                             nbSlice1=i
+                             dist1=np.abs(i_slice-nbSlice1)//2
+                             okpre=True
                              break
-                if okpre==True and okpost==True: #if there is two close slice well-register, we do a mean between them
-                     Slice1=listSlice[nbSlice1];Slice2=listSlice[nbSlice2]
-                     ps1=Slice1.get_parameters().copy();ps2=Slice2.get_parameters().copy();
-                     MS1=rigidMatrix(ps1);MS2=rigidMatrix(ps2)
-                     RotS1=MS1[0:3,0:3];RotS2=MS2[0:3,0:3]
-                     TransS1=MS1[0:3,3];TransS2=MS2[0:3,3]
-                     Rot=computeMeanRotation(RotS1,dist1,RotS2,dist2)
-                     Trans=computeMeanTranslation(TransS1,dist1,TransS2,dist2)
-                     Mtot=np.eye(4)
-                     Mtot[0:3,0:3]=Rot;Mtot[0:3,3]=Trans
-                     p=ParametersFromRigidMatrix(Mtot)
-          
-    
-                     slicei.set_parameters(p)
-                elif okpre==True and okpost==False: #if there is only one close slice well-register, we take the parameters of this slice
-                     Slice1=listSlice[nbSlice1]
-                     ps1=Slice1.get_parameters().copy()
-                     slicei.set_parameters(ps1)
-                elif okpost==True and okpre==False: 
-                     Slice2=listSlice[nbSlice2]
-                     ps2=Slice2.get_parameters().copy()
-                     slicei.set_parameters(ps2)
+                 for j in range(i_slice,nbSlice,2):
+                     if set_o[j]==0: #if the previous slice is well registered
+                         if listSlice[j].get_orientation()==listSlice[i_slice].get_orientation(): 
+                              nbSlice2=j
+                              dist2=np.abs(i_slice-nbSlice2)//2
+                              okpost=True
+                              break
+                 if okpre==True and okpost==True: #if there is two close slice well-register, we do a mean between them
+                      Slice1=listSlice[nbSlice1];Slice2=listSlice[nbSlice2]
+                      ps1=Slice1.get_parameters().copy();ps2=Slice2.get_parameters().copy();
+                      print('ps1:',ps1,'dist1:',dist1)
+                      print('ps2:',ps2,'dist2:',dist2)
+                      MS1=rigidMatrix(ps1);MS2=rigidMatrix(ps2)
+                      RotS1=MS1[0:3,0:3];RotS2=MS2[0:3,0:3]
+                      TransS1=MS1[0:3,3];TransS2=MS2[0:3,3]
+                      Rot=computeMeanRotation(RotS1,dist1,RotS2,dist2)
+                      Trans=computeMeanTranslation(TransS1,dist1,TransS2,dist2)
+                      Mtot=np.eye(4)
+                      Mtot[0:3,0:3]=Rot;Mtot[0:3,3]=Trans
+                      x0=ParametersFromRigidMatrix(Mtot)
+                      print('x0',x0)
+                      #slicei.set_parameters(x0)
+                      
+                 elif okpre==True and okpost==False: #if there is only one close slice well-register, we take the parameters of this slice
+                      Slice1=listSlice[nbSlice1]
+                      x0=Slice1.get_parameters().copy()
+                      print('x0',x0)
+                      #slicei.set_parameters(p)
+                 elif okpost==True and okpre==False: 
+                      Slice2=listSlice[nbSlice2]
+                      x0=Slice2.get_parameters().copy()
+                      print('x0',x0)
+                      #slicei.set_parameters(p)
+                 else :
+                      x0=slicei.get_parameters()
+                      print('x0',x0)
                      
+        #         print(i_slice,slicei.get_orientation(),slicei.get_index_slice(),okpre,okpost,x0)
     
     
                 #We do a multistart optimisation based on the new initialisation
-                x0=slicei.get_parameters()
-                multistart=np.random.rand(5)*20 - 10
-                multistart = np.concatenate(([0],multistart))
-                with Pool() as p:
-                     tmpfun=partial(multi_start,hyperparameters,i_slice,listSlice,grid_slices,set_o,x0)
-                     res=p.map(tmpfun,multistart)
-                p=[p[0] for p in res]
-                print(p)
-                mincost = min(p)
-                x=[x[1] for x in res]
-                x_opt = x[p.index(mincost)]
-                print('i_slice',i_slice)
-                print(x_opt)
-                print('mincost :',mincost)
-                slicei.set_parameters(x_opt)
+                 #print('x0:',x0) 
+                 multistart = np.zeros((16,6))
+                 multistart[:15,:]=(np.linspace(-20,20,15)*np.ones((6,15))).T
+                 #print(multistart)
+                 index = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+                 with Pool(processes=16) as p:
+                     tmpfun=partial(multi_start,hyperparameters,i_slice,listSlice.copy(),grid_slices,set_o,x0,multistart)
+                     res=p.map(tmpfun,index)
+                     
+                #
+                #cost=opti_res[0]
+                #x_opt=opti_res[3]
+                 current_cost=cost_from_matrix(ge,gn,set_o,i_slice)
+                 p=[p[0] for p in res]
+                 p.append(current_cost)
+                 #print(p)
+                 #p.append(cost)
+                 mincost = min(p)
+                 x=[x[1] for x in res]
+                 x.append(x_pre)
+                 x_opt = x[p.index(mincost)]
+                 #print('i_slice',i_slice)
+                 print('After:', x_opt)
+                 print('mincost :',mincost)
+                 slicei.set_parameters(x_opt)
                 
                 
-                gridError,gridNbpoint,gridInter,gridUnion=computeCostBetweenAll2Dimages(listSlice)     
-                costMse=costFromMatrix(gridError,gridNbpoint)
-                print('cost :', costMse)
-                costDice=costFromMatrix(gridInter,gridUnion)
+                 updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
+                
+                
+                 grid_slices = np.array([ge,gn,gi,gu])
+                 #print('Slice Cost After:',i_slice, oneSliceCost(ge,gn,set_o,i_slice))
+                 costMse=costFromMatrix(ge,gn)
+                 #print('cost :', costMse)
+                 costDice=costFromMatrix(gi,gu)
         
-        union=np.zeros((nbSlice,nbSlice))
-        intersection=np.zeros((nbSlice,nbSlice))
-        mW = matrixOfWeight(gridError, gridNbpoint, union, intersection, listSlice,t_inter,t_mse)
-        new_set_o = np.abs(np.ones(nbSlice)-mW[0,:])
-        print("badly register : ", sum(new_set_o))
+        #intersection=np.zeros((nbSlice,nbSlice))
+        #union=np.zeros((nbSlice,nbSlice))
+        #mW = matrixOfWeight(ge, gn,gi,gu, intersection, union, listSlice,t_inter,t_mse, t_inter, t_mse)
+        ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
+        grid_slices=np.array([ge,gn,gi,gu])
+        new_set_o = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+        #print("badly register : ", sum(new_set_o))
+        
+        print('mis-registered-before :', np.where(set_o>0))
+        print('mis-registered-after :', np.where(new_set_o>0))
         
         if np.all(new_set_o == set_o):
             break
             
         set_o = new_set_o.copy()
     
+    
     set_o = new_set_o
     after_correction = sum(set_o)
     saved = before_correction - after_correction
-    print('slices saved with multistart :', saved)
+    #print('slices saved with multistart :', saved)
     ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSlice)
-    costMse=costFromMatrix(gridError,gridNbpoint)
-    costDice=costFromMatrix(gridInter,gridUnion)
+    costMse=costFromMatrix(ge,gn)
+    costDice=costFromMatrix(gi,gu)
     updateResults(dicRes, ge, gn, gi, gu, costMse, costDice, listSlice, nbSlice)
     grid_slices = np.array([ge,gn,gi,gu])
         
-    return grid_slices,dicRes
+    return grid_slices,set_o,dicRes
 
 
-def multi_start(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart):
+def multi_start_yeah(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart,index):
     """
     Function to try different initial position for optimisation. 
 
@@ -1081,124 +1088,58 @@ def multi_start(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart)
         best parameters of slices obtained with optimisation
 
     """
-    x0=x0+valstart
-    opti_res = SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice)
-    cost=opti_res[0]
+    x=x0+valstart[index,:]
+    #print('index multistart:',valstart[index,:],'index:',index)
+    opti_res = SimplexOptimisation_slice(x,hyperparameters,listSlice,grid_slices,set_o,i_slice)
+    cost=opti_res[0] #-1*opti_res[1]
     x_opt=opti_res[3]
+
+    
+    return cost,x_opt
+
+def multi_start(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart,index):
+    """
+    Function to try different initial position for optimisation. 
+
+    Parameters
+    ----------
+    hyperparameters : parameters for optimisation : simplex size, xatol, fatol, epsilon, gauss, lamb
+    i_slice : slice we want to correct
+    listSlice : set of slices
+    grid_slices : matrix costs
+    set_o : set of outliers
+    x0 : initial postion of the slice
+    valstart : value for mutlistart
+
+    Returns
+    -------
+    cost :
+        cost after optimisation
+    
+    x_opt :
+        best parameters of slices obtained with optimisation
+
+    """
+    x=x0+valstart[index,:]
+    #print('index multistart:',valstart[index,:],'index:',index)
+    opti_res = SimplexOptimisation(x,hyperparameters,listSlice,grid_slices,set_o,i_slice)
+    cost=opti_res[0] #-1*opti_res[1]
+    x_opt=opti_res[3]
+
     
     return cost,x_opt
 
 
-def matrixOfWeight(gridError,gridNbpoint,intersection,union,listSlice,t_inter,t_mse):
-    """
-    Compute a binary matrix which represent if a slice is well-register of bad-register. Each column of the matrix represent a slice
 
-    Inputs 
-    gridError : triangular matrix representing the square error between each slices
-    gridNbpoint : triangular matrix representing the number of common point between each slices
-    threshold : scalar, if the MSE of a slice is above this value, it is well-register, if not, it is badly-register
-        
-    Ouptuts 
-    Weight : matrix of registered (1) and outliers (0) slices
-    """
-    X,Y = gridError.shape
-    Weight = np.ones((X,Y))
-    nbSlice = len(listSlice)
-    nb_slice_matrix = np.zeros((nbSlice,nbSlice)) 
-    dist_union,dist_intersection,nb_slice_matrix = outliers_detection_intersection.compute_dice_error_for_each_slices(union,intersection,nb_slice_matrix,listSlice)
-    ratio = np.abs(dist_union - dist_intersection)
-    
-    listSliceError = []
-    for i_slice in range(len(listSlice)):
-        
-        slicei = listSlice[i_slice]
-        slice_index = slicei.get_index_slice()
-        orientation = slicei.get_orientation()
-        
-        ErrorSlicei = outliers_detection_intersection.ErrorSlice(orientation,slice_index)
-        nbpoint_binary_map = sum(nb_slice_matrix[i_slice,:]) + sum(nb_slice_matrix[:,i_slice])
-        error_distance = sum(ratio[i_slice,:]) + sum(ratio[:,i_slice])
-        error_distance_mean = error_distance/nbpoint_binary_map
-        ErrorSlicei.set_inter(error_distance_mean)
-        #print(i_slice,error_distance_mean)
-        
-        mse_slice = (sum(gridError[i_slice,:]) + sum(gridError[:,i_slice]))/(sum(gridNbpoint[i_slice,:]) + sum(gridNbpoint[:,i_slice]))
-        #print(i_slice,mse_slice)
-         
-        ErrorSlicei.set_mse(mse_slice)
-        mask = slicei.get_mask()
-        pmask = outliers_detection_intersection.mask_proportion(mask)
-        ErrorSlicei.set_mask_proportion(pmask)
-        
-        listSliceError.append(ErrorSlicei)
-    
-    listvolumeSliceError = outliers_detection_intersection.createVolumesFromAlistError(listSliceError)
-    
-    nb_stack = len(listvolumeSliceError)
-    mask_size = np.zeros((nbSlice,nb_stack))
-    
-    for i_stack in range(nb_stack):
-        stack  = listvolumeSliceError[i_stack]
-        nb_error = len(stack)
-        for i_slice in range(nb_error):
-            SErrori = stack[i_slice]
-            mask_size[i_slice,i_stack] = SErrori.get_mask_proportion()*100
-    
-    
-    for i_stack in range(nb_stack):
-        
-        stack  = listvolumeSliceError[i_stack]
-        nb_error = len(stack)
-        
-        vect = mask_size[:,i_stack]
-        vectMask = vect[vect>0]
-
-       
-
-        mean = np.quantile(vectMask,0.1)
-
-       
-        t = mean 
-        
-        for i_slice in range(nb_error):
-            SErrori = stack[i_slice]
-            pmask = SErrori.get_mask_proportion() 
-            if 100*pmask < t:
-                SErrori.set_bords(True) 
-
-    for i_stack in range(nb_stack):
-        stack  = listvolumeSliceError[i_stack]
-        nb_error = len(stack)
-        for i_slice in range(nb_error):
-            SErrori = stack[i_slice]
-            if SErrori.edge() == True:
-                if SErrori.get_inter() > t_inter or np.isnan(SErrori.get_inter()) or np.isnan(SErrori.get_mse()) or np.isinf(SErrori.get_inter()) or np.isinf(SErrori.get_mse()):
-                    index_list = outliers_detection_intersection.get_index(SErrori.get_orientation(),SErrori.get_index(),listSlice)
-                    if index_list != -1 :
-                        Weight[:,index_list] = 0
-            else :    
-                if SErrori.get_mse() > t_mse or np.isnan(SErrori.get_mse()) or np.isnan(SErrori.get_inter()) or np.isinf(SErrori.get_inter()) or np.isinf(SErrori.get_mse()):
-                    index_list = outliers_detection_intersection.get_index(SErrori.get_orientation(),SErrori.get_index(),listSlice)
-                    if index_list != -1 :
-                        Weight[:,index_list] = 0
-
-    return Weight
-
-
-
-def removeBadSlice(listSlice,grid_slices,t_inter,t_mse):
+def removeBadSlice(listSlice,set_o):
     """
     return a list of bad-registered slices and their corresponding stack
     """
     removelist=[]
-    ge = grid_slices[0,:,:]
-    gn = grid_slices[1,:,:]
-    nbSlice=len(listSlice)
-    union=np.zeros((nbSlice,nbSlice))
-    intersection=np.zeros((nbSlice,nbSlice))
-    mW = matrixOfWeight(ge, gn, union, intersection, listSlice,t_inter,t_mse)
+
+   
     for i_slice in range(len(listSlice)):
-      if mW[0,i_slice]==0:
+      if set_o[i_slice]==1:
           removelist.append((listSlice[i_slice].get_orientation(),listSlice[i_slice].get_index_slice()))
    
     
@@ -1231,16 +1172,24 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     
     set_outliers[i_slice]=1
 
-    grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_numerator*set_outliers,np.transpose(np.transpose(grid_numerator)*set_outliers))]
+    #grid_numerator_no_o_1=[x for x,y in zip(grid_numerator*set_outliers,np.transpose(np.transpose(grid_numerator)*set_outliers))]
     
-    grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_denumerator*set_outliers,np.transpose(np.transpose(grid_denumerator)*set_outliers))]
+    #grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_denumerator*set_outliers,np.transpose(np.transpose(grid_denumerator)*set_outliers))]
      
-    numerator = np.sum(grid_numerator_no_o)
 
-    denumerator = np.sum(grid_denumerator_no_o)
+    #numerator = np.sum(grid_numerator[:,i_slice]*set_outliers)+np.sum(np.transpose(np.transpose(grid_numerator[i_slice,:])*set_outliers))
+    #denumerator = np.sum(grid_denumerator[:,i_slice]*set_outliers)+np.sum(np.transpose(np.transpose(grid_denumerator[i_slice,:])*set_outliers)) #np.sum(grid_denumerator_no_o)
+   
+    grid_outliers = np.ones((nbslice,nbslice))
+    for slice1 in range(0,nbslice):
+        for slice2 in range(0,nbslice):
+            if slice1>slice2:
+                grid_outliers[slice1,slice2]=set_outliers[slice1]*set_outliers[slice2]
+   
+    grid_numerator_no_o = grid_numerator_no_o * grid_outliers
+    grid_denumerator_no_o = grid_denumerator_no_o * grid_outliers
     
-    cost = numerator/denumerator
-  
+    cost = costFromMatrix(grid_numerator_no_o, grid_denumerator_no_o)
   
     return cost
             
@@ -1285,10 +1234,81 @@ def cost_fct(x,i_slice,listSlice,grid_slices,set_o,lamb):
    
     
     mse = cost_from_matrix(grid_error,grid_nbpoint,set_o,i_slice)
-    dice = cost_from_matrix(grid_intersection,grid_nbpoint,set_o,i_slice)
+
+    dice = cost_from_matrix(grid_intersection,grid_union,set_o,i_slice)
 
     cost = mse - lamb*dice
+    #print('lamb',lamb)
 
+    
+    return cost
+
+
+def cost_fct_slice(x,i_slice,listSlice,grid_slices,set_o,lamb):
+    """
+    function we want to minimize. 
+
+    Parameters
+    ----------
+    x : initial parameters of the slice, parameters of the optimisation
+    i_slice : slice of interset
+    listSlice : set of slices
+    grid_slices : matrix of cost
+    set_o : set of outliers
+    lamb : coefficient of the dice
+
+    Returns
+    -------
+    cost : cost, composed of the mse and dice
+
+    """
+    
+    ge = grid_slices[0,:,:]
+    gn = grid_slices[1,:,:]
+    gi = grid_slices[2,:,:]
+    gu = grid_slices[3,:,:]
+    
+    slicei = listSlice[i_slice]
+    slicei.set_parameters(x)
+    #print(x)
+    
+
+    updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
+    
+    grid_error=ge
+    grid_nbpoint=gn
+    grid_intersection=gi
+    grid_union=gu
+    
+    grid_slices = np.array([grid_error,grid_nbpoint,grid_intersection,grid_union])
+   
+    set_outliers = np.abs(1-set_o.copy())
+    
+    set_outliers[i_slice]=1
+    
+    grid_numerator_no_o = ge.copy()
+    grid_denumerator_no_o = gn.copy()
+    
+    # gi_no_o = gi.copy()
+    # gu_no_o = gu.copy()
+
+    # grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(ge*set_outliers,np.transpose(np.transpose(ge)*set_outliers))]
+    # grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(gn*set_outliers,np.transpose(np.transpose(gn)*set_outliers))]
+    
+    # gi_no_o=[np.sqrt(x*y) for x,y in zip(gi*set_outliers,np.transpose(np.transpose(gi)*set_outliers))]
+    # gu_no_o=[np.sqrt(x*y) for x,y in zip(gu*set_outliers,np.transpose(np.transpose(gu)*set_outliers))]
+    
+    # grid_numerator_no_o=np.array(grid_numerator_no_o)
+    # grid_denumerator_no_o=np.array(grid_denumerator_no_o)
+    
+    # gi_no_o=np.array(gi_no_o)
+    # gu_no_o=np.array(gu_no_o)
+    
+    #mse = cost_from_matrix(grid_error,grid_nbpoint,set_o,i_slice)
+    #dice = cost_from_matrix(grid_intersection,grid_nbpoint,set_o,i_slice)
+    cost = oneSliceCost(grid_numerator_no_o, grid_denumerator_no_o,set_o, i_slice) #- lamb*oneSliceCost(gi_no_o,gu_no_o,set_o, i_slice)
+    
+    #print('cost :', cost)
     
     return cost
 
@@ -1314,8 +1334,6 @@ def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,n_i
     
     epsilon = hyperparameters[3]
     
-
-
     slicei=listSlice[n_image]
     x0=slicei.get_parameters()
     previous_param=x0
@@ -1329,10 +1347,11 @@ def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,n_i
     #print('previous',previous_param,'current',current_param,epsilon)
     if np.linalg.norm(previous_param-current_param)<epsilon:
         registration_state=1
-        print(n_image,'slice ok')
+        #print(n_image,'slice ok')
     #else:
     #    x_opt=x0
-
+    
+    print('CostMse',n_image,costMse)
     return x_opt,registration_state      
     
 def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
@@ -1362,21 +1381,22 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
     nbSlice = len(listSlice)    
     
     blur = hyperparameters[5]
-    print('blur :', blur)
-    print('Hehehe')
+    #print('blur :', blur)
+    #print('Hehehe')
     listSliceblur = denoising(listSlice.copy(),blur)
     ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSliceblur)
     grid_slices=np.array([ge,gn,gi,gu])
     
     while (it_intern > 1 or it_extern == 0) and it_extern < max_extern:
         
-        print("it_extern:",it_extern)
-        print("it_intern:",it_intern)
+        #print("it_extern:",it_extern)
+        #print("it_intern:",it_intern)
         
-        set_to_register=set_r.copy() #at the begenning, we need to register all the slices
-        set_to_register_pre = set_to_register.copy()
+        set_to_register=np.abs(set_r.copy()) #at the begenning, we need to register all the slices
+        print(set_to_register)
+        set_to_register_pre = np.zeros(nbSlice)
         it_intern = 0
-        while set_to_register.all()!=1 and it_intern < max_intern and (not sum(set_to_register)==sum(set_to_register_pre) or sum(set_to_register)==0) :
+        while set_to_register.all()!=1 and it_intern < max_intern and (not sum(set_to_register)==sum(set_to_register_pre) or sum(set_to_register_pre)==0) :
             #avoid that the algorithm continue because there is one or two slices not register
             set_to_register_pre = set_to_register.copy()
             index_pre=0
@@ -1390,13 +1410,13 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
                 
                 
                         
-                with Pool(processes=12) as p: #all slices from the same stacks are register together (in the limit of the number of CPU on your machine)
+                with Pool() as p: #all slices from the same stacks are register together (in the limit of the number of CPU on your machine)
                     tmpfun=partial(cost_optimisation_step,hyperparameters,listSliceblur,grid_slices,set_to_register,set_o) 
                     res=p.map(tmpfun,eval_index)
                     
                                               
                 for m,i_slice in enumerate(eval_index): #update parameters once the registration is done
-                    print(m,i_slice)
+                    #print(m,i_slice)
                     listSliceblur[i_slice].set_parameters(res[m][0])
                     set_to_register[i_slice]=res[m][1]
                 
@@ -1404,16 +1424,17 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
                 ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSliceblur)
                 grid_slices = np.array([ge,gn,gi,gu])
                 costMse=costFromMatrix(ge,gn)
-                costDice=costFromMatrix(gi,gn)
-                print('mse:',costMse)
+                print('costMse:', costMse)
+                costDice=costFromMatrix(gi,gu)
+                #print('mse:',costMse)
                 index_pre=index_pre+len(images[n_image])
             
             it_intern+=1
-            print('well registered :',np.sum(set_to_register>0))
+            #print('well registered :',np.sum(set_to_register>0))
             
         
 
-        print('delta :',  hyperparameters[0], 'iteration :', it_extern, 'final MSE :', costMse, 'final DICE :', costDice)
+        #print('delta :',  hyperparameters[0], 'iteration :', it_extern, 'final MSE :', costMse, 'final DICE :', costDice)
         it_extern+=1 
         end = time.time()
         elapsed = end - start
@@ -1423,11 +1444,12 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
                         
         ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSlice)
         costMse=costFromMatrix(ge, gn)
+        print('costMse_After',costMse)
         costDice=costFromMatrix(gi,gu)
         updateResults(dicRes,ge,gn,gi,gu,costMse,costDice,listSlice,nbSlice)
-        print('MSE: ', costMse)
-        print('Dice: ', costDice) 
-        print(f'Temps d\'exécution : {elapsed}') 
+        #print('MSE: ', costMse)
+        #print('Dice: ', costDice) 
+        #print(f'Temps d\'exécution : {elapsed}') 
         
         #it_extern+=1
     
@@ -1482,11 +1504,11 @@ def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
                                            
     #X,Y = grid_slices[0,:,:].shape
 
-    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='Nelder-Mead',options={"disp" : True, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  True})
+    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='Nelder-Mead',options={"disp" : False, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  False})
         #optimisation of the cost function using the simplex method                                    
         
     x_opt = NM.x #best parameter obtains after
-    print(NM.message)
+    #print(NM.message)
     
     listSlice[i_slice].set_parameters(x_opt)
     
@@ -1504,3 +1526,356 @@ def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
 
         
     return costMse,costDice,grid_slices,x_opt
+
+def SimplexOptimisation_slice(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
+    
+    """
+    Implementation of the simplex optimisation, for on slice,  using scipy
+    
+    x0 : initial parameters of the slice
+    
+    hyperparameters : parameters used for optimisation
+    
+    listSlice : set of slices
+    
+    grid_slices : matrix of cost
+    
+    set_o : set of outliers slices
+    
+    i_slice : slice of interest
+    
+    """
+
+    
+    slicei=listSlice[i_slice]
+
+    slicei.set_parameters(x0)
+    delta=hyperparameters[0]
+    xatol=hyperparameters[1]
+    fatol=hyperparameters[2]
+    lamb=hyperparameters[4]
+    #print('lamb',lamb)
+
+        
+    P0 = x0 #create the initial simplex
+    P1 = P0 + np.array([delta,0,0,0,0,0])
+    P2 = P0 + np.array([0,delta,0,0,0,0])
+    P3 = P0 + np.array([0,0,delta,0,0,0])
+    P4 = P0 + np.array([0,0,0,delta,0,0])
+    P5 = P0 + np.array([0,0,0,0,delta,0])
+    P6 = P0 + np.array([0,0,0,0,0,delta])
+
+    initial_s = np.zeros((7,6))
+    initial_s[0,:]=P0
+    initial_s[1,:]=P1
+    initial_s[2,:]=P2
+    initial_s[3,:]=P3
+    initial_s[4,:]=P4
+    initial_s[5,:]=P5
+    initial_s[6,:]=P6
+                                           
+    #X,Y = grid_slices[0,:,:].shape
+    #print()
+    NM = minimize(cost_fct_slice,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='Nelder-Mead',options={"disp" : True, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  True})
+        #optimisation of the cost function using the simplex method                                    
+        
+    x_opt = NM.x #best parameter obtains after
+    print(NM.message)
+    
+    
+    listSlice[i_slice].set_parameters(x_opt)
+    
+    #slicei.set_parameters(x_opt)
+    ge=grid_slices[0,:,:]
+    gn=grid_slices[1,:,:]
+    gi=grid_slices[2,:,:]
+    gu=grid_slices[3,:,:]
+
+    updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
+    grid_slices = np.array([ge,gn,gi,gu])
+    costMse=cost_from_matrix(ge,gn,set_o,i_slice) #MSE after optimisation
+    #print('i_slice :', i_slice, 'cost :',costMse)
+    costDice=cost_from_matrix(gi,gu,set_o,i_slice) #Dice after optimisation
+    
+    
+    set_outliers = np.abs(1-set_o.copy())
+    
+    set_outliers[i_slice]=1
+    
+    gi_no_o = gi.copy()
+    gu_no_o = gu.copy()
+
+    
+    # grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(ge*set_outliers,np.transpose(np.transpose(ge)*set_outliers))]
+    # grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(gn*set_outliers,np.transpose(np.transpose(gn)*set_outliers))]
+    
+    # gi_no_o=[np.sqrt(x*y) for x,y in zip(gi*set_outliers,np.transpose(np.transpose(gi)*set_outliers))]
+    # gu_no_o=[np.sqrt(x*y) for x,y in zip(gu*set_outliers,np.transpose(np.transpose(gu)*set_outliers))]
+    
+    # grid_numerator_no_o=np.array(grid_numerator_no_o)
+    # grid_denumerator_no_o=np.array(grid_denumerator_no_o)
+    
+    # gi_no_o=np.array(gi_no_o)
+    # gu_no_o=np.array(gu_no_o)
+    
+    
+    costMse = oneSliceCost(ge, gn, set_o,i_slice)
+    costDice = oneSliceCost(gi,gu,set_o,i_slice)
+
+        
+    return costMse,costDice,grid_slices,x_opt
+
+def mask_proportion(mask):
+    
+    x,y,z = mask.shape
+    in_mask=0
+    if x !=0 and y !=0 :
+        for i in range(0,x):
+            for j in range(0,y):
+                if mask[i,j]>0:
+                    in_mask=in_mask+1         
+        res = in_mask/(x*y)
+    else :
+        res=0
+    return res
+
+   
+ 
+    
+def get_index(orientation,index_slice,listSlice):
+    index_list = -1
+    for i_slice in range(0,len(listSlice)):
+        slicei = listSlice[i_slice]
+        if slicei.get_orientation() == orientation and slicei.get_index_slice()==index_slice:
+            index_list = listSlice.index(slicei)
+            break
+    return index_list
+
+
+def cost_slice(grid_numerator,grid_denumerator,i_slice): #dice or mse
+
+    num = np.sum(grid_numerator[:,i_slice])+np.sum(grid_numerator[i_slice,:])
+    denum = np.sum(grid_denumerator[:,i_slice])+np.sum(grid_denumerator[i_slice,:])
+    
+    return num/denum
+
+def distance_to_center(stack,i_slice_in_stack,icenter): #distance between the slice and the center of the slice in the stack
+    
+    res=i_slice_in_stack-icenter
+    if  res> 0:
+        res = np.abs(res)/(len(stack)-icenter)
+    else :
+        res = np.abs(res)/icenter
+    return res
+
+def mask_difference(grid_union,grid_inter,i_slice):
+    
+    union = np.sum(grid_union[:,i_slice])+np.sum(grid_union[i_slice,:])
+    #print(union)
+    inter = np.sum(grid_inter[:,i_slice])+np.sum(grid_inter[i_slice,:])
+    #print(inter)
+    n=np.sum(grid_union[:,i_slice]>0)+np.sum(grid_union[i_slice,:]>0)
+    #print(n)
+    
+    return (union-inter)/n
+
+def std_intensity(data,mask):
+    
+    image=data*mask
+    std_res=np.std(image)
+    
+    return std_res
+
+def slice_center(mask3D):
+    
+    index = np.where(mask3D>0)
+    center = np.sum(index,axis=1)/(np.sum(mask3D))
+    centerw = np.concatenate((center[0:3],np.array([1])))
+    icenter=np.ceil(centerw[2])
+       
+    return icenter
+
+def std_volume(image,masks):
+    
+    data = [np.reshape(slicei.get_slice().get_fdata(),-1) for slicei in image]
+    data = np.concatenate(data)
+    mask_data = [np.reshape(mask,-1) for mask in masks]
+    mask_data = np.concatenate(mask_data)
+    brain_data = data*mask_data
+    res = np.std(brain_data)
+    return res
+
+#update feature for each slices :
+def update_feature(listSlice,listSliceError,grid_error,grid_nbpoint,grid_inter,grid_union):
+    
+    images,masks=createVolumesFromAlist(listSlice)
+    variance = [compute_noise_variance(img) for img in images]
+    index = [len(masks[n]) for n in range(0,len(masks))]
+    pmasktot=[np.max(np.sum(masks[n][0:index[n]],axis=(1,2))) for n in range(0,len(masks))]
+    mask_volume=[np.concatenate(masks[n][0:index[n]],axis=2) for n in range(0,len(masks))]
+    center_volume = [slice_center(mask_volume[n]) for n in range(0,len(images))]
+    std_total = [std_volume(images[n],masks[n]) for n in range(0,len(masks))]
+    
+    index_list = range(0,len(listSlice))
+    index_list = np.array(index_list)
+    for i_slice in range(0,len(listSlice)):
+        currentError = listSliceError[i_slice]
+        slicei=listSlice[i_slice]
+        orientation=slicei.get_index_image()
+        var=variance[orientation]
+        #compute features : 
+        
+        #mse :
+        stack = images[orientation]
+        i_in_stack = stack.index(slicei)
+        mse=0
+        for i_stack in range(0,len(images)):
+            if i_stack != orientation:
+                var2 = variance[i_stack]
+                interested_values  = [(slicei.get_index_image()==orientation or slicei.get_index_image()==i_stack) for slicei in listSlice]
+                #tmp_list = np.concatenate((stack,images[i_stack]))
+                #ge,gn,gi,gu = registration.computeCostBetweenAll2Dimages(tmp_list)
+                interested_values = np.array(interested_values)
+                zeros_values = index_list[np.where(interested_values==False)[0]]
+                mse_tmp=compute_mse(i_slice,listSlice,zeros_values)
+                #print('Variance ', var, var2)
+                mse = mse + (1/(var+var2))*mse_tmp #1/(var+var2)*
+        #print('mse',mse)
+        #variance=compute_noise_variance(slicei)
+        #mse=cost_slice(grid_error,grid_nbpoint,i_slice)
+        currentError.set_mse(mse)
+        
+        
+        #dice :
+        dice=cost_slice(grid_inter,grid_union,i_slice)
+        currentError.set_dice(dice)
+        
+        #difference in mm
+        inter=mask_difference(grid_union,grid_inter,i_slice)
+        currentError.set_inter(inter)
+        
+        #mask proportion
+        orientation=slicei.get_index_image()
+        mtot=pmasktot[orientation]
+        mask=slicei.get_mask()
+        mprop=np.sum(mask)
+        currentError.set_mask_proportion(mprop/mtot)
+        
+        #mask distance
+        stack=images[orientation]
+        i_slice_in_stack = [stack[index_slice].get_index_slice()==slicei.get_index_slice() for index_slice in range(0,len(stack))].index(True)
+        center_dist = distance_to_center(stack,i_slice_in_stack,center_volume[orientation])
+        currentError.set_center_distance(center_dist)
+        
+        #std_intensity:
+        data=slicei.get_slice().get_fdata()
+        std_in_image=std_intensity(data,mask)
+        std_norm = std_total[orientation]
+        currentError.set_std_intensity(std_in_image/std_norm)
+        
+        #ncc
+        ncc_var = compute_ncc(i_slice,listSlice)
+        currentError.set_ncc(ncc_var)
+        
+#Reference: J. Immerkær, “Fast Noise Variance Estimation”, Computer Vision and Image Understanding, Vol. 64, No. 2, pp. 300-302, Sep. 1996
+def compute_noise_variance(volume):
+    
+    data=[slicei.get_slice().get_fdata().squeeze() for slicei in volume]
+    #data = volume.get_slice().get_fdata().squeeze()
+    #H,W = data.shape
+    mask=[slicei.get_mask().squeeze() for slicei in volume]
+    #mask = volume.get_mask().squeeze()
+    laplacien=np.array([[0,1,0],[1,-4,1],[0,1,0]]) #laplacien filter
+    #
+    laplacien_convolution = [scipy.ndimage.convolve(data_slice*mask_slice,laplacien).reshape(-1) for (data_slice,mask_slice) in zip(data,mask)] #convolve with laplacien
+    #laplacien_convolution = scipy.ndimage.convolve(data*mask,laplacien).reshape(-1)
+    
+    data_mask = [mask_slice.reshape(-1) for mask_slice in mask]
+    data_mask = np.concatenate(data_mask)
+     
+    vect = np.concatenate(laplacien_convolution)
+    #vect = laplacien_convolution
+    vect=vect[data_mask>0]
+    #print(np.size(vect))
+    med = np.median(vect)
+    #print(vect)
+    #print(np.var(vect)/20)
+    
+    mad = np.median(np.abs(vect - med))
+    k=1.4826
+    sigma=(k*mad)
+    variance=sigma**2
+        
+    return variance/20
+
+
+def compute_ncc(i_slice,listSlice):
+    
+    ncc_moy=[]
+    slicei=listSlice[i_slice]
+    for slice2 in listSlice:
+        if slice2 != slicei:
+            _,_,_,_,ncc,_ = costLocal(slicei,slice2)
+            ncc_moy.append(ncc)
+    ncc_moy=np.array(ncc_moy)
+    ncc_moy>0
+    n = np.sum(ncc_moy>0)
+    #print(n)
+    ncc_moy=np.sum(ncc_moy[ncc_moy>0])
+    
+    return ncc_moy/n
+
+def compute_mse(i_slice,listSlice,zeros_index):
+    
+    mse_moy=[]
+    nbpoint=[]
+    slicei=listSlice[i_slice]
+    for i_slice2 in range(0,len(listSlice)):
+        if not i_slice2 in zeros_index:
+            slice2=listSlice[i_slice2]
+            if slice2 != slicei:
+                _,_,_,union,_,mse = costLocal(slicei,slice2)
+                #print('test',mse[0]/mse[1])
+                mse_moy.append(mse[0])
+                nbpoint.append(mse[1])
+    mse_moy=np.array(mse_moy)
+    nbpoint=np.array(nbpoint)
+    
+    mse_moy=np.sum(mse_moy[mse_moy>-1])
+    #print('mse_moy',mse_moy/np.sum(nbpoint[nbpoint>0]))
+    
+    return mse_moy/np.sum(nbpoint[nbpoint>-1])
+        
+def data_to_classifier(listSliceError,features,bad_slices_threshold):
+    
+    error=np.array([currentError.get_error() for currentError in listSliceError])
+    Y=error>bad_slices_threshold
+    
+    nb_features=len(features)
+    nb_point=len(listSliceError)
+    X=np.zeros((nb_point,nb_features))
+    
+    for i_feature in range(0,len(features)):
+        fe = features[i_feature]
+        vaules_features = np.array([getattr(currentError,'_'+fe) for currentError in listSliceError])
+        #print(vaules_features)
+        vaules_features[np.isnan(vaules_features)]=0
+        vaules_features[np.isinf(vaules_features)]=0
+        X[:,i_feature]=vaules_features
+    
+    return X,Y #X contains the features for all points and Y a classification of bad and good slices
+        
+def detect_misregistered_slice(listSlice,grid_slices,loaded_model):
+     
+     ge = grid_slices[0,:,:]
+     gn = grid_slices[1,:,:]
+     gi = grid_slices[2,:,:]
+     gu= grid_slices[3,:,:]
+     
+     listErrorSlice = [ErrorSlice(slicei.get_index_image(),slicei.get_index_slice()) for slicei in listSlice]
+     update_feature(listSlice,listErrorSlice,ge,gn,gi,gu)
+     features=['mse','inter','dice','mask_proportion','std_intensity']
+     X,Y=data_to_classifier(listErrorSlice,features,1.5)
+     estimated_y = loaded_model.predict(X)
+
+     return np.abs(estimated_y)    
