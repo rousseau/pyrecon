@@ -23,6 +23,100 @@ from outliers_detection_intersection import ErrorSlice, createVolumesFromAlistEr
 
 loaded_model = pickle.load(open('my_model.pickle', "rb"))
 
+def commonSegment2(sliceimage1,M1,sliceimage2,M2,res):
+    """
+    Compute the coordinates of the two extremity points of the segment in the 2 image plans
+
+    Inputs : 
+    
+    Slice1 : slice
+        contains all the necessary information on the slice 1, including the transformation M into the 3D space and the information on the header
+    Slice2: slice
+        Contains all the necessary information on the slice 2, including the transformation M into the 3D space and the information on the header   
+        
+        
+    Outputs : 
+    
+    pointImg1 : 3x2 matrix
+        the extremites of the segment in the slice1 plan
+    pointImg2 : 3x2 matrix
+        the extremites of the segment in the slice1 plan
+    nbpoint : integer
+        number of points between the two extremities
+    ok : interger
+        1 if the common segment was computed well, 0 else    
+        
+
+    """
+    
+    #M1 = Slice1.get_transfo()
+    #M2 = Slice2.get_transfo()
+    
+    coeff,pt,ok=intersectionLineBtw2Planes(M1,M2)
+    ok=int(ok[0])
+
+    
+    if ok<1: #if there is no intersection lines (the 2 planes are parralel) it is useless to compute the intersectionSegment
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        
+    #sliceimage1=Slice1.get_slice().get_fdata()
+    lambdaPropo1,ok=intersectionSegment(sliceimage1,M1,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
+    ok=int(ok[0])
+   
+    if ok<1:
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+    
+    #sliceimage2=Slice2.get_slice().get_fdata()
+    lambdaPropo2,ok=intersectionSegment(sliceimage2,M2,coeff,pt)
+    ok=int(ok[0])
+    
+    if ok<1:
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+
+    lambdaMin = minLambda(lambdaPropo1,lambdaPropo2,'intersection')
+      
+    if lambdaMin[0]==lambdaMin[1]: #the segment is nul, there is no intersection
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        
+    point3D = np.zeros((3,2))
+    
+    point3D[0:3,0] = lambdaMin[0] * coeff + pt #Point corresponding to the value of lambda
+    point3D[0:3,1] = lambdaMin[1] * coeff + pt
+    
+    point3D = np.concatenate((point3D,np.array([[1,1]])))
+    
+    pointImg1 = np.zeros((4,2))
+    pointImg1[3,:] = np.ones((1,2))
+    
+    
+    pointImg2 = np.zeros((4,2))
+    pointImg2[3,:] = np.ones((1,2))
+    
+    
+    pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D)
+
+    pointImg2 = np.ascontiguousarray(np.linalg.inv(M2)) @ np.ascontiguousarray(point3D) 
+
+    
+    distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1]) #distance between two points on the two images
+    distance2 = np.linalg.norm(pointImg2[0:2,0] - pointImg2[0:2,1]) 
+
+
+    #res = min(Slice1.get_slice().header.get_zooms())
+      #the smaller resolution of a voxel
+        
+    if res<0: #probmem with the resolution of the image
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        
+    if max(distance1,distance2)<1: #no pixel in commun
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+       
+    nbpoint = int(np.round(max(distance1,distance2)+1)/res) #choose the max distance and divide it by the smaller resolution 
+
+    return pointImg1[0:2],pointImg2[0:2],(nbpoint)*np.ones((2,2),dtype=np.float_),np.ones((2,2),dtype=np.float_)
+
+
+
 @jit(nopython=True)
 def intersectionLineBtw2Planes(M1,M2) : 
     """
@@ -215,8 +309,8 @@ def minLambda(lambdaPropo1,lambdaPropo2,inter='intersection'):
     
     return lambdaMin #Return 2 values of lambda that represent the common segment between the 2 slices
 
-@jit(nopython=True)
-def commonSegment(sliceimage1,M1,sliceimage2,M2,res):
+#@jit(nopython=True)
+def commonSegment(slice1,M1,slice2,M2,res):
     """
     Compute the coordinates of the two extremity points of the segment in the 2 image plans
 
@@ -244,69 +338,130 @@ def commonSegment(sliceimage1,M1,sliceimage2,M2,res):
     
     #M1 = Slice1.get_transfo()
     #M2 = Slice2.get_transfo()
-    
+
+    sliceimage1 = slice1.get_slice().get_fdata()
+    sliceimage2 = slice2.get_slice().get_fdata()
+
     coeff,pt,ok=intersectionLineBtw2Planes(M1,M2)
-    ok=np.int(ok[0])
+    ok=int(ok[0])
 
     
     if ok<1: #if there is no intersection lines (the 2 planes are parralel) it is useless to compute the intersectionSegment
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
         
     #sliceimage1=Slice1.get_slice().get_fdata()
     lambdaPropo1,ok=intersectionSegment(sliceimage1,M1,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
-    ok=np.int(ok[0])
+    ok=int(ok[0])
    
     if ok<1:
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
     
     #sliceimage2=Slice2.get_slice().get_fdata()
     lambdaPropo2,ok=intersectionSegment(sliceimage2,M2,coeff,pt)
-    ok=np.int(ok[0])
+    ok=int(ok[0])
     
     if ok<1:
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
 
-    lambdaMin = minLambda(lambdaPropo1,lambdaPropo2,'intersection')
-      
-    if lambdaMin[0]==lambdaMin[1]: #the segment is nul, there is no intersection
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+    if max(lambdaPropo1)>min(lambdaPropo2) and max(lambdaPropo2)>min(lambdaPropo1):
+            
+            lambdaMin = minLambda(lambdaPropo1,lambdaPropo2,'union')
         
-    point3D = np.zeros((3,2))
-    
-    point3D[0:3,0] = lambdaMin[0] * coeff + pt #Point corresponding to the value of lambda
-    point3D[0:3,1] = lambdaMin[1] * coeff + pt
-    
-    point3D = np.concatenate((point3D,np.array([[1,1]])))
-    
-    pointImg1 = np.zeros((4,2))
-    pointImg1[3,:] = np.ones((1,2))
-    
-    
-    pointImg2 = np.zeros((4,2))
-    pointImg2[3,:] = np.ones((1,2))
-    
-    
-    pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D)
+            if lambdaMin[0]==lambdaMin[1]: #the segment is nul, there is no intersection
+                return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+                
+            point3D = np.zeros((3,2))
+            
+            point3D[0:3,0] = lambdaMin[0] * coeff + pt #Point corresponding to the value of lambda
+            point3D[0:3,1] = lambdaMin[1] * coeff + pt
+            
+            point3D = np.concatenate((point3D,np.array([[1,1]])))
+            
+            pointImg1 = np.zeros((4,2))
+            pointImg1[3,:] = np.ones((1,2))
+            
+            
+            pointImg2 = np.zeros((4,2))
+            pointImg2[3,:] = np.ones((1,2))
+            
+            
+            pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D)
 
-    pointImg2 = np.ascontiguousarray(np.linalg.inv(M2)) @ np.ascontiguousarray(point3D) 
+            pointImg2 = np.ascontiguousarray(np.linalg.inv(M2)) @ np.ascontiguousarray(point3D) 
+            
+            distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1]) #distance between two points on the two images
+            distance2 = np.linalg.norm(pointImg2[0:2,0] - pointImg2[0:2,1]) 
 
+            #res = min(Slice1.get_slice().header.get_zooms())
+            #the smaller resolution of a voxel
+                
+            if res<0: #probmem with the resolution of the image
+                return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)        
+            if max(distance1,distance2)<1: #no pixel in commun
+                return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+            
+            nbpoint = int(np.round(max(distance1,distance2)+1)/res) #choose the max distance and divide it by the smaller resolution 
+
+            newError=0; commonPoint=0; inter=0; union=0; ncc_var=-1; mse_coupe=(-1,-1)
+            #print(ok)
+            
+            if ok>0:
+                val1,index1,nbpointSlice1=sliceProfil(slice1, pointImg1, nbpoint)  #profile in slice 1
+                #print(index1)
+                val2,index2,nbpointSlice2=sliceProfil(slice2, pointImg2, nbpoint)  #profile in slice 2
+                #print(index2)
+    else:
+               
+        point3D = np.zeros((3,2))
+            
+        point3D[0:3,0] = lambdaPropo1[0] * coeff + pt #Point corresponding to the value of lambda
+        point3D[0:3,1] = lambdaPropo1[1] * coeff + pt
+            
+        point3D = np.concatenate((point3D,np.array([[1,1]])))
+            
+        pointImg1 = np.zeros((4,2))
+        pointImg1[3,:] = np.ones((1,2))
+                        
+        pointImg2 = np.zeros((4,2))
+        pointImg2[3,:] = np.ones((1,2))
+                        
+        pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D)
+
+        pointImg2 = np.ascontiguousarray(np.linalg.inv(M2)) @ np.ascontiguousarray(point3D)
+
+
+        if not np.equal(pointImg1[0:2,0],pointImg1[0:2,1]).all() :
+            distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1])
+        else :
+            distance1=0
+ 
+        if not np.equal(pointImg2[0:2,0],pointImg2[0:2,1]).all():
+            distance2 = np.linalg.norm(pointImg2[0:2,0]- pointImg2[0:2,1])
+        else:
+            distance2=0
+        if distance1 + distance2 == 0:
+            return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+
+        nbpoint=int((np.round(distance1+distance2)+1)/res)
     
-    distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1]) #distance between two points on the two images
-    distance2 = np.linalg.norm(pointImg2[0:2,0] - pointImg2[0:2,1]) 
-
-
-    #res = min(Slice1.get_slice().header.get_zooms())
-      #the smaller resolution of a voxel
+        val1,index1,nbpointSlice1=sliceProfil(slice1,pointImg1,nbpoint)
+        val2,index2,nbpointSlice2=sliceProfil(slice2,pointImg2,nbpoint)
+ 
+        val1_res = np.concatenate((val1[index1],np.zeros(nbpointSlice2)))
+        val2_res = np.concatenate((np.zeros(nbpointSlice1),val2[index2]))
+        val1 = val1_res
+        val2 = val2_res
+        index1_res = np.concatenate((index1[index1],np.zeros(nbpointSlice2)))
+        index2_res = np.concatenate((np.zeros(nbpointSlice1),index2[index2]))
+        index1 = index1_res
+        index2 = index2_res
         
-    if res<0: #probmem with the resolution of the image
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
-        
-    if max(distance1,distance2)<1: #no pixel in commun
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
-       
-    nbpoint = int(np.round(max(distance1,distance2)+1)/res) #choose the max distance and divide it by the smaller resolution 
+        nbpoint=nbpointSlice1+nbpointSlice2
+        if nbpoint==0:
+            return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
 
-    return pointImg1[0:2],pointImg2[0:2],(nbpoint)*np.ones((2,2),dtype=np.float_),np.ones((2,2),dtype=np.float_)
+
+    return pointImg1,pointImg2,val1,val2,index1,index2,(nbpoint)*np.ones((2,2),dtype=np.float_),np.ones((2,2),dtype=np.float_)
 
 
 def sliceProfil(Slice,pointImg,nbpoint):
@@ -339,7 +494,7 @@ def sliceProfil(Slice,pointImg,nbpoint):
    
     
     mask = Slice.get_mask()
-    map_coordinates(Slice.get_slice().get_fdata(), pointInterpol , output=interpol, order=1, mode='constant', cval=np.nan, prefilter=False)
+    map_coordinates(Slice.get_slice().get_fdata(), pointInterpol , output=interpol, order=1, mode='constant', cval=0, prefilter=False)
     map_coordinates(mask, pointInterpol, output=interpolMask, order=0, mode='constant',cval=np.nan,prefilter=False)
     
     index =~np.isnan(interpol) * interpolMask>0
@@ -464,17 +619,18 @@ def costLocal(slice1,slice2):
     sliceimage1=slice1.get_slice().get_fdata();sliceimage2=slice2.get_slice().get_fdata();res=min(min(slice1.get_slice().header.get_zooms(),slice2.get_slice().header.get_zooms()))
     #res=1
     M1=slice1.get_transfo();M2=slice2.get_transfo()
-    pointImg1,pointImg2,nbpoint,ok = commonSegment(sliceimage1,M1,sliceimage2,M2,res)
-    ok=np.int(ok[0,0]); nbpoint=np.int(nbpoint[0,0]) #ok and nbpoints are 2-size vectors to allow using numba with this function
+    pt1,pt2,val1,val2,index1,index2,nbpoint,ok = commonSegment(slice1,M1,slice2,M2,res)
+    ok=int(ok[0,0]); nbpoint=int(nbpoint[0,0]) #ok and nbpoints are 2-size vectors to allow using numba with this function
     newError=0; commonPoint=0; inter=0; union=0; ncc_var=-1; mse_coupe=(-1,-1)
     #print(ok)
     
     if ok>0:
-        val1,index1,nbpointSlice1=sliceProfil(slice1, pointImg1, nbpoint)  #profile in slice 1
+        #val1,index1,nbpointSlice1=sliceProfil(slice1, pointImg1, nbpoint)  #profile in slice 1
         #print(index1)
-        val2,index2,nbpointSlice2=sliceProfil(slice2, pointImg2, nbpoint)  #profile in slice 2
+        #val2,index2,nbpointSlice2=sliceProfil(slice2, pointImg2, nbpoint)  #profile in slice 2
         #print(index2)
         commonVal1,commonVal2,index=commonProfil(val1, index1, val2, index2,nbpoint) #union between profile in slice 1 and 2 (used in the calcul of MSE and DICE)
+
         val1inter,val2inter,interpoint=commonProfil(val1, index1, val2, index2,nbpoint,'intersection') #intersection between profile in slice 1 and 2 (used in the calcul of DICE)
         #numbers of points along union profile (for MSE)
         newError=error(commonVal1,commonVal2)
@@ -482,6 +638,8 @@ def costLocal(slice1,slice2):
             mse_coupe=(error(val1inter,val2inter),len(val1inter))
         commonPoint=len(commonVal1)
         inter=len(val1inter) #number of points along intersection profile (for DICE)
+        nbpointSlice1=sum(index1)
+        nbpointSlice2=sum(index2)
         union=nbpointSlice1+nbpointSlice2 #number of points along union profile (for DICE)
         if len(commonVal1) != 0:
             #print(commonVal1,commonVal2)
@@ -796,21 +954,23 @@ def global_optimisation(hyperparameters,listSlice,ablation):
 
     set_o = np.zeros(nbSlice)
     print("badly register : ",sum(set_o))
-    
+    #print(set_o)
     ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
     grid_slices=np.array([ge,gn,gi,gu])
       
     #if ablation!='no_multistart':
     set_o = detect_misregistered_slice(listSlice, grid_slices, loaded_model) 
-    print(set_o)
-    grid_slices,set_o,dicRes=correction_misregistered(listSlice,hyperparameters,set_o.copy(),grid_slices,dicRes)
-   
-
+    #print(set_o)
+    before = removeBadSlice(listSlice, set_o)
+    new_hyperparameters = np.array([hyperparameters[0],hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2),hyperparameters[4],0])
+    grid_slices,set_o,dicRes=correction_misregistered(listSlice,new_hyperparameters,set_o.copy(),grid_slices,dicRes)
+    after = len(set_o)
+    
     rejectedSlices=removeBadSlice(listSlice, set_o)
     #rejectedSlices=[]
     
     
-    return dicRes, rejectedSlices
+    return dicRes, before,rejectedSlices
     
     
 
@@ -970,14 +1130,22 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
                       ps1=Slice1.get_parameters().copy();ps2=Slice2.get_parameters().copy();
                       print('ps1:',ps1,'dist1:',dist1)
                       print('ps2:',ps2,'dist2:',dist2)
-                      MS1=rigidMatrix(ps1);MS2=rigidMatrix(ps2)
+                      #MS1=rigidMatrix(ps1);MS2=rigidMatrix(ps2)
+                      MS1=Slice1.get_transfo();MS2=Slice2.get_transfo()
                       RotS1=MS1[0:3,0:3];RotS2=MS2[0:3,0:3]
                       TransS1=MS1[0:3,3];TransS2=MS2[0:3,3]
                       Rot=computeMeanRotation(RotS1,dist1,RotS2,dist2)
                       Trans=computeMeanTranslation(TransS1,dist1,TransS2,dist2)
                       Mtot=np.eye(4)
                       Mtot[0:3,0:3]=Rot;Mtot[0:3,3]=Trans
-                      x0=ParametersFromRigidMatrix(Mtot)
+                      #x0=ParametersFromRigidMatrix(Mtot)
+                      center = Slice1.get_center()
+                      center_mat = np.eye(4)
+                      center_mat[0:3,3] = center
+                      center_inv = np.eye(4)
+                      center_inv[0:3,3] = -center
+                      M_est = center_mat @ Mtot @ np.linalg.inv(Slice1.get_slice().affine) @ center_inv
+                      x0 = ParametersFromRigidMatrix(M_est)
                       print('x0',x0)
                       #slicei.set_parameters(x0)
                       
@@ -1000,10 +1168,10 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
     
                 #We do a multistart optimisation based on the new initialisation
                  #print('x0:',x0) 
-                 multistart = np.zeros((16,6))
-                 multistart[:15,:]=(np.linspace(-20,20,15)*np.ones((6,15))).T
+                 multistart = np.zeros((6,6))
+                 multistart[:5,:]=(np.linspace(-20,20,5)*np.ones((6,5))).T
                  #print(multistart)
-                 index = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15])
+                 index = np.array([0,1,2,3,4,5])
                  with Pool(processes=16) as p:
                      tmpfun=partial(multi_start,hyperparameters,i_slice,listSlice.copy(),grid_slices,set_o,x0,multistart)
                      res=p.map(tmpfun,index)
@@ -1038,13 +1206,16 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
         #intersection=np.zeros((nbSlice,nbSlice))
         #union=np.zeros((nbSlice,nbSlice))
         #mW = matrixOfWeight(ge, gn,gi,gu, intersection, union, listSlice,t_inter,t_mse, t_inter, t_mse)
+        ge,gn,gi,gu = computeCostBetweenAll2Dimages(listSlice)
+        print(costFromMatrix(ge,gn))
+        grid_slices = np.array([ge,gn,gi,gu])
         ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
         grid_slices=np.array([ge,gn,gi,gu])
         new_set_o = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
         #print("badly register : ", sum(new_set_o))
         
-        print('mis-registered-before :', np.where(set_o>0))
-        print('mis-registered-after :', np.where(new_set_o>0))
+        print('mis-registered-before :', removeBadSlice(listSlice,set_o))
+        print('mis-registered-after :', removeBadSlice(listSlice,new_set_o))
         
         if np.all(new_set_o == set_o):
             break
@@ -1089,6 +1260,7 @@ def multi_start_yeah(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,vals
 
     """
     x=x0+valstart[index,:]
+    #print('w',x,'index',index,valstart[index,:])
     #print('index multistart:',valstart[index,:],'index:',index)
     opti_res = SimplexOptimisation_slice(x,hyperparameters,listSlice,grid_slices,set_o,i_slice)
     cost=opti_res[0] #-1*opti_res[1]
@@ -1121,6 +1293,7 @@ def multi_start(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart,
 
     """
     x=x0+valstart[index,:]
+    print(listSlice[i_slice].get_index_slice(),listSlice[i_slice].get_orientation())
     #print('index multistart:',valstart[index,:],'index:',index)
     opti_res = SimplexOptimisation(x,hyperparameters,listSlice,grid_slices,set_o,i_slice)
     cost=opti_res[0] #-1*opti_res[1]
@@ -1233,15 +1406,16 @@ def cost_fct(x,i_slice,listSlice,grid_slices,set_o,lamb):
     grid_slices = np.array([grid_error,grid_nbpoint,grid_intersection,grid_union])
    
     
-    mse = cost_from_matrix(grid_error,grid_nbpoint,set_o,i_slice)
+    mse = cost_from_matrix(ge,gn,set_o,i_slice)
 
-    dice = cost_from_matrix(grid_intersection,grid_union,set_o,i_slice)
+    #dice = cost_from_matrix(grid_intersection,grid_union,set_o,i_slice)
 
-    cost = mse - lamb*dice
+    cost = mse #- lamb*dice
     #print('lamb',lamb)
 
     
     return cost
+
 
 
 def cost_fct_slice(x,i_slice,listSlice,grid_slices,set_o,lamb):
@@ -1393,7 +1567,7 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
         #print("it_intern:",it_intern)
         
         set_to_register=np.abs(set_r.copy()) #at the begenning, we need to register all the slices
-        print(set_to_register)
+        #print(set_to_register)
         set_to_register_pre = np.zeros(nbSlice)
         it_intern = 0
         while set_to_register.all()!=1 and it_intern < max_intern and (not sum(set_to_register)==sum(set_to_register_pre) or sum(set_to_register_pre)==0) :
@@ -1424,7 +1598,7 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
                 ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSliceblur)
                 grid_slices = np.array([ge,gn,gi,gu])
                 costMse=costFromMatrix(ge,gn)
-                print('costMse:', costMse)
+                #print('costMse:', costMse)
                 costDice=costFromMatrix(gi,gu)
                 #print('mse:',costMse)
                 index_pre=index_pre+len(images[n_image])
@@ -1444,7 +1618,7 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
                         
         ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSlice)
         costMse=costFromMatrix(ge, gn)
-        print('costMse_After',costMse)
+        #print('costMse_After',costMse)
         costDice=costFromMatrix(gi,gu)
         updateResults(dicRes,ge,gn,gi,gu,costMse,costDice,listSlice,nbSlice)
         #print('MSE: ', costMse)
@@ -1575,12 +1749,15 @@ def SimplexOptimisation_slice(x0,hyperparameters,listSlice,grid_slices,set_o,i_s
     initial_s[6,:]=P6
                                            
     #X,Y = grid_slices[0,:,:].shape
-    #print()
+    #print(
+    # )
+    #print('x0 :',x0)
     NM = minimize(cost_fct_slice,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='Nelder-Mead',options={"disp" : True, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  True})
         #optimisation of the cost function using the simplex method                                    
         
     x_opt = NM.x #best parameter obtains after
-    print(NM.message)
+    #print(NM.message)
+    #print('x_opt :',x_opt)
     
     
     listSlice[i_slice].set_parameters(x_opt)
