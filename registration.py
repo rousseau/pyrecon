@@ -12,16 +12,18 @@ from scipy.ndimage import map_coordinates
 from scipy.optimize import minimize
 from scipy import stats
 import time
-from tools import createVolumesFromAlist, computeMeanRotation, computeMeanTranslation, ParametersFromRigidMatrix, rigidMatrix, denoising
-from numba import jit
+from tools import createVolumesFromAlist, computeMeanRotation, computeMeanTranslation, ParametersFromRigidMatrix, rigidMatrix, denoising, computeMaxVolume
+from numba import jit,njit
 from multiprocessing import Pool
 from functools import partial
 import display
 import scipy
 import pickle
 from outliers_detection_intersection import ErrorSlice, createVolumesFromAlistError
+from scipy.optimize import Bounds
+np.random.seed(7)
 
-loaded_model = pickle.load(open('my_model.pickle', "rb"))
+loaded_model = pickle.load(open('my_new_model.pickle', "rb"))
 
 def commonSegment2(sliceimage1,M1,sliceimage2,M2,res):
     """
@@ -74,6 +76,7 @@ def commonSegment2(sliceimage1,M1,sliceimage2,M2,res):
         return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
 
     lambdaMin = minLambda(lambdaPropo1,lambdaPropo2,'intersection')
+
       
     if lambdaMin[0]==lambdaMin[1]: #the segment is nul, there is no intersection
         return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
@@ -117,7 +120,7 @@ def commonSegment2(sliceimage1,M1,sliceimage2,M2,res):
 
 
 
-@jit(nopython=True)
+@jit(nopython=True,fastmath=True)
 def intersectionLineBtw2Planes(M1,M2) : 
     """
     Compute the intersection line between two planes
@@ -158,8 +161,7 @@ def intersectionLineBtw2Planes(M1,M2) :
     
     alpha = np.ascontiguousarray(n1) @ np.ascontiguousarray(n2) #if the vector are colinear alpha will be equal to one (since n1 and n2 are normalized), can happend if we consider two parralel slice
     beta =  np.ascontiguousarray(n1) @ np.ascontiguousarray(t1)
-    gamma = np.ascontiguousarray(n2) @ np.ascontiguousarray(t2)
-
+    gamma = np.ascontiguousarray(n2) @ np.ascontiguousarray(t2)   
     
     if abs((1 - alpha*alpha))<1e-6: #if the vector are colinear, there is no intersection
         return np.array([np.float64(0.0)]),np.array([np.float64(0.0)]),np.array([np.float64(0.0)])
@@ -173,7 +175,7 @@ def intersectionLineBtw2Planes(M1,M2) :
 
     return coeff, pt, np.array([np.float64(1.0)])
  
-@jit(nopython=True)  
+@jit(nopython=True,fastmath=True)  
 def intersectionSegment(sliceimage,M,coeff,pt):
     """
     Compute the segment of intersection between the line and the 2D slice
@@ -218,7 +220,7 @@ def intersectionSegment(sliceimage,M,coeff,pt):
     
     if (abs(a)>1e-10): #if a==0, the division by zeros in not possible, in this case we have only two intersection possible : 
            
-        i=(-c/a); j=0;
+        i=(-c/a); j=0
         
         if  i >= 0 and i < width: #if y=0 x=-c/a  #the point (0,0) is considered here
             intersection[0,indice] =  i
@@ -269,7 +271,7 @@ def intersectionSegment(sliceimage,M,coeff,pt):
 
 
     
-@jit(nopython=True)    
+@jit(nopython=True,fastmath=True)    
 def minLambda(lambdaPropo1,lambdaPropo2,inter='intersection'):
     
     """
@@ -351,19 +353,71 @@ def commonSegment(slice1,M1,slice2,M2,res):
         
     #sliceimage1=Slice1.get_slice().get_fdata()
     lambdaPropo1,ok=intersectionSegment(sliceimage1,M1,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
-    ok=int(ok[0])
+    ok1=int(ok[0])
    
-    if ok<1:
-        return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+    #if ok<1:
+    #    return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
     
     #sliceimage2=Slice2.get_slice().get_fdata()
     lambdaPropo2,ok=intersectionSegment(sliceimage2,M2,coeff,pt)
-    ok=int(ok[0])
+    ok2=int(ok[0])
     
-    if ok<1:
+    if ok1<1 and ok2<1:
         return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+    if ok1<1 or ok2<1:
+        
+        if ok1<1:
+            lambdaPropo=lambdaPropo2
+        else:
+            lambdaPropo=lambdaPropo1
+        point3D = np.zeros((3,2))
+            
+        point3D[0:3,0] = lambdaPropo[0] * coeff + pt #Point corresponding to the value of lambda
+        point3D[0:3,1] = lambdaPropo[1] * coeff + pt
+            
+        point3D = np.concatenate((point3D,np.array([[1,1]])))
+            
+        pointImg1 = np.zeros((4,2))
+        pointImg1[3,:] = np.ones((1,2))
+                        
+        pointImg2 = np.zeros((4,2))
+        pointImg2[3,:] = np.ones((1,2))
+                        
+        pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D) #there is a point, it simply not belong to the image but it's in the plan
 
-    if max(lambdaPropo1)>min(lambdaPropo2) and max(lambdaPropo2)>min(lambdaPropo1):
+        pointImg2 = np.ascontiguousarray(np.linalg.inv(M2)) @ np.ascontiguousarray(point3D)
+
+        if not np.equal(pointImg1[0:2,0],pointImg1[0:2,1]).all() :
+            distance1 = np.linalg.norm(pointImg1[0:2,0] - pointImg1[0:2,1])
+        else :
+            distance1=0
+ 
+        if not np.equal(pointImg2[0:2,0],pointImg2[0:2,1]).all():
+            distance2 = np.linalg.norm(pointImg2[0:2,0]- pointImg2[0:2,1])
+        else:
+            distance2=0
+        if distance1 + distance2 == 0:
+            return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+
+        nbpoint=int((np.round(distance1+distance2)+1)/res)
+    
+        val1,index1,nbpointSlice1=sliceProfil(slice1,pointImg1,nbpoint)
+        val2,index2,nbpointSlice2=sliceProfil(slice2,pointImg2,nbpoint)
+ 
+        val1_res = np.concatenate((val1[index1],np.zeros(nbpointSlice2)))
+        val2_res = np.concatenate((np.zeros(nbpointSlice1),val2[index2]))
+        val1 = val1_res
+        val2 = val2_res
+        index1_res = np.concatenate((index1[index1],np.zeros(nbpointSlice2)))
+        index2_res = np.concatenate((np.zeros(nbpointSlice1),index2[index2]))
+        index1 = index1_res
+        index2 = index2_res
+        
+        nbpoint=nbpointSlice1+nbpointSlice2
+        if nbpoint==0:
+            return np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_),np.zeros((2,2),dtype=np.float_)
+        
+    elif max(lambdaPropo1)>min(lambdaPropo2) and max(lambdaPropo2)>min(lambdaPropo1):
             
             lambdaMin = minLambda(lambdaPropo1,lambdaPropo2,'union')
         
@@ -383,7 +437,7 @@ def commonSegment(slice1,M1,slice2,M2,res):
             
             pointImg2 = np.zeros((4,2))
             pointImg2[3,:] = np.ones((1,2))
-            
+           
             
             pointImg1 = np.ascontiguousarray(np.linalg.inv(M1)) @ np.ascontiguousarray(point3D)
 
@@ -411,7 +465,8 @@ def commonSegment(slice1,M1,slice2,M2,res):
                 val2,index2,nbpointSlice2=sliceProfil(slice2, pointImg2, nbpoint)  #profile in slice 2
                 #print(index2)
     else:
-               
+
+ 
         point3D = np.zeros((3,2))
             
         point3D[0:3,0] = lambdaPropo1[0] * coeff + pt #Point corresponding to the value of lambda
@@ -489,19 +544,19 @@ def sliceProfil(Slice,pointImg,nbpoint):
     interpol= np.zeros(nbpoint)
     interpolMask = np.zeros(nbpoint)
     pointInterpol = np.zeros((3,nbpoint))
-    pointInterpol[0,:] = np.linspace(pointImg[0,0],pointImg[0,1],nbpoint)
-    pointInterpol[1,:] = np.linspace(pointImg[1,0],pointImg[1,1],nbpoint)
+    pointInterpol[0,:] = line(pointImg[0,0],pointImg[0,1],nbpoint)
+    pointInterpol[1,:] = line(pointImg[1,0],pointImg[1,1],nbpoint)
    
     
     mask = Slice.get_mask()
     map_coordinates(Slice.get_slice().get_fdata(), pointInterpol , output=interpol, order=1, mode='constant', cval=0, prefilter=False)
-    map_coordinates(mask, pointInterpol, output=interpolMask, order=0, mode='constant',cval=np.nan,prefilter=False)
+    map_coordinates(mask, pointInterpol, output=interpolMask, order=0, mode='constant',cval=0,prefilter=False)
     
     index =~np.isnan(interpol) * interpolMask>0
     #val_mask = interpol * interpolMask
     #index=val_mask>0
       
-    return interpol,index,np.sum(index)
+    return interpol,index,somme(index)
 
 
 def commonProfil(val1,index1,val2,index2,nbpoint,intersection='union'):
@@ -557,7 +612,7 @@ def commonProfil(val1,index1,val2,index2,nbpoint,intersection='union'):
     return commonVal1[index],commonVal2[index],index
     
 
-@jit(nopython=True)
+@jit(nopython=True,fastmath=True)
 def error(commonVal1,commonVal2):
     """
     Compute sumed squares error between two intensity profils. The function is accelerated with numba.
@@ -573,7 +628,7 @@ def error(commonVal1,commonVal2):
         returns the sumed squared error between the two profiles
         
     """
-    return np.sum((commonVal1 - commonVal2)**2)
+    return somme((commonVal1 - commonVal2)**2)
     
 def ncc(commonVal1,commonVal2):
     
@@ -587,7 +642,7 @@ def ncc(commonVal1,commonVal2):
     #print(vary)
     res=-1
     if stdx>0 and stdy>0:
-        res = (1/(len(x)-1))*np.sum((x-mux)*(y-muy))/(stdx*stdy)
+        res = (1/(len(x)-1))*somme((x-mux)*(y-muy))/(stdx*stdy)
         
     return res
 
@@ -631,23 +686,24 @@ def costLocal(slice1,slice2):
         #print(index2)
         commonVal1,commonVal2,index=commonProfil(val1, index1, val2, index2,nbpoint) #union between profile in slice 1 and 2 (used in the calcul of MSE and DICE)
 
+        #
         val1inter,val2inter,interpoint=commonProfil(val1, index1, val2, index2,nbpoint,'intersection') #intersection between profile in slice 1 and 2 (used in the calcul of DICE)
         #numbers of points along union profile (for MSE)
         newError=error(commonVal1,commonVal2)
         if len(val1inter) !=0:
             mse_coupe=(error(val1inter,val2inter),len(val1inter))
+        #mse_coupe=0
         commonPoint=len(commonVal1)
         inter=len(val1inter) #number of points along intersection profile (for DICE)
         nbpointSlice1=sum(index1)
         nbpointSlice2=sum(index2)
         union=nbpointSlice1+nbpointSlice2 #number of points along union profile (for DICE)
-        if len(commonVal1) != 0:
+        #if len(commonVal1) != 0:
             #print(commonVal1,commonVal2)
-            ncc_var=ncc(commonVal1,commonVal2)
-        
+        #    ncc_var=ncc(commonVal1,commonVal2)
+        ncc_varr=0
         
     return newError,commonPoint,2*inter,union,ncc_var,mse_coupe
-
 
 def updateCostBetweenAllImageAndOne(indexSlice,listSlice,gridError,gridNbpoint,gridInter,gridUnion):
     """
@@ -662,9 +718,8 @@ def updateCostBetweenAllImageAndOne(indexSlice,listSlice,gridError,gridNbpoint,g
     """
     
 
-    slice1=listSlice[indexSlice] #the slice that moves in the list
-    
-       
+    slice1=listSlice[indexSlice] #the slice that moves in the lis
+
     for i_slice2 in range(len(listSlice)):
             
         slice2=listSlice[i_slice2] #one slice in the list
@@ -747,7 +802,7 @@ def computeCostBetweenAll2Dimages(listSlice):
     return gridError,gridNbpoint,gridInter,gridUnion     
 
 
-
+@jit(nopython=True,fastmath=True)
 def costFromMatrix(gridNum,gridDenum):
     
     """
@@ -756,8 +811,8 @@ def costFromMatrix(gridNum,gridDenum):
     """
     
     
-    globalNum = np.sum(gridNum)
-    globalDenum= np.sum(gridDenum)
+    globalNum = somme(gridNum)
+    globalDenum= somme(gridDenum)
     if globalDenum>0:
         cost = globalNum/globalDenum
     else:
@@ -839,6 +894,7 @@ def normalization(listSlice):
 
 def global_optimisation(hyperparameters,listSlice,ablation):
     
+    tps = time.perf_counter()
 
     hyperparameters = np.asarray(hyperparameters,dtype=np.float64)
 
@@ -914,29 +970,100 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     #hyperparameters[5]=0 #no gaussian filtering -> we find out it have no interest in the algorithm
     # # print('ablation :', ablation)
     # # print('hyperparameters :', hyperparameters)
+    nbstack=np.max([slicei.get_orientation() for slicei in listSlice])
+    #print(nbstack)
+    res=np.zeros(nbstack+1)
+    nbslice=len(listSlice)
+    for nb in range(0,nbstack+1):
+        index_image=np.where([listSlice[i_slice].get_orientation()==nbstack for i_slice in np.linspace(0,nbslice-1,nbslice,dtype=int)])
+        #print(index_image)
+        image=np.array(listSlice)[index_image]
+        #print(image)
+        res[nb]=np.max(image[0].get_slice().header.get_zooms())
+        print('res :',res)
+    
+    len(res)
 
+    Vmx=computeMaxVolume(listSlice,nbstack,res)
     if hyperparameters[5] != 0 :
+       print('--------------motion estimation with gaussian filtering and dice-----------------')
+       print('---First Iteration -----')
+       tpsg1 = time.perf_counter()
+       print('Hyperparameters :')
+       print('Initial Simplex :',hyperparameters[0])
+       print('Final Simplex :',hyperparameters[1])
+       print('Epsilon :',np.sqrt(6*hyperparameters[3]**2))
+       print('Dice weight :',hyperparameters[4])
+       print('Gaussian blurring :',hyperparameters[5])
        new_hyperparameters = np.array([hyperparameters[0],hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2),hyperparameters[4],hyperparameters[5]])
-       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,1)
        grid_slices=np.array([ge,gn,gi,gu])
        set_r=np.zeros(nbSlice)
     #     #Second Step : sigma = 2.0, d=b/2, x_opt, omega
     #     #epsilon = sqrt(6*(erreur/2)^2)
-       new_hyperparameters = np.array([hyperparameters[0]/2,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/2),hyperparameters[4],hyperparameters[5]/2])
-       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+       tpeg1 = time.perf_counter()
+       tp = tpeg1 - tpsg1
+       hours = np.int(tp//(60*60))
+       minutes = np.int((tp%(60*60))//60)
+       secondes = np.int(tp%60)
+       print('Fist Iteration was done in %s hours %s minutes and %s seconds' %(hours,minutes,secondes))
+       
+       print('----Second Iteration----')
+       tpsg2 = time.perf_counter()
+       print('Hyperparameters :')
+       print('Initial Simplex :',hyperparameters[0]/2)
+       print('Final Simplex :',hyperparameters[1]/2)
+       print('Epsilon :',np.sqrt(6*(hyperparameters[3]/2)**2))
+       print('Dice Weight :',hyperparameters[4])
+       print('Gaussien blurring :',hyperparameters[5]/2)
+       new_hyperparameters = np.array([hyperparameters[0]/2,hyperparameters[1]/2,hyperparameters[2],np.sqrt(6*(hyperparameters[3]/2)**2),hyperparameters[4],hyperparameters[5]/2])
+       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,1)
        grid_slices=np.array([ge,gn,gi,gu])
+       tpeg2 = time.perf_counter()
+       tp = tpeg2 - tpsg2
+       hours = np.int(tp//(60*60))
+       minutes = np.int((tp%(60*60))//60)
+       secondes = np.int(tp%60)
+       print('Second Iteration was done in %s hours %s minutes and %s seconds' %(hours,minutes,secondes))
     # #Third step : sigma = 0.0, d=b/4, x_opt, omega
     # #epsilon = sqrt(6*(erreur)^2/4)
     if hyperparameters[4] != 0 :
-       new_hyperparameters = np.array([hyperparameters[0]/4,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/4),hyperparameters[4],0])
-       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+       print('---motion estimation without gaussian filtering but with dice----')
+       tpsd = time.perf_counter()
+       print('Hyperparameters :')
+       print('Initial Simplex :',hyperparameters[0]/4)
+       print('FInal Simplex :',hyperparameters[1]/4)
+       print('Epsilon :',np.sqrt(6*(hyperparameters[3]/4)**2))
+       print('Dice Weight :',hyperparameters[4])
+       print('Gaussien blurirng :',0)
+       new_hyperparameters = np.array([hyperparameters[0]/4,hyperparameters[1]/4,hyperparameters[2]/10,np.sqrt(6*(hyperparameters[3]/4)**2),hyperparameters[4],0])
+       ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,1)
        grid_slices=np.array([ge,gn,gi,gu])
-
+       tped = time.perf_counter()
+       tp = tped - tpsd
+       hours = np.int(tp//(60*60))
+       minutes = np.int((tp%(60*60))//60)
+       secondes = np.int(tp%60)
+       print('Third Iteration was done in %s hours %s minutes and %s seconds' %(hours,minutes,secondes))
     # #Fourth step : sigma = 0.0 , d=b/8, x_opt, omega
     # #epsilon = sqrt(6*(erreur)^2/8)
-    new_hyperparameters = np.array([hyperparameters[0]/8,hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2/8),hyperparameters[4],0])
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes)
+    print('---motion estmisation without gaussien filtering and without dice----')
+    tpsnod = time.perf_counter()
+    print('Hyperparameters :')
+    print('Initial simplex :',hyperparameters[0]/8)
+    print('Final simplex :',hyperparameters[1]/8)
+    print('Epsilon :',np.sqrt(6*(hyperparameters[3]/8)**2))
+    print('Dice Weight :',0)
+    print('Gaussien blurring :', 0)
+    new_hyperparameters = np.array([hyperparameters[0]/8,hyperparameters[1]/8,hyperparameters[2],np.sqrt(6*(hyperparameters[3]/8)**2),hyperparameters[4],0])
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10)
     grid_slices=np.array([ge,gn,gi,gu])
+    tpenod = time.perf_counter()
+    tp = tpenod - tpsnod
+    hours = np.int(tp//(60*60))
+    minutes = np.int((tp%(60*60))//60)
+    secondes = np.int(tp%60)
+    print('Fourth Iteration was done in %s hours %s minutes and %s seconds' %(hours,minutes,secondes))
     
     ge=grid_slices[0,:,:]
     gn=grid_slices[1,:,:]
@@ -944,33 +1071,43 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     gu=grid_slices[3,:,:]
     
     
-    union=np.zeros((nbSlice,nbSlice))
-    intersection=np.zeros((nbSlice,nbSlice))
+    #union=np.zeros((nbSlice,nbSlice))
+    #intersection=np.zeros((nbSlice,nbSlice))
 
 
     nbSlice=len(listSlice)
-    union=np.zeros((nbSlice,nbSlice))
-    intersection=np.zeros((nbSlice,nbSlice))
+    #union=np.zeros((nbSlice,nbSlice))
+    #intersection=np.zeros((nbSlice,nbSlice))
 
-    set_o = np.zeros(nbSlice)
-    print("badly register : ",sum(set_o))
+    #set_o = np.zeros(nbSlice)
+    #print("badly register : ",sum(set_o))
     #print(set_o)
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
+    #ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
     grid_slices=np.array([ge,gn,gi,gu])
       
-    #if ablation!='no_multistart':
-    set_o = detect_misregistered_slice(listSlice, grid_slices, loaded_model) 
+    if ablation!='no_multistart':
+    #set_o1,set_o2 = detect_misregistered_slice(listSlice, grid_slices, loaded_model)
+    #set_r = np.logical_or(set_o1,set_o2) 
     #print(set_o)
-    before = removeBadSlice(listSlice, set_o)
-    new_hyperparameters = np.array([hyperparameters[0],hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2),hyperparameters[4],0])
-    grid_slices,set_o,dicRes=correction_misregistered(listSlice,new_hyperparameters,set_o.copy(),grid_slices,dicRes)
-    after = len(set_o)
-    
-    rejectedSlices=removeBadSlice(listSlice, set_o)
+        #before = removeBadSlice(listSlice,set_o)
+    #new_hyperparameters = np.array([hyperparameters[0],hyperparameters[1],hyperparameters[2],np.sqrt(6*hyperparameters[3]**2),hyperparameters[4],0])
+    #grid_slices,set_r,dicRes=correction_out_images(listSlice,new_hyperparameters,set_o1.copy(),set_r,grid_slices,dicRes)
+        print('---------------Outliers\'detection -------')
+        set_o1,set_o2 = detect_misregistered_slice(listSlice, grid_slices, loaded_model)
+    #set_r = np.logical_or(set_o1,set_o2) 
+    #grid_slices,set_r,dicRes=correction_misregistered(listSlice,new_hyperparameters,set_o2.copy(),set_r,grid_slices,dicRes)
+        rejectedSlices=removeBadSlice(listSlice, set_o1)
+    else:
+        rejectedSlices=[]
     #rejectedSlices=[]
+    tpe = time.perf_counter()
+    tp = tpe-tps
+    hours = np.int(tp//(60*60))
+    minutes = np.int((tp%(60*60))//60)
+    secondes = np.int(tp%60)
+    print('The global optimisation was done in %s hours %s minutes and %s seconds' %(hours,minutes,secondes))
     
-    
-    return dicRes, before,rejectedSlices
+    return dicRes, rejectedSlices
     
     
 
@@ -995,7 +1132,7 @@ def updateResults(dicRes,gridError,gridNbpoint,gridInter,gridUnion,costMse,costD
         dicRes["evolutiontransfo"].extend(slicei.get_transfo()) #evolution of the global matrix applied to the image
 
 
-def SliceOptimisation1Image(d,xatol,listSlice,gridError,gridNbpoint,gridInter,gridUnion,initial_s,finish,lamb,nImage):    
+def SliceOptimisation1Image(d,xatol,listSlice,gridError,gridNbpoint,gridInter,gridUnion,initial_s,finish,lamb,nImage,Vmx):    
     """
     FUnction used in allSliceOptimisation to allow multiprocessing
 
@@ -1027,7 +1164,7 @@ def SliceOptimisation1Image(d,xatol,listSlice,gridError,gridNbpoint,gridInter,gr
     previous_param=x0
     finish_val=finish[nImage]
     if finish_val==0:
-        costMse,costDice,gridError,gridNbpoint,gridInter,gridUnion,x_opt=SimplexOptimisation(delta,xatol, x0, nImage, listSlice, gridError, gridNbpoint, gridInter, gridUnion, initial_s, lamb)
+        x_opt=SimplexOptimisation(delta,xatol, x0, nImage, listSlice, gridError, gridNbpoint, gridInter, gridUnion, initial_s, lamb,Vmx)
         current_param=x_opt
         
         if np.linalg.norm(previous_param-current_param)<1e-1:
@@ -1048,14 +1185,14 @@ def oneSliceCost(grid_numerator,grid_denumerator,set_o,i_slice):
     grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_numerator*set_outliers,np.transpose(np.transpose(grid_numerator)*set_outliers))]
     grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_denumerator*set_outliers,np.transpose(np.transpose(grid_denumerator)*set_outliers))]
      
-    numerator = np.sum(grid_numerator_no_o)
+    numerator = somme(grid_numerator_no_o)
 
     num=np.array(grid_numerator_no_o)
     num=np.reshape(num,(nbSlice,nbSlice))
-    num=np.sum(num[i_slice,:])+np.sum(num[:,i_slice])
+    num=somme(num[i_slice,:])+somme(num[:,i_slice])
     denum=np.array(grid_denumerator_no_o)
     denum=np.reshape(denum,(nbSlice,nbSlice))
-    denum=np.sum(denum[i_slice,:])+np.sum(denum[:,i_slice])
+    denum=somme(denum[i_slice,:])+somme(denum[:,i_slice])
     
     
     if denum==0:
@@ -1068,7 +1205,7 @@ def oneSliceCost(grid_numerator,grid_denumerator,set_o,i_slice):
 
 
 
-def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes):
+def correction_out_images(listSlice,hyperparameters,set_o,set_r,grid_slices,dicRes):
     """
     This function aims to correct mis-registered slices
 
@@ -1096,6 +1233,214 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
      
     nbSlice = len(listSlice)     
     while True:
+                
+        #number of slices total
+        print(set_o.shape)
+        for i_slice in range(0,nbSlice):
+            
+        #     #print('before:',listSlice[i_slice].get_parameters())
+        #     #print('Slice Cost Before:', oneSliceCost(ge,gn,set_o,i_slice))
+            
+            n_0=somme(gn[:,i_slice])+somme(gn[i_slice,:])
+            okpre=False;okpost=False;nbSlice1=0;nbSlice2=0;dist1=0;dist2=0
+            slicei=listSlice[i_slice]
+            x_pre=slicei.get_parameters()
+            print(set_o[i_slice])
+            if set_o[i_slice]==1:
+                it=0
+                while it<5:
+                    print('i_slice',i_slice,'it',it) 
+                    for i in range(i_slice-2,0,-2):
+                        if listSlice[i].get_orientation()==listSlice[i_slice].get_orientation(): #check if the previous slice is from the same volume
+                            if set_r[i]==0 : #if the previous slice is well registered 
+                                nbSlice1=i
+                                dist1=np.abs(i_slice-nbSlice1)//2
+                                okpre=True
+                                break
+                    for j in range(i_slice+2,nbSlice,2):
+                        if set_r[j]==0: #if the previous slice is well registered
+                            if listSlice[j].get_orientation()==listSlice[i_slice].get_orientation(): 
+                                nbSlice2=j
+                                dist2=np.abs(i_slice-nbSlice2)//2
+                                okpost=True
+                                break
+                    if okpre==True and okpost==True: #if there is two close slice well-register, we do a mean between them
+                        Slice1=listSlice[nbSlice1];Slice2=listSlice[nbSlice2]
+                        ps1=Slice1.get_parameters().copy();ps2=Slice2.get_parameters().copy();
+                        print('ps1:',ps1,'dist1:',dist1)
+                        print('ps2:',ps2,'dist2:',dist2)
+                        #MS1=rigidMatrix(ps1);MS2=rigidMatrix(ps2)
+                        MS1=Slice1.get_transfo();MS2=Slice2.get_transfo()
+                        RotS1=MS1[0:3,0:3];RotS2=MS2[0:3,0:3]
+                        TransS1=MS1[0:3,3];TransS2=MS2[0:3,3]
+                        Rot=computeMeanRotation(RotS1,dist1,RotS2,dist2)
+                        Trans=computeMeanTranslation(TransS1,dist1,TransS2,dist2)
+                        Mtot=np.eye(4)
+                        Mtot[0:3,0:3]=Rot;Mtot[0:3,3]=Trans
+                        #x0=ParametersFromRigidMatrix(Mtot)
+                        center = Slice1.get_center()
+                        center_mat = np.eye(4)
+                        center_mat[0:3,3] = center
+                        center_inv = np.eye(4)
+                        center_inv[0:3,3] = -center
+                        M_est = center_mat @ Mtot @ np.linalg.inv(Slice1.get_slice().affine) @ center_inv
+                        x0 = ParametersFromRigidMatrix(M_est)
+                        print('x0',x0)
+                            #slicei.set_parameters(x0)
+                            
+                    elif okpre==True and okpost==False: #if there is only one close slice well-register, we take the parameters of this slice
+                        Slice1=listSlice[nbSlice1]
+                        x0=Slice1.get_parameters().copy()
+                        print('x0',x0)
+                        #slicei.set_parameters(p)
+                    elif okpost==True and okpre==False: 
+                        Slice2=listSlice[nbSlice2]
+                        x0=Slice2.get_parameters().copy()
+                        print('x0',x0)
+                        #slicei.set_parameters(p)
+                    else :
+                        x0=slicei.get_parameters()
+                        print('x0',x0)
+                        break
+                            
+                #         print(i_slice,slicei.get_orientation(),slicei.get_index_slice(),okpre,okpost,x0)
+            
+            
+                    #We do a multistart optimisation based on the new initialisation
+                    #print('x0:',x0) 
+                    multistart = np.zeros((6,6))
+                    multistart[:5,:]=(line(-20,20,5)*np.ones((6,5))).T
+                    #print(multistart)
+                    index = np.array([0,1,2,3,4,5])
+                    with Pool(processes=16) as p:
+                        tmpfun=partial(multi_start,hyperparameters,i_slice,listSlice.copy(),grid_slices,set_o,x0,multistart)
+                        res=p.map(tmpfun,index)
+                            
+                        #
+                    #cost=opti_res[0]
+                    #x_opt=opti_res[3]
+                    current_cost=cost_from_matrix(ge,gn,set_o,i_slice)
+                    p=np.array([p[0] for p in res])
+                        
+                    #print(p)
+                    #p.append(cost)
+                        
+                    x=np.array([x[1] for x in res])
+                    n = np.zeros(len(x))
+                    i_n=0
+                    for x_tmp in x:
+                        listSlice[i_slice].set_parameters(x_tmp)
+                        updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
+                        n[i_n]=somme(gi[i_slice,:]+somme(gi[:,i_slice]))
+                        i_n=i_n+1
+                        
+                        
+                    good_index = np.where(n>n_0)
+                    print('n_0',n_0,n[good_index])
+
+                    p = p[good_index]
+                    #si p est vide, on relance avec un simplex plus petit, sinon on garde les même valeurs.
+                    if len(p)==0:
+                        delta = hyperparameters[0]
+                        d = delta/2
+                        hyperparameters[0]=d
+                        it=it+1
+                        print('je suis ici')
+                    else :
+                        print('je suis la')
+                        p = p.tolist()
+                        x = x[good_index]
+                        x = x.tolist()
+                        n = n[good_index]
+                        n = n.tolist()
+                        mincost = min(p)
+                        x_opt = x[p.index(mincost)]
+                        n_1 = n[p.index(mincost)]
+                        print('new_n',n_1)
+                        print('corrected x',x_opt)
+                        #print('i_slice',i_slice)
+                        print('After:', x_opt)
+                        print('mincost :',mincost)
+                        slicei.set_parameters(x_opt)
+                            
+                            
+                        updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
+                            
+                        grid_slices = np.array([ge,gn,gi,gu])
+                        #print('Slice Cost After:',i_slice, oneSliceCost(ge,gn,set_o,i_slice))
+                        costMse=costFromMatrix(ge,gn)
+                        #print('cost :', costMse)
+                        costDice=costFromMatrix(gi,gu)
+                            
+                        new_set_o1,new_set_o2 = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+                        print('La coupe est-elle corrigé ?',i_slice,new_set_o2[i_slice])
+                        set_r = np.logical_or(new_set_o1,new_set_o2)
+                            
+                        ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,new_set_o2,set_r,grid_slices,dicRes)  
+                        grid_slices=np.array([ge,gn,gi,gu])
+                        break 
+
+        #intersection=np.zeros((nbSlice,nbSlice))
+        #union=np.zeros((nbSlice,nbSlice))
+        #mW = matrixOfWeight(ge, gn,gi,gu, intersection, union, listSlice,t_inter,t_mse, t_inter, t_mse)
+        ge,gn,gi,gu = computeCostBetweenAll2Dimages(listSlice)
+        print(costFromMatrix(ge,gn))
+        #grid_slices = np.array([ge,gn,gi,gu])
+        #ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
+        
+        #print("badly register : ", sum(new_set_o))
+    
+        new_set_o1,new_set_o2 = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+        set_r = np.logical_or(new_set_o1,new_set_o2)
+        print('mis-registered-before :', removeBadSlice(listSlice,set_o))
+        print('mis-registered-after :', removeBadSlice(listSlice,new_set_o2))
+        
+        if np.all(new_set_o2 == set_o):
+            break
+            
+        set_o = new_set_o2.copy()
+    
+    set_o = new_set_o2
+    after_correction = sum(set_o)
+    saved = before_correction - after_correction
+    #print('slices saved with multistart :', saved)
+    ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSlice)
+    costMse=costFromMatrix(ge,gn)
+    costDice=costFromMatrix(gi,gu)
+    updateResults(dicRes, ge, gn, gi, gu, costMse, costDice, listSlice, nbSlice)
+    grid_slices = np.array([ge,gn,gi,gu])
+        
+    return grid_slices,set_o,dicRes
+
+##deux fonctions pour voir si ça marche mais après il faudra factoriser
+def correction_misregistered(listSlice,hyperparameters,set_o,set_r,grid_slices,dicRes):
+    """
+    This function aims to correct mis-registered slices
+
+    Parameters
+    ----------
+    listSlice : set of the slices, from the three volumes
+    hyperparameters : parameters for optimisation, it includes : simplex initial size, xatol, fatol, epsilon, gaussian parameter, lamnda for dice
+    set_o : set of outliers or mis-registered slices
+    grid_slices : matrix of cost
+    dicRes : results save for representation
+
+    Returns
+    -------
+    grid_slices : matrix of cost
+    dicRes : results save for representation
+
+    """
+    print(set_o.shape)
+    ge = grid_slices[0,:,:]
+    gn = grid_slices[1,:,:]
+    gi = grid_slices[2,:,:]
+    gu = grid_slices[3,:,:]
+    before_correction = sum(set_o)
+    print(before_correction)
+     
+    nbSlice = len(listSlice)     
+    while True:
         
                 
          #number of slices total
@@ -1104,22 +1449,22 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
             
         #     #print('before:',listSlice[i_slice].get_parameters())
         #     #print('Slice Cost Before:', oneSliceCost(ge,gn,set_o,i_slice))
-            
+             n_0=somme(gn[:,i_slice])+somme(gn[i_slice,:])
              okpre=False;okpost=False;nbSlice1=0;nbSlice2=0;dist1=0;dist2=0
              slicei=listSlice[i_slice]
              x_pre=slicei.get_parameters()
              print(set_o[i_slice])
              if set_o[i_slice]==1:
-                 print(i_slice)
-                 for i in range(i_slice,0,-2):
+                 #print(i_slice)
+                 for i in range(i_slice-2,0,-2):
                      if listSlice[i].get_orientation()==listSlice[i_slice].get_orientation(): #check if the previous slice is from the same volume
-                         if set_o[i]==0 : #if the previous slice is well registered 
+                         if set_r[i]==0 : #if the previous slice is well registered 
                              nbSlice1=i
                              dist1=np.abs(i_slice-nbSlice1)//2
                              okpre=True
                              break
-                 for j in range(i_slice,nbSlice,2):
-                     if set_o[j]==0: #if the previous slice is well registered
+                 for j in range(i_slice+2,nbSlice,2):
+                     if set_r[j]==0: #if the previous slice is well registered
                          if listSlice[j].get_orientation()==listSlice[i_slice].get_orientation(): 
                               nbSlice2=j
                               dist2=np.abs(i_slice-nbSlice2)//2
@@ -1169,7 +1514,7 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
                 #We do a multistart optimisation based on the new initialisation
                  #print('x0:',x0) 
                  multistart = np.zeros((6,6))
-                 multistart[:5,:]=(np.linspace(-20,20,5)*np.ones((6,5))).T
+                 multistart[:5,:]=(line(-20,20,5)*np.ones((6,5))).T
                  #print(multistart)
                  index = np.array([0,1,2,3,4,5])
                  with Pool(processes=16) as p:
@@ -1180,14 +1525,26 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
                 #cost=opti_res[0]
                 #x_opt=opti_res[3]
                  current_cost=cost_from_matrix(ge,gn,set_o,i_slice)
-                 p=[p[0] for p in res]
-                 p.append(current_cost)
+                 p=np.array([p[0] for p in res])
+                 
                  #print(p)
                  #p.append(cost)
+                 
+                 x=np.array([x[1] for x in res])
+                 n = np.zeros(len(x))
+                 i_n=0
+                 for x_tmp in x:
+                     listSlice[i_slice].set_parameters(x_tmp)
+                     updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
+                     n[i_n]=somme(gn[i_slice,:]+somme(gn[:,i_slice]))
+                     i_n=i_n+1
+                 
+            
                  mincost = min(p)
-                 x=[x[1] for x in res]
-                 x.append(x_pre)
+                 p=p.tolist()
+                 x=x.tolist()
                  x_opt = x[p.index(mincost)]
+                 print('corrected x',x_opt)
                  #print('i_slice',i_slice)
                  print('After:', x_opt)
                  print('mincost :',mincost)
@@ -1202,29 +1559,40 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
                  costMse=costFromMatrix(ge,gn)
                  #print('cost :', costMse)
                  costDice=costFromMatrix(gi,gu)
+                 
+                 new_set_o1,new_set_o2 = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+                 set_r = np.logical_or(new_set_o1,new_set_o2) 
+                 
+                 hyperparameters[0]=4
+                 ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,new_set_o1,set_r,grid_slices,dicRes)  
+                 grid_slices=np.array([ge,gn,gi,gu])
+                 
         
         #intersection=np.zeros((nbSlice,nbSlice))
         #union=np.zeros((nbSlice,nbSlice))
         #mW = matrixOfWeight(ge, gn,gi,gu, intersection, union, listSlice,t_inter,t_mse, t_inter, t_mse)
         ge,gn,gi,gu = computeCostBetweenAll2Dimages(listSlice)
         print(costFromMatrix(ge,gn))
-        grid_slices = np.array([ge,gn,gi,gu])
-        ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
-        grid_slices=np.array([ge,gn,gi,gu])
-        new_set_o = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+        #grid_slices = np.array([ge,gn,gi,gu])
+        #ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes)  
+        
         #print("badly register : ", sum(new_set_o))
-        
+    
+        new_set_o1,new_set_o2 = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+        set_r = np.logical_or(new_set_o1,new_set_o2)
         print('mis-registered-before :', removeBadSlice(listSlice,set_o))
-        print('mis-registered-after :', removeBadSlice(listSlice,new_set_o))
+        print('mis-registered-after :', removeBadSlice(listSlice,new_set_o1))
         
-        if np.all(new_set_o == set_o):
+        
+        if np.all(new_set_o1 == set_o):
             break
             
-        set_o = new_set_o.copy()
+        set_o = new_set_o1.copy()
     
-    
-    set_o = new_set_o
     after_correction = sum(set_o)
+    new_set_o1,new_set_o2 = detect_misregistered_slice(listSlice,grid_slices,loaded_model)
+    set_r = np.logical_or(new_set_o1,new_set_o2)
+    set_o = new_set_o1
     saved = before_correction - after_correction
     #print('slices saved with multistart :', saved)
     ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSlice)
@@ -1236,38 +1604,6 @@ def correction_misregistered(listSlice,hyperparameters,set_o,grid_slices,dicRes)
     return grid_slices,set_o,dicRes
 
 
-def multi_start_yeah(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart,index):
-    """
-    Function to try different initial position for optimisation. 
-
-    Parameters
-    ----------
-    hyperparameters : parameters for optimisation : simplex size, xatol, fatol, epsilon, gauss, lamb
-    i_slice : slice we want to correct
-    listSlice : set of slices
-    grid_slices : matrix costs
-    set_o : set of outliers
-    x0 : initial postion of the slice
-    valstart : value for mutlistart
-
-    Returns
-    -------
-    cost :
-        cost after optimisation
-    
-    x_opt :
-        best parameters of slices obtained with optimisation
-
-    """
-    x=x0+valstart[index,:]
-    #print('w',x,'index',index,valstart[index,:])
-    #print('index multistart:',valstart[index,:],'index:',index)
-    opti_res = SimplexOptimisation_slice(x,hyperparameters,listSlice,grid_slices,set_o,i_slice)
-    cost=opti_res[0] #-1*opti_res[1]
-    x_opt=opti_res[3]
-
-    
-    return cost,x_opt
 
 def multi_start(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart,index):
     """
@@ -1295,9 +1631,9 @@ def multi_start(hyperparameters,i_slice,listSlice,grid_slices,set_o,x0,valstart,
     x=x0+valstart[index,:]
     print(listSlice[i_slice].get_index_slice(),listSlice[i_slice].get_orientation())
     #print('index multistart:',valstart[index,:],'index:',index)
-    opti_res = SimplexOptimisation(x,hyperparameters,listSlice,grid_slices,set_o,i_slice)
-    cost=opti_res[0] #-1*opti_res[1]
-    x_opt=opti_res[3]
+    x_opt = SimplexOptimisation(x,hyperparameters,listSlice,grid_slices,set_o,i_slice,Vmx)
+    #cost=opti_res[0] #-1*opti_res[1]
+    #x_opt=opti_res[3]
 
     
     return cost,x_opt
@@ -1319,7 +1655,7 @@ def removeBadSlice(listSlice,set_o):
     return removelist
         
 
-
+#@jit(nopython=True,fastmath=True)
 def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     """
     Function to compute the cost, either mse or dice. Cost is computed only on well registered slices and depend on the slice we want ot make the optimisation on.
@@ -1336,38 +1672,38 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     cost : mse or dice
     """
     
-    nbslice,nbslice = grid_numerator.shape
+    #nbslice,nbslice = np.shape(grid_numerator)
     
     grid_numerator_no_o = grid_numerator.copy()
     grid_denumerator_no_o = grid_denumerator.copy()
     
-    set_outliers = np.abs(1-set_o.copy())
+    set_outliers = 1-set_o
     
     set_outliers[i_slice]=1
 
-    #grid_numerator_no_o_1=[x for x,y in zip(grid_numerator*set_outliers,np.transpose(np.transpose(grid_numerator)*set_outliers))]
+    grid_numerator_no_o=np.array([x for x,y in zip(grid_numerator*set_outliers,np.transpose(np.transpose(grid_numerator)*set_outliers))])
     
-    #grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(grid_denumerator*set_outliers,np.transpose(np.transpose(grid_denumerator)*set_outliers))]
+    grid_denumerator_no_o=np.array([np.sqrt(x*y) for x,y in zip(grid_denumerator*set_outliers,np.transpose(np.transpose(grid_denumerator)*set_outliers))])
      
 
     #numerator = np.sum(grid_numerator[:,i_slice]*set_outliers)+np.sum(np.transpose(np.transpose(grid_numerator[i_slice,:])*set_outliers))
     #denumerator = np.sum(grid_denumerator[:,i_slice]*set_outliers)+np.sum(np.transpose(np.transpose(grid_denumerator[i_slice,:])*set_outliers)) #np.sum(grid_denumerator_no_o)
    
-    grid_outliers = np.ones((nbslice,nbslice))
-    for slice1 in range(0,nbslice):
-        for slice2 in range(0,nbslice):
-            if slice1>slice2:
-                grid_outliers[slice1,slice2]=set_outliers[slice1]*set_outliers[slice2]
+    #grid_outliers = np.ones((nbslice,nbslice))
+    #for slice1 in range(0,nbslice):
+    #    for slice2 in range(0,nbslice):
+    #        if slice1>slice2:
+    #            grid_outliers[slice1,slice2]=set_outliers[slice1]*set_outliers[slice2]
    
-    grid_numerator_no_o = grid_numerator_no_o * grid_outliers
-    grid_denumerator_no_o = grid_denumerator_no_o * grid_outliers
-    
+    grid_numerator_no_o = grid_numerator_no_o #* grid_outliers
+    grid_denumerator_no_o = grid_denumerator_no_o #* grid_outliers
+    #print(grid_numerator_no_o.shape)
     cost = costFromMatrix(grid_numerator_no_o, grid_denumerator_no_o)
-  
+    #cost=numerator/denumerator
     return cost
             
 
-def cost_fct(x,i_slice,listSlice,grid_slices,set_o,lamb):
+def cost_fct(x0,i_slice,listSlice,grid_slices,set_o,lamb,Vmx):
     """
     function we want to minimize. 
 
@@ -1391,6 +1727,8 @@ def cost_fct(x,i_slice,listSlice,grid_slices,set_o,lamb):
     gi = grid_slices[2,:,:]
     gu = grid_slices[3,:,:]
     
+    x = np.copy(x0) #copy to use bound in miminization fonction
+    #print(x)
     slicei = listSlice[i_slice]
     slicei.set_parameters(x)
     #print(x)
@@ -1398,95 +1736,33 @@ def cost_fct(x,i_slice,listSlice,grid_slices,set_o,lamb):
 
     updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
     
-    grid_error=ge
-    grid_nbpoint=gn
-    grid_intersection=gi
-    grid_union=gu
-    
-    grid_slices = np.array([grid_error,grid_nbpoint,grid_intersection,grid_union])
+
+    grid_slices = np.array([ge,gn,gi,gu])
    
-    
+    #print(type(set_o[0]))
+    #set_o = np.zeros((len(listSlice)))
     mse = cost_from_matrix(ge,gn,set_o,i_slice)
 
-    #dice = cost_from_matrix(grid_intersection,grid_union,set_o,i_slice)
+    #nbslice = np.shape(gi)[0]
+    #i_slice1 = np.linspace(0,nbslice,nbslice,dtype=int)
+    #i_slice2 = np.linspace(0,nbslice,nbslice,dtype=int)
+    #index=np.meshgrid(i_slice1,i_slice2)
+    #bool_ind=index[0]<index[1]
+    #dice = np.sum(gi[bool_ind])
+    dice=somme(gi)/Vmx
+    #dice = cost_from_matrix(gi,gu,set_o,i_slice)
+    #print(dice/Vmx)
 
-    cost = mse #- lamb*dice
-    #print('lamb',lamb)
+    cost = mse - lamb*(dice)
+    
 
     
     return cost
 
 
-
-def cost_fct_slice(x,i_slice,listSlice,grid_slices,set_o,lamb):
-    """
-    function we want to minimize. 
-
-    Parameters
-    ----------
-    x : initial parameters of the slice, parameters of the optimisation
-    i_slice : slice of interset
-    listSlice : set of slices
-    grid_slices : matrix of cost
-    set_o : set of outliers
-    lamb : coefficient of the dice
-
-    Returns
-    -------
-    cost : cost, composed of the mse and dice
-
-    """
-    
-    ge = grid_slices[0,:,:]
-    gn = grid_slices[1,:,:]
-    gi = grid_slices[2,:,:]
-    gu = grid_slices[3,:,:]
-    
-    slicei = listSlice[i_slice]
-    slicei.set_parameters(x)
-    #print(x)
-    
-
-    updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
-    
-    grid_error=ge
-    grid_nbpoint=gn
-    grid_intersection=gi
-    grid_union=gu
-    
-    grid_slices = np.array([grid_error,grid_nbpoint,grid_intersection,grid_union])
    
-    set_outliers = np.abs(1-set_o.copy())
-    
-    set_outliers[i_slice]=1
-    
-    grid_numerator_no_o = ge.copy()
-    grid_denumerator_no_o = gn.copy()
-    
-    # gi_no_o = gi.copy()
-    # gu_no_o = gu.copy()
 
-    # grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(ge*set_outliers,np.transpose(np.transpose(ge)*set_outliers))]
-    # grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(gn*set_outliers,np.transpose(np.transpose(gn)*set_outliers))]
-    
-    # gi_no_o=[np.sqrt(x*y) for x,y in zip(gi*set_outliers,np.transpose(np.transpose(gi)*set_outliers))]
-    # gu_no_o=[np.sqrt(x*y) for x,y in zip(gu*set_outliers,np.transpose(np.transpose(gu)*set_outliers))]
-    
-    # grid_numerator_no_o=np.array(grid_numerator_no_o)
-    # grid_denumerator_no_o=np.array(grid_denumerator_no_o)
-    
-    # gi_no_o=np.array(gi_no_o)
-    # gu_no_o=np.array(gu_no_o)
-    
-    #mse = cost_from_matrix(grid_error,grid_nbpoint,set_o,i_slice)
-    #dice = cost_from_matrix(grid_intersection,grid_nbpoint,set_o,i_slice)
-    cost = oneSliceCost(grid_numerator_no_o, grid_denumerator_no_o,set_o, i_slice) #- lamb*oneSliceCost(gi_no_o,gu_no_o,set_o, i_slice)
-    
-    #print('cost :', cost)
-    
-    return cost
-
-def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,n_image):
+def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,Vmx,n_image):
     """
     function with optimise the cost function for one slice
 
@@ -1507,6 +1783,7 @@ def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,n_i
     """
     
     epsilon = hyperparameters[3]
+    lamb=hyperparameters[4]
     
     slicei=listSlice[n_image]
     x0=slicei.get_parameters()
@@ -1516,7 +1793,7 @@ def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,n_i
  
     
     #if registration_state == 0:
-    costMse,costDice,grid_slices,x_opt=SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,n_image)
+    x_opt=SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,n_image,Vmx)
     current_param=x_opt
     #print('previous',previous_param,'current',current_param,epsilon)
     if np.linalg.norm(previous_param-current_param)<epsilon:
@@ -1525,10 +1802,11 @@ def cost_optimisation_step(hyperparameters,listSlice,grid_slices,set_r,set_o,n_i
     #else:
     #    x_opt=x0
     
-    print('CostMse',n_image,costMse)
+    #print('CostMse',n_image,costMse-lamb*costDice)
+    #print('slice',n_image)
     return x_opt,registration_state      
     
-def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
+def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,max_extern):
     
     """
     function to optimise cost on all slices
@@ -1543,7 +1821,6 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
     """
     
     
-    max_extern = 10
     max_intern = 10
     
     it_extern = 0
@@ -1560,9 +1837,11 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
     listSliceblur = denoising(listSlice.copy(),blur)
     ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSliceblur)
     grid_slices=np.array([ge,gn,gi,gu])
-    
-    while (it_intern > 1 or it_extern == 0) and it_extern < max_extern:
-        
+    globalConvergence=False
+
+    while it_extern<max_extern and not(globalConvergence): #(it_intern > 1 or it_extern == 0) and it_extern < max_extern:
+        globalConvergence=True
+        print('Number of iteration : ', it_extern)
         #print("it_extern:",it_extern)
         #print("it_intern:",it_intern)
         
@@ -1570,38 +1849,47 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
         #print(set_to_register)
         set_to_register_pre = np.zeros(nbSlice)
         it_intern = 0
-        while set_to_register.all()!=1 and it_intern < max_intern and (not sum(set_to_register)==sum(set_to_register_pre) or sum(set_to_register_pre)==0) :
+        while set_to_register.all()!=1 and it_intern < max_intern :#and (not sum(set_to_register)==sum(set_to_register_pre) or sum(set_to_register_pre)==0) :
             #avoid that the algorithm continue because there is one or two slices not register
-            set_to_register_pre = set_to_register.copy()
-            index_pre=0
-            for n_image in range(nb_images):
-                start = time.time()
-                nbSliceImageN=len(images[n_image])
-                randomIndex= np.arange(nbSliceImageN) 
-                index=randomIndex+index_pre
-                eval_index=np.where(set_to_register[index]==0)[0]
-                eval_index=eval_index+index_pre
-                
+            #set_to_register_pre = set_to_register.copy()
+            #index_pre=0
+            #for n_image in range(nb_images):
+                #start = time.time()
+                #nbSliceImageN=len(images[n_image])
+                #randomIndex= np.arange(nbSliceImageN) 
+                #index=randomIndex+index_pre
+                #eval_index=np.where(set_to_register[index]==0)[0]
+                #eval_index=eval_index+index_pre
+            eval_index=np.linspace(0,nbSlice-1,nbSlice,dtype=int)
+            np.random.shuffle(eval_index)
                 
                         
-                with Pool() as p: #all slices from the same stacks are register together (in the limit of the number of CPU on your machine)
-                    tmpfun=partial(cost_optimisation_step,hyperparameters,listSliceblur,grid_slices,set_to_register,set_o) 
-                    res=p.map(tmpfun,eval_index)
-                    
-                                              
-                for m,i_slice in enumerate(eval_index): #update parameters once the registration is done
-                    #print(m,i_slice)
-                    listSliceblur[i_slice].set_parameters(res[m][0])
-                    set_to_register[i_slice]=res[m][1]
+            #with Pool(1) as p: #all slices from the same stacks are register together (in the limit of the number of CPU on your machine)
+            for i_slice in eval_index:
+                if not(set_to_register[i_slice]):
+                    #print(i_slice)
+                    res=cost_optimisation_step(hyperparameters,listSliceblur,grid_slices,set_to_register,set_o,Vmx,i_slice) 
+                                            
+                    #for m,i_slice in enumerate(eval_index): #update parameters once the registration is done
+                        #print(m,i_slice)
+                    listSliceblur[i_slice].set_parameters(res[0])
+                    set_to_register[i_slice]=res[1]
+                    if not(res[1]):
+                        globalConvergence=False
+                    updateCostBetweenAllImageAndOne(i_slice,listSliceblur,ge,gn,gi,gu)
                 
                 
-                ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSliceblur)
-                grid_slices = np.array([ge,gn,gi,gu])
-                costMse=costFromMatrix(ge,gn)
-                #print('costMse:', costMse)
-                costDice=costFromMatrix(gi,gu)
-                #print('mse:',costMse)
-                index_pre=index_pre+len(images[n_image])
+            #ge,gn,gi,gu=computeCostBetweenAll2Dimages(listSliceblur)
+            #grid_slices = np.array([ge,gn,gi,gu])
+            ge=grid_slices[0,:,:]
+            gn=grid_slices[1,:,:]
+            gi=grid_slices[2,:,:]
+            gu=grid_slices[3,:,:]
+            costMse=costFromMatrix(ge,gn)
+            print('costMse:', costMse)
+            #costDice=costFromMatrix(gi,gu)
+            print('Dice:',somme(gi)/Vmx)
+            #index_pre=index_pre+len(images[n_image])
             
             it_intern+=1
             #print('well registered :',np.sum(set_to_register>0))
@@ -1610,8 +1898,8 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
 
         #print('delta :',  hyperparameters[0], 'iteration :', it_extern, 'final MSE :', costMse, 'final DICE :', costDice)
         it_extern+=1 
-        end = time.time()
-        elapsed = end - start
+        #end = time.time()
+        #elapsed = end - start
         
         for i_slice in range(nbSlice):
             listSlice[i_slice].set_parameters(listSliceblur[i_slice].get_parameters())
@@ -1629,7 +1917,7 @@ def algo_optimisation(hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes):
     
     return ge,gn,gi,gu,dicRes
 
-def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
+def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice,Vmx):
     
     """
     Implementation of the simplex optimisation, for on slice,  using scipy
@@ -1652,7 +1940,7 @@ def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
     
     slicei=listSlice[i_slice]
 
-    slicei.set_parameters(x0)
+    #slicei.set_parameters(x0)
     delta=hyperparameters[0]
     xatol=hyperparameters[1]
     fatol=hyperparameters[2]
@@ -1678,15 +1966,16 @@ def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
                                            
     #X,Y = grid_slices[0,:,:].shape
 
-    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='Nelder-Mead',options={"disp" : False, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  False})
+    NM = minimize(cost_fct,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb,Vmx),method='Nelder-Mead',options={"disp" : False, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  False})
         #optimisation of the cost function using the simplex method                                    
-        
+    #NM = minimize(cost_fct,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='TNC',tol=1e-10,bounds=Bounds(-12,12))    
     x_opt = NM.x #best parameter obtains after
     #print(NM.message)
     
     listSlice[i_slice].set_parameters(x_opt)
     
-    #slicei.set_parameters(x_opt)
+    slicei.set_parameters(x_opt)
+    #
     ge=grid_slices[0,:,:]
     gn=grid_slices[1,:,:]
     gi=grid_slices[2,:,:]
@@ -1694,113 +1983,23 @@ def SimplexOptimisation(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
 
     updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
     grid_slices = np.array([ge,gn,gi,gu])
-    costMse=cost_from_matrix(ge,gn,set_o,i_slice) #MSE after optimisation
+    #costMse=cost_from_matrix(ge,gn,set_o,i_slice) #MSE after optimisation
     #print('i_slice :', i_slice, 'cost :',costMse)
-    costDice=cost_from_matrix(gi,gu,set_o,i_slice) #Dice after optimisation
+    #nbslice = np.shape(gi)[0]
+    #i_slice1 = np.linspace(0,nbslice,nbslice,dtype=int)
+    #i_slice2 = np.linspace(0,nbslice,nbslice,dtype=int)
+    #index=np.meshgrid(i_slice1,i_slice2)
+    #bool_ind=index[0]<index[1]
+    #dice = np.sum(gi[bool_ind])
+    #dice=np.sum(gi)
+
+    #costDice=dice/Vmx#Dice after optimisation
 
         
-    return costMse,costDice,grid_slices,x_opt
+    return x_opt
 
-def SimplexOptimisation_slice(x0,hyperparameters,listSlice,grid_slices,set_o,i_slice):
-    
-    """
-    Implementation of the simplex optimisation, for on slice,  using scipy
-    
-    x0 : initial parameters of the slice
-    
-    hyperparameters : parameters used for optimisation
-    
-    listSlice : set of slices
-    
-    grid_slices : matrix of cost
-    
-    set_o : set of outliers slices
-    
-    i_slice : slice of interest
-    
-    """
 
-    
-    slicei=listSlice[i_slice]
 
-    slicei.set_parameters(x0)
-    delta=hyperparameters[0]
-    xatol=hyperparameters[1]
-    fatol=hyperparameters[2]
-    lamb=hyperparameters[4]
-    #print('lamb',lamb)
-
-        
-    P0 = x0 #create the initial simplex
-    P1 = P0 + np.array([delta,0,0,0,0,0])
-    P2 = P0 + np.array([0,delta,0,0,0,0])
-    P3 = P0 + np.array([0,0,delta,0,0,0])
-    P4 = P0 + np.array([0,0,0,delta,0,0])
-    P5 = P0 + np.array([0,0,0,0,delta,0])
-    P6 = P0 + np.array([0,0,0,0,0,delta])
-
-    initial_s = np.zeros((7,6))
-    initial_s[0,:]=P0
-    initial_s[1,:]=P1
-    initial_s[2,:]=P2
-    initial_s[3,:]=P3
-    initial_s[4,:]=P4
-    initial_s[5,:]=P5
-    initial_s[6,:]=P6
-                                           
-    #X,Y = grid_slices[0,:,:].shape
-    #print(
-    # )
-    #print('x0 :',x0)
-    NM = minimize(cost_fct_slice,x0,args=(i_slice,listSlice,grid_slices,set_o,lamb),method='Nelder-Mead',options={"disp" : True, "maxiter" : 2000, "maxfev":1e4, "xatol" : xatol, "initial_simplex" : initial_s , "adaptive" :  True})
-        #optimisation of the cost function using the simplex method                                    
-        
-    x_opt = NM.x #best parameter obtains after
-    #print(NM.message)
-    #print('x_opt :',x_opt)
-    
-    
-    listSlice[i_slice].set_parameters(x_opt)
-    
-    #slicei.set_parameters(x_opt)
-    ge=grid_slices[0,:,:]
-    gn=grid_slices[1,:,:]
-    gi=grid_slices[2,:,:]
-    gu=grid_slices[3,:,:]
-
-    updateCostBetweenAllImageAndOne(i_slice,listSlice,ge,gn,gi,gu)
-    grid_slices = np.array([ge,gn,gi,gu])
-    costMse=cost_from_matrix(ge,gn,set_o,i_slice) #MSE after optimisation
-    #print('i_slice :', i_slice, 'cost :',costMse)
-    costDice=cost_from_matrix(gi,gu,set_o,i_slice) #Dice after optimisation
-    
-    
-    set_outliers = np.abs(1-set_o.copy())
-    
-    set_outliers[i_slice]=1
-    
-    gi_no_o = gi.copy()
-    gu_no_o = gu.copy()
-
-    
-    # grid_numerator_no_o=[np.sqrt(x*y) for x,y in zip(ge*set_outliers,np.transpose(np.transpose(ge)*set_outliers))]
-    # grid_denumerator_no_o=[np.sqrt(x*y) for x,y in zip(gn*set_outliers,np.transpose(np.transpose(gn)*set_outliers))]
-    
-    # gi_no_o=[np.sqrt(x*y) for x,y in zip(gi*set_outliers,np.transpose(np.transpose(gi)*set_outliers))]
-    # gu_no_o=[np.sqrt(x*y) for x,y in zip(gu*set_outliers,np.transpose(np.transpose(gu)*set_outliers))]
-    
-    # grid_numerator_no_o=np.array(grid_numerator_no_o)
-    # grid_denumerator_no_o=np.array(grid_denumerator_no_o)
-    
-    # gi_no_o=np.array(gi_no_o)
-    # gu_no_o=np.array(gu_no_o)
-    
-    
-    costMse = oneSliceCost(ge, gn, set_o,i_slice)
-    costDice = oneSliceCost(gi,gu,set_o,i_slice)
-
-        
-    return costMse,costDice,grid_slices,x_opt
 
 def mask_proportion(mask):
     
@@ -1831,8 +2030,8 @@ def get_index(orientation,index_slice,listSlice):
 
 def cost_slice(grid_numerator,grid_denumerator,i_slice): #dice or mse
 
-    num = np.sum(grid_numerator[:,i_slice])+np.sum(grid_numerator[i_slice,:])
-    denum = np.sum(grid_denumerator[:,i_slice])+np.sum(grid_denumerator[i_slice,:])
+    num = somme(grid_numerator[:,i_slice])+somme(grid_numerator[i_slice,:])
+    denum = somme(grid_denumerator[:,i_slice])+somme(grid_denumerator[i_slice,:])
     
     return num/denum
 
@@ -1847,11 +2046,11 @@ def distance_to_center(stack,i_slice_in_stack,icenter): #distance between the sl
 
 def mask_difference(grid_union,grid_inter,i_slice):
     
-    union = np.sum(grid_union[:,i_slice])+np.sum(grid_union[i_slice,:])
+    union = somme(grid_union[:,i_slice])+somme(grid_union[i_slice,:])
     #print(union)
-    inter = np.sum(grid_inter[:,i_slice])+np.sum(grid_inter[i_slice,:])
+    inter = somme(grid_inter[:,i_slice])+somme(grid_inter[i_slice,:])
     #print(inter)
-    n=np.sum(grid_union[:,i_slice]>0)+np.sum(grid_union[i_slice,:]>0)
+    n=somme(grid_union[:,i_slice]>0)+somme(grid_union[i_slice,:]>0)
     #print(n)
     
     return (union-inter)/n
@@ -1866,7 +2065,7 @@ def std_intensity(data,mask):
 def slice_center(mask3D):
     
     index = np.where(mask3D>0)
-    center = np.sum(index,axis=1)/(np.sum(mask3D))
+    center = np.sum(index,axis=1)/(somme(mask3D))
     centerw = np.concatenate((center[0:3],np.array([1])))
     icenter=np.ceil(centerw[2])
        
@@ -1935,7 +2134,8 @@ def update_feature(listSlice,listSliceError,grid_error,grid_nbpoint,grid_inter,g
         orientation=slicei.get_index_image()
         mtot=pmasktot[orientation]
         mask=slicei.get_mask()
-        mprop=np.sum(mask)
+        mprop=somme(mask)
+        currentError.set_mask_point(mprop)
         currentError.set_mask_proportion(mprop/mtot)
         
         #mask distance
@@ -1951,8 +2151,12 @@ def update_feature(listSlice,listSliceError,grid_error,grid_nbpoint,grid_inter,g
         currentError.set_std_intensity(std_in_image/std_norm)
         
         #ncc
-        ncc_var = compute_ncc(i_slice,listSlice)
-        currentError.set_ncc(ncc_var)
+        #ncc_var = compute_ncc(i_slice,listSlice)
+        #currentError.set_ncc(ncc_var)
+
+        #nb_point
+        nbpoint = somme(grid_nbpoint[:,i_slice])+somme(grid_nbpoint[i_slice,:])
+        currentError.set_nbpoint(nbpoint)
         
 #Reference: J. Immerkær, “Fast Noise Variance Estimation”, Computer Vision and Image Understanding, Vol. 64, No. 2, pp. 300-302, Sep. 1996
 def compute_noise_variance(volume):
@@ -1996,9 +2200,9 @@ def compute_ncc(i_slice,listSlice):
             ncc_moy.append(ncc)
     ncc_moy=np.array(ncc_moy)
     ncc_moy>0
-    n = np.sum(ncc_moy>0)
+    n = somme(ncc_moy>0)
     #print(n)
-    ncc_moy=np.sum(ncc_moy[ncc_moy>0])
+    ncc_moy=somme(ncc_moy[ncc_moy>0])
     
     return ncc_moy/n
 
@@ -2018,10 +2222,12 @@ def compute_mse(i_slice,listSlice,zeros_index):
     mse_moy=np.array(mse_moy)
     nbpoint=np.array(nbpoint)
     
-    mse_moy=np.sum(mse_moy[mse_moy>-1])
+    mse_moy=somme(mse_moy[mse_moy>-1])
     #print('mse_moy',mse_moy/np.sum(nbpoint[nbpoint>0]))
+    if somme(nbpoint[nbpoint>-1])==0:
+        return np.nan
     
-    return mse_moy/np.sum(nbpoint[nbpoint>-1])
+    return mse_moy/somme(nbpoint[nbpoint>-1])
         
 def data_to_classifier(listSliceError,features,bad_slices_threshold):
     
@@ -2049,10 +2255,49 @@ def detect_misregistered_slice(listSlice,grid_slices,loaded_model):
      gi = grid_slices[2,:,:]
      gu= grid_slices[3,:,:]
      
+     
+     
      listErrorSlice = [ErrorSlice(slicei.get_index_image(),slicei.get_index_slice()) for slicei in listSlice]
      update_feature(listSlice,listErrorSlice,ge,gn,gi,gu)
      features=['mse','inter','dice','mask_proportion','std_intensity']
      X,Y=data_to_classifier(listErrorSlice,features,1.5)
-     estimated_y = loaded_model.predict(X)
+     out_image,listError = detect_slices_out_of_images(listErrorSlice,gi)
+     
+     estimated_y=loaded_model.predict(X)
+     #estimated_y = np.array([X[:,2]<0.9])
+     #estimated_y = estimated_y[0]
+     
+     return np.abs(estimated_y),np.abs(out_image)    
 
-     return np.abs(estimated_y)    
+def detect_slices_out_of_images(listSliceError,intersection):
+    #list_far_far_away=[]
+    nbSlice=len(listSliceError)
+    list_far_far_away=np.zeros(nbSlice)
+    #print('nbSlice',nbSlice)
+    i_slice=0
+    index=0
+    while i_slice<(nbSlice):
+        #nbpoint = listSliceError[index].get_nbpoint()
+        nbpoint = somme(intersection[:,i_slice])+somme(intersection[i_slice,:])
+        #print(nbpoint)
+        mask = listSliceError[index].get_mask_point()
+        #print(mask)
+        if  nbpoint < mask/2 :
+            far_far_away = (listSliceError[index].get_orientation(),listSliceError[index].get_index())
+            #list_far_far_away.append(far_far_away)
+            list_far_far_away[i_slice]=1
+            listSliceError.remove(listSliceError[index])
+            index=index-1
+            
+        index=index+1
+        i_slice=i_slice+1
+    return list_far_far_away,listSliceError
+
+@jit(nopython=True,fastmath=True)
+def somme(index):
+    return np.sum(index)
+
+@jit(nopython=True,fastmath=True)
+def line(start,stop,num):
+    return np.linspace(start,stop,num)
+  
