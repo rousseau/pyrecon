@@ -93,12 +93,12 @@ do
 						#echo ${output_simul_path}
 						#echo ${output_res}
 								
-			 #python ROSI/test_multi_start_real.py --filenames $job  --filenames_masks $list_mask  --output ${output_simul}  --ablation  $multi_start --hyperparameters 4 0.3 2000 0.25 0 0 
+	            python ROSI/test_multi_start_real.py --filenames $job  --filenames_masks $list_mask  --output ${output_simul}  --ablation  $multi_start --hyperparameters 4 0.3 2000 0.25 0 0 
 			
 
-	     	 docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}
+	     	     docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}
 		     docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}
-             docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}'/'${multi_start}
+             	     docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}'/'${multi_start}
 
 
 		     docker cp ${output_registration} wizardly_brattain:'/app/NiftyMIC/ipta/'${file1}'/'${file2}'/'${multi_start}'/res_test_'${multi_start}'_mvt'
@@ -108,7 +108,7 @@ do
 
 		                   
 		     docker exec wizardly_brattain python NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_res  --dir-input-mc $dir_output_motion 
-	     	 docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/'${multi_start} ${results}'/'${sub_file}'/'
+	     	     docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/'${multi_start} ${results}'/'${sub_file}'/'
 						
 			
 	}
