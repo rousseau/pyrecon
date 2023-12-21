@@ -10,11 +10,12 @@ from .intersection import compute_cost_from_matrix, compute_cost_matrix
 from .outliers_detection.feature import detect_misregistered_slice, update_features
 from .outliers_detection.multi_start import  removeBadSlice, correct_misregisterd, correct_slice
 from .tools import computeMaxVolume
-
+import os
 
 import pickle
 
-load_model = pickle.load(open('ROSI/my_model_test.pickle','rb'))
+root = os.getcwd()
+load_model = pickle.load(open(root+'/my_model_test.pickle','rb'))
 
 def global_optimisation(hyperparameters,listSlice,ablation):
 
