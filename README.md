@@ -19,7 +19,7 @@ where filenames and output are required. filenames are the stacks of 2D images. 
 Hyperparameters corresponds to the choice of hyperparameters and represents: delta (size of the initial simplex), xatol (tolerance on parameters for the optimisation algorithm), maxiter (maximum number of iterations in the optimisation algorithm), error (local convolution criterion), omega (number of cubes in the cost function), sigma (value for Gaussian filtering).
 **It is recommended to use the suggested parameters**.
 
-Ablation has been added for development purposes. The first parameter allows you to choose between 'no_multisart' and 'multistart'. If you choose 'multistart', multistart will be performed after registration. Second parameter, you can choose between 'dice' and 'no_dice'. The third parameter is the optimisation algorithm. **It is recommended to use Nelder-Mead.
+Ablation has been added for development purposes. The first parameter allows you to choose between 'no_multisart' and 'multistart'. If you choose 'multistart', multistart will be performed after registration. Second parameter, you can choose between 'dice' and 'no_dice'. The third parameter is the optimisation algorithm. **It is recommended to use Nelder-Mead**.
 
 
 Corrected transformations for the slices are saved in 'res_registration_mvt'. The format of saved transformation is adapted for reconstruction with **NiftyMIC algorithm**[1][2][3].
