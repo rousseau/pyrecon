@@ -69,7 +69,7 @@ class InputArgparser(object):
         ):
         self._add_argument(dict(locals()))  
         
-        
+
     def add_output(
         self,
         option_string="--output",

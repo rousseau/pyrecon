@@ -8,8 +8,6 @@ Created on Mon Jan 10 16:38:29 2022
 This script aims to create motion simulation on an MRI image to validate the registration algorithm
 
 """
-import sys
-sys.path.append("..registration")
 
 import numpy as np
 import random as rd
@@ -17,10 +15,10 @@ from ..registration.intersection import common_segment_in_image
 #import common_segment_in_image
 from scipy.ndimage import map_coordinates
 from scipy.ndimage import distance_transform_cdt
-from ..registration.tools import separate_slices_in_stacks 
-from ..registration.outliers_detection.outliers import sliceFeature
-from ..registration.outliers_detection.outliers import separate_features_in_stacks
-from ..registration.sliceObject import SliceObject
+from rosi.registration.tools import separate_slices_in_stacks 
+from rosi.registration.outliers_detection.outliers import sliceFeature
+from rosi.registration.outliers_detection.outliers import separate_features_in_stacks
+from rosi.registration.sliceObject import SliceObject
 import joblib
 from nibabel import Nifti1Image
 
@@ -49,7 +47,7 @@ def tre_indexes(stack_fk : 'list[SliceObject]',
             m_kprime = kprime.get_mask()
             
           
-            if ((k.get_stackIndex,k.get_indexSlice()) not in rejectedSlices) and ((kprime.get_stackIndex,kprime.get_indexSlice()) not in rejectedSlices) :
+            if ((k.get_stackIndex(),k.get_indexSlice()) not in rejectedSlices) and ((kprime.get_stackIndex(),kprime.get_indexSlice()) not in rejectedSlices) :
               
                 Mk=M_fk[stack_fk[zk].get_indexSlice(),:,:] @ k.get_slice().affine  #equivalent to M_k
                 Mk_prime=M_fkprime[stack_fkprime[zkprime].get_indexSlice(),:,:] @ kprime.get_slice().affine  #equivalent to M_k'
@@ -124,7 +122,6 @@ def tre(set_v : np.array,
         v = set_v[index,:]
         
         k = int(v[2])
-        print(k)
 
         Mest_k = stack_fk[k].get_transfo()
         homogeneous_v = np.zeros(4)
@@ -193,12 +190,14 @@ def slice_tre(set_v : np.array,
         #Computation of the mean tre for the slice is done here (inside the add_registration error): 
         #TRE_k = (1/card(k')) * sum_{k'}(||Mest_k(v) − Mest_k′(v′)||)
         feature_k.add_registration_error(diff) 
+
                  
         feature_kprime = Features_fkprime[kprime]
 
         #Computation of the mean tre for the slice is done here (inside the add_registration error): 
         #TRE_k = (1/card(k')) * sum_{k'}(||Mest_k(v) − Mest_k′(v′)||)
         feature_kprime.add_registration_error(diff)
+
         
         tre[index]=diff
       
@@ -208,10 +207,8 @@ def same_order(listSlice,listnomvt,listFeature,transfo):
     
     img,_=separate_slices_in_stacks(listSlice)
     img=np.array(img,dtype=list)
-    print(img.shape)
     nomvt,_=separate_slices_in_stacks(listnomvt)
     nomvt=np.array(nomvt,dtype=list)
-    print(nomvt.shape)
     features=separate_features_in_stacks(listFeature)
     features=np.array(features,dtype=list)
     vectzimg = np.zeros(len(img))
@@ -238,10 +235,10 @@ def same_order(listSlice,listnomvt,listFeature,transfo):
             vectznomvt[image]=np.argmax(nz)
 
 
-    minimg = np.argsort(vectzimg)
-    minnomvt = np.argsort(vectznomvt)
+    minnomvt = [j for i in range(0,len(vectzimg)) for j in range(0,len(vectznomvt)) if vectzimg[i]==vectznomvt[j]]
+    print(minnomvt)
 
-    return img[minimg],nomvt[minnomvt],features[minimg],transfo[minnomvt]
+    return img,nomvt[minnomvt],features,transfo[minnomvt]
        
 def tre_for_each_slices(NoMotionSlices : 'list[SliceObject]',
                         listOfSlice : 'list[SliceObject]',
@@ -252,7 +249,7 @@ def tre_for_each_slices(NoMotionSlices : 'list[SliceObject]',
     Compute the mean tre for each slices. Results are stored in sliceFeature corresponding to each slice
     """  
     images,nomvt,features,transfo = same_order(listOfSlice,NoMotionSlices,listFeatures,transfo)
-    print(len(images[0]),len(nomvt[0]),len(images[1]),len(nomvt[1]),len(images[2]),len(nomvt[2])) 
+    print([len(images[i]) for i in range(0,3)],[len(nomvt[i]) for i in range(0,3)],[len(features[i]) for i in range(0,3)])
     listOfSlice = np.concatenate(images)
     listOfSlice = listOfSlice.tolist()
     NoMotionSlices = np.concatenate(nomvt)
@@ -265,21 +262,20 @@ def tre_for_each_slices(NoMotionSlices : 'list[SliceObject]',
 
     NoMotionStacks,_ = separate_slices_in_stacks(NoMotionSlices.copy()) 
     Stacks,_ = separate_slices_in_stacks(listOfSlice.copy())
-    print('Hahaha')
-    print(len(Stacks),len(listOfSlice))
-
+    for feature in listFeatures :
+        feature.reinitialized_error()
+  
     for fk in range(len(Stacks)):
         for fkprime in range(len(Stacks)):
-            print(fk,fkprime)
+            
             if fk < fkprime:
                
                
                M_k = np.load(transfo[fk])
                M_kprime = np.load(transfo[fkprime])
-               print(len(NoMotionStacks[fk]),len(Stacks[fk]),len(NoMotionStacks[fkprime]),len(Stacks[fkprime]))
- 
-               set_v, set_vprime = tre_indexes(NoMotionStacks[fk],NoMotionStacks[fkprime],M_k,M_kprime,rejected_slice) #common points between volumes when no movement
-               print(set_vprime)
+               
+               set_v, set_vprime = tre_indexes(Stacks[fk],Stacks[fkprime],M_k,M_kprime,rejected_slice) #common points between volumes when no movement
+         
                slice_tre(set_v,set_vprime,Stacks[fk],Stacks[fkprime],Features[fk],Features[fkprime])
 
 
@@ -308,4 +304,29 @@ def compute_image_distance(mask : Nifti1Image) -> np.array :
 
     return inv_chamfer_distance        
     
-    
+def cumulative_tre(tre : np.array) :
+
+    X = np.linspace(0,16)
+    Y = [np.sum(np.array(tre<xi)) for xi in X]
+
+    return X,Y
+
+def theorical_misregistered(listOfSlice : 'list[SliceObject]', listFeatures : 'list[sliceFeature]', transfolist : np.array) -> list:
+
+    set_r = np.zeros(len(listOfSlice))
+    rs = []
+    while True:
+        tre_for_each_slices(listOfSlice,listOfSlice,listFeatures,transfolist,rs)
+        tre = [e.get_error() for e in listFeatures]
+        tre = np.array(tre)
+        print(np.sum(np.array(tre)>1.5))
+        print(tre)
+        if sum(np.array(tre)>1.5)==0:
+            break
+        maxs = np.argmax(tre)
+        el = (listFeatures[maxs].get_stack(),listFeatures[maxs].get_index())
+        rs.append(el)
+        set_r[maxs]=1
+        print(rs) 
+
+    return set_r

@@ -3,20 +3,35 @@ from time import perf_counter
 from numpy import float, array,max
 from numpy import linspace, where, zeros, sqrt, asarray
 
+from .outliers_detection.outliers import sliceFeature
+
 from .optimisation import algo_optimisation
 from .intersection import compute_cost_from_matrix, compute_cost_matrix
-from .outliers_detection.feature import detect_misregistered_slice
-from .outliers_detection.multi_start import correction_misregistered, removeBadSlice
+from .outliers_detection.feature import detect_misregistered_slice, update_features
+from .outliers_detection.multi_start import  removeBadSlice, correct_misregisterd, correct_slice
 from .tools import computeMaxVolume
+
 
 import pickle
 
-load_model = pickle.load(open('ROSI/rosi/registration/outliers_detection/my_new_model.pickle','rb'))
+load_model = pickle.load(open('ROSI/my_model_test.pickle','rb'))
 
 def global_optimisation(hyperparameters,listSlice,ablation):
 
     print('taille list : ',len(listSlice))    
     tps = perf_counter()
+    listErrorSlice = [sliceFeature(slicei.get_stackIndex(),slicei.get_indexSlice()) for slicei in listSlice]
+    ge,gn,gi,gu=compute_cost_matrix(listSlice) 
+    update_features(listSlice,listErrorSlice,ge,gn,gi,gu)
+    it=0
+    while it < len(listErrorSlice):
+            if listErrorSlice[it].get_mask_proportion()<0.1:
+                    del listErrorSlice[it]
+                    del listSlice[it]
+            else:
+                    it+=1
+        
+        
 
     hyperparameters = asarray(hyperparameters,dtype=float)
 
@@ -110,8 +125,8 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     print('Dice weight :',hyperparameters[4])
     print('Gaussian blurring :',hyperparameters[5])
     print('taille list :',len(listSlice))
-    new_hyperparameters = array([hyperparameters[0]/8,hyperparameters[1],hyperparameters[2],sqrt(6*hyperparameters[3]**2),hyperparameters[4],hyperparameters[5]])
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10)
+    new_hyperparameters = array([hyperparameters[0],hyperparameters[1],hyperparameters[2],sqrt(6*(hyperparameters[3])**2),hyperparameters[4],hyperparameters[5]])
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10,ablation[2])
     grid_slices=array([ge,gn,gi,gu])
     set_r=zeros(nbSlice)
     #     #Second Step : sigma = 2.0, d=b/2, x_opt, omega
@@ -131,8 +146,8 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     print('Epsilon :',sqrt(6*(hyperparameters[3]/2)**2))
     print('Dice Weight :',hyperparameters[4])
     print('Gaussien blurring :',hyperparameters[5]/2)
-    new_hyperparameters = array([hyperparameters[0]/8,hyperparameters[1]/2,hyperparameters[2],sqrt(6*(hyperparameters[3]/2)**2),hyperparameters[4],hyperparameters[5]/2])
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10)
+    new_hyperparameters = array([hyperparameters[0]/2,hyperparameters[1]/2,hyperparameters[2],sqrt(6*(hyperparameters[3]/2)**2),hyperparameters[4],hyperparameters[5]/2])
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10,ablation[2])
     grid_slices=array([ge,gn,gi,gu])
     tpeg2 = perf_counter()
     tp = tpeg2 - tpsg2
@@ -151,8 +166,8 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     print('Epsilon :',sqrt(6*(hyperparameters[3]/4)**2))
     print('Dice Weight :',hyperparameters[4])
     print('Gaussien blurirng :',0)
-    new_hyperparameters = array([hyperparameters[0]/8,hyperparameters[1]/4,hyperparameters[2],sqrt(6*(hyperparameters[3]/4)**2),hyperparameters[4],0])
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10)
+    new_hyperparameters = array([hyperparameters[0]/4,hyperparameters[1]/4,hyperparameters[2],sqrt(6*(hyperparameters[3]/4)**2),hyperparameters[4],0])
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10,ablation[2])
     grid_slices=array([ge,gn,gi,gu])
     tped = perf_counter()
     tp = tped - tpsd
@@ -174,7 +189,7 @@ def global_optimisation(hyperparameters,listSlice,ablation):
         new_hyperparameters = array([hyperparameters[0]/8,hyperparameters[1]/8,hyperparameters[2],sqrt(6*(hyperparameters[3]/8)**2),hyperparameters[4],0])
     else :
         new_hyperparameters = array([hyperparameters[0]/8,hyperparameters[1]/8,hyperparameters[2],sqrt(6*(hyperparameters[3]/8)**2),0,0])
-    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10)
+    ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10,ablation[2])
     grid_slices=array([ge,gn,gi,gu])
     tpenod = perf_counter()
     tp = tpenod - tpsnod
@@ -205,20 +220,20 @@ def global_optimisation(hyperparameters,listSlice,ablation):
     #set_r = logical_or(set_o1,set_o2) 
     #print(set_o)
         #before = removeBadSlice(listSlice,set_o)
-        new_hyperparameters = array([hyperparameters[0],hyperparameters[1],hyperparameters[2],sqrt(6*hyperparameters[3]**2),hyperparameters[4],0])
+        new_hyperparameters = array([hyperparameters[0],hyperparameters[1],hyperparameters[2],sqrt(6*hyperparameters[3]**2),1,0])
         #grid_slices,set_r,dicRes=correction_out_images(listSlice,new_hyperparameters,set_o1.copy(),set_r,grid_slices,dicRes)
         print('---------------Outliers\'detection -------')
-        set_o1,set_o2 = detect_misregistered_slice(listSlice, grid_slices, loaded_model)
-        set_o = np.logical_or(set_o1,set_o2)
-        ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes,Vmx,10)
-    #set_r = logical_or(set_o1,set_o2) 
-   
+        set_o = detect_misregistered_slice(listSlice, grid_slices, load_model)
+        
+        grid_slices=array([ge,gn,gi,gu])
+        set_o = detect_misregistered_slice(listSlice, grid_slices, load_model)
+        set_o = correct_slice(set_o,listSlice,hyperparameters,'Nelder-Mead',Vmx,grid_slices,listErrorSlice,load_model)
         #grid_slices,set_r,dicRes=correction_out_images(listSlice,new_hyperparameters,set_o.copy(),set_o2,grid_slices,dicRes)
         #set_o1,set_o2 = detect_misregistered_slice(listSlice, grid_slices, loaded_model)
         #set_o = np.logical_or(set_o1,set_o2)
-        grid_slices,set_r,dicRes=correction_misregistered(listSlice,new_hyperparameters,set_o.copy(),set_o.copy(),grid_slices,dicRes,Vmx)
-        ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_r,set_r,grid_slices,dicRes,Vmx,10)
-        rejectedSlices=removeBadSlice(listSlice, set_r)
+        #grid_slices,set_r,dicRes=correction_misregistered(listSlice,new_hyperparameters,set_o.copy(),set_o.copy(),grid_slices,dicRes,Vmx)
+        ge,gn,gi,gu,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_o,grid_slices,dicRes,Vmx,10,ablation[2])
+        rejectedSlices=removeBadSlice(listSlice, set_o)
         
     else:
         rejectedSlices=[]

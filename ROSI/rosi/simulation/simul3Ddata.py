@@ -9,15 +9,12 @@ Created on Mon Jul 25 15:49:35 2022
 import numpy as np
 #import nibabel as nib
 from nibabel import Nifti1Image
-from tools import rigidMatrix
+from rosi.registration.tools import rigidMatrix
 from scipy.ndimage import map_coordinates
 import random as rd
-from ..registration import common_segment_in_image
-from scipy.ndimage import distance_transform_cdt
-from sliceObject import SliceObject
 
 
-def simulate_motion_on_slices(listOfSlice : list(SliceObject),
+def simulate_motion_on_slices(listOfSlice ,
                               rotation_min_max : np.array(2),
                               translation_min_max : np.array(2)) -> np.array:
     """
@@ -79,7 +76,7 @@ def extract_mask(NiftiMask : Nifti1Image) -> Nifti1Image:
 def simulateMvt(image : Nifti1Image,
                 AngleMinMax : np.array(2),
                 TransMinMax : np.array(2),
-                resolution : float,
+                sub_sampling_index : float,
                 stack_num : int,
                 mask : Nifti1Image,
                 motion : bool = True) -> (Nifti1Image,Nifti1Image,np.array,np.array):
@@ -103,7 +100,7 @@ def simulateMvt(image : Nifti1Image,
         
         new_x=x;new_y=y;new_z=z
         current_thikness = image.header.get_zooms()[2]
-        slice_thikness = resolution/current_thikness
+        slice_thikness = (current_thikness*new_z)/sub_sampling_index
         #matrix to change image orientation and sub-sample the image
         sub_sample_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,slice_thikness,0],[0,0,0,1]]) 
 
@@ -113,7 +110,7 @@ def simulateMvt(image : Nifti1Image,
         
         new_x=x;new_y=z;new_z=y
         current_thikness = image.header.get_zooms()[1]
-        slice_thikness = resolution/current_thikness
+        slice_thikness = (current_thikness*new_z)/sub_sampling_index
         #matrix to change image orientation and sub-sample the image
         sub_sample_matrix = np.array([[1,0,0,0],[0,0,slice_thikness,0],[0,1,0,0],[0,0,0,1]])
 
@@ -124,7 +121,7 @@ def simulateMvt(image : Nifti1Image,
         
         new_x=z;new_y=y;new_z=x 
         current_thikness = image.header.get_zooms()[0]
-        slice_thikness = resolution/current_thikness
+        slice_thikness = (current_thikness*new_z)/sub_sampling_index
         #matrix to change image orientation and sub-sample the image
         sub_sample_matrix = np.array([[0,0,slice_thikness,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
 
@@ -133,7 +130,7 @@ def simulateMvt(image : Nifti1Image,
         print('unkown orientation, choose between axial, coronal and sagittal')
         return 0
     
-    slices_number=new_z//slice_thikness
+    slices_number=new_z/slice_thikness
     
     #Initialisation
     low_resolution_image = np.zeros((new_x,new_y,slices_number))

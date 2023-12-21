@@ -44,6 +44,7 @@ def convert2Slices(stack : Nifti1Image,
         dist = distance_from_mask(slice_mask)*res
         decrease=np.linspace(1,0,6,dtype=float)
         index=0
+        
         for index_dist in range(4,10):
              slice_value[np.where(dist>index_dist)] = decrease[index]*slice_value[np.where(dist>index_dist)]
              index+=1

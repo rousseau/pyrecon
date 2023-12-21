@@ -64,48 +64,50 @@ if __name__ == '__main__':
         if datamask.shape==im.get_fdata().shape:
             mask = nib.Nifti1Image(datamask, inmask.affine)
         
-            #if  i==0:
-            nx_img1=Affine[0:3,0].copy()
-            ny_img1=Affine[0:3,1].copy()
-            nz_img1=np.cross(nx_img1,ny_img1)
-            nx_img1_norm=nx_img1/np.linalg.norm(nx_img1)
-            ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
-            nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
-            output = convert2Slices(im,mask,[],i_image,i_image)
-            listSlice+=output
-              #print('nx_img1 :', nx_img1, 'ny_img1 :', ny_img1, 'nz_img1 :', nz_img1)
-              #print('nx_img1_norm :', nx_img1_norm,'ny_img1_norm', ny_img1_norm,'nz_img1_norm', nz_img1_norm)
-              #print(i,' : Axial')
-            i_image=i_image+1
+            if  i==0:
+              nx_img1=Affine[0:3,0].copy()
+              ny_img1=Affine[0:3,1].copy()
+              nz_img1=np.cross(nx_img1,ny_img1)
+              nx_img1_norm=nx_img1/np.linalg.norm(nx_img1)
+              ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
+              nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
+              output = convert2Slices(im,mask,[],i_image,i_image)
+              listSlice+=output
+                #print('nx_img1 :', nx_img1, 'ny_img1 :', ny_img1, 'nz_img1 :', nz_img1)
+                #print('nx_img1_norm :', nx_img1_norm,'ny_img1_norm', ny_img1_norm,'nz_img1_norm', nz_img1_norm)
+                #print(i,' : Axial')
+              i_image=i_image+1
         
-            #else:
-            #  nx=Affine[0:3,0].copy()
-            #  ny=Affine[0:3,1].copy()
-            #  nz=np.cross(nx,ny)
-            #  nz_norm=nz/np.linalg.norm(nz)
+            else:
+              nx=Affine[0:3,0].copy()
+              ny=Affine[0:3,1].copy()
+              nz=np.cross(nx,ny)
+              nz_norm=nz/np.linalg.norm(nz)
               #orx=np.sqrt((nz_norm[0]-nx_img1_norm[0])**2+(nz_norm[1]-nx_img1_norm[1])**2+(nz_norm[2]-nx_img1_norm[2])**2)
-            #  orz=np.abs(np.dot(nz_norm,nz_img1_norm))
-            #  ory=np.abs(np.dot(nz_norm,ny_img1_norm))
-            #  orx=np.abs(np.dot(nz_norm,nx_img1_norm))
+              orz=np.abs(np.dot(nz_norm,nz_img1_norm))
+              ory=np.abs(np.dot(nz_norm,ny_img1_norm))
+              orx=np.abs(np.dot(nz_norm,nx_img1_norm))
               #ory=np.sqrt((nz_norm[0]-ny_img1_norm[0])**2+(nz_norm[1]-ny_img1_norm[1])**2+(nz_norm[2]-ny_img1_norm[2])**2)
-              #orz=np.sqrt((nz_norm[0]-nz_img1_norm[0])**2+(nz_norm[1]-nz_img1_norm[1])**2+(nz_norm[2]-nz_img1_norm[2])**2)
-            #  if max(orx,ory,orz)==orx:
-            #      loadSlice(im,mask,listSlice,1,i_image)
-            #      print('orx :', orx, 'ory :', ory, 'orz :', orz)
-            #      print(i, ' : Coronal')
-            #      i_image=i_image+1
+              #=np.sqrt((nz_norm[0]-nz_img1_norm[0])**2+(nz_norm[1]-nz_img1_norm[1])**2+(nz_norm[2]-nz_img1_norm[2])**2)
+              if max(orx,ory,orz)==orx:
+                  output = convert2Slices(im,mask,[],1,i_image)
+                  listSlice+=output
+                  print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                  print(i, ' : Coronal')
+                  i_image=i_image+1
         
-            #  elif max(orx,ory,orz)==ory:
-            #      loadSlice(im,mask,listSlice,2,i_image)
-            #      print('orx :', orx, 'ory :', ory, 'orz :', orz)
-            #      print(i ,' : Sagittal')
-            #      i_image=i_image+1
+              elif max(orx,ory,orz)==ory:
+                  output = convert2Slices(im,mask,[],2,i_image)
+                  listSlice+=output
+                  print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                  print(i ,' : Sagittal')
+                  i_image=i_image+1
         
-            #  else:
-            #      loadSlice(im,mask,listSlice,0,i_image)
-            #      print('orx :', orx, 'ory :', ory, 'orz :', orz)
-            #      print(i , ' : Axial')
-            #      i_image=i_image+1
+              else:
+                  (im,mask,[],0,i_image)
+                  print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                  print(i , ' : Axial')
+                  i_image=i_image+1
               
             print('i_image',i_image)
               #i_image=i_image+1
@@ -167,7 +169,7 @@ if __name__ == '__main__':
     #strCG = file + '/CostGlobal.npz'
     #costGlobal.tofile(strCG)
         
-    res_obj = [('listSlice',listSlicessMvt),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo),('RejectedSlices',rejectedSlices)]
+    res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo),('RejectedSlices',rejectedSlices)]
     
     dirname = os.path.dirname(__file__)
     joblib_name = os.path.join(dirname,'../'+ args.output + '.joblib.gz')

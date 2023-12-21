@@ -16,7 +16,7 @@ from rosi.registration.tools import separate_slices_in_stacks
 from rosi.registration.transformation import rigidMatrix, ParametersFromRigidMatrix
 from rosi.simulation.validation import tre_indexes, distance_from_mask_edges, slice_tre
 import json
-from rosi.registration.load import convert2Slices, loadStack
+from rosi.registration.load import convert2Slices, convert2Slices
 import nibabel as nib
 import matplotlib.pyplot as plt
 from rosi.registration.outliers_detection.outliers import sliceFeature, separate_features_in_stacks

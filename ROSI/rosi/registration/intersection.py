@@ -226,7 +226,7 @@ def common_segment_in_image(slice_k : SliceObject,
     if ok1<1 and ok2<1:
         return zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_)
     
-    if ok1<1 or ok2<1: #if we have a segment of intersection for both images
+    if ok1<1 or ok2<1: #if we don't have intersection for one of the image
         
         if ok1<1:
             seg_union=word_segment_kprime
@@ -266,12 +266,14 @@ def common_segment_in_image(slice_k : SliceObject,
     
         profile_k,m_kv,nb_point_in_k=interplolation_inimage(slice_k,set_v,nbpoint)
         profile_kprime,m_kvprime,nb_point_in_kprime=interplolation_inimage(slice_kprime,set_vprime,nbpoint)
- 
-        profile_k = concatenate((profile_k[m_kv],zeros(nb_point_in_kprime)))
-        profile_kprime = concatenate((zeros(nb_point_in_k),profile_kprime[m_kvprime]))
-        m_kv = concatenate((m_kv[m_kv],zeros(nb_point_in_kprime)))
-        m_kvprime = concatenate((zeros(nb_point_in_k),m_kvprime[m_kvprime]))
-        
+
+        if np.isscalar(profile_k) : 
+            profile_kprime = zeros(nb_point_in_k)
+            m_kvprime = zeros(nb_point_in_k)
+        if np.isscalar(profile_kprime):
+            m_kv = zeros(nb_point_in_kprime)
+            profile_k = zeros(nb_point_in_kprime)
+
         nbpoint=nb_point_in_k+nb_point_in_kprime
         if nbpoint==0:
             return zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_)
@@ -358,11 +360,19 @@ def common_segment_in_image(slice_k : SliceObject,
         profile_k,m_kv,nb_point_in_k=interplolation_inimage(slice_k,set_v,nbpoint)
         profile_kprime,m_kvprime,nb_point_in_kprime=interplolation_inimage(slice_kprime,set_vprime,nbpoint)
  
-        profile_k = concatenate((profile_k[m_kv],zeros(nb_point_in_kprime)))
-        profile_kprime = concatenate((zeros(nb_point_in_k),profile_kprime[m_kvprime]))
-        m_kv = concatenate((m_kv[m_kv],zeros(nb_point_in_kprime)))
-        m_kvprime = concatenate((zeros(nb_point_in_k),m_kvprime[m_kvprime]))
-        
+        #profile_k = concatenate((profile_k[m_kv],zeros(nb_point_in_kprime)))
+        #profile_kprime = concatenate((zeros(nb_point_in_k),profile_kprime[m_kvprime]))
+        #m_kv = concatenate((m_kv[m_kv],zeros(nb_point_in_kprime)))
+        #m_kvprime = concatenate((zeros(nb_point_in_k),m_kvprime[m_kvprime]))
+
+    
+        if np.isscalar(profile_k) : 
+            profile_kprime = zeros(nb_point_in_k)
+            m_kvprime = zeros(nb_point_in_k)
+        if np.isscalar(profile_kprime):
+            m_kv = zeros(nb_point_in_kprime)
+            profile_k =zeros(nb_point_in_kprime)
+   
         nbpoint=nb_point_in_k+nb_point_in_kprime
         if nbpoint==0:
             return zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_)
@@ -395,7 +405,6 @@ def interplolation_inimage(slice_k : array,
     
     m_kv =~isnan(profile) * interpolMask>0
 
-      
     return profile,m_kv,somme(m_kv)
 
 
@@ -455,7 +464,7 @@ def NCC(profile_k,profile_kprime):
 
     ncc=-1
     if stdx>0 and stdy>0:
-        ncc = (1/(len(x)-1))*somme((x-mux)*(y-muy))/(stdx*stdy)
+        ncc = (1/(len(x)-1))*somme(((x-mux)/stdx)*((y-muy)/(stdy)))
         
     return ncc
 
@@ -489,6 +498,7 @@ def cost_between_2slices(slice_k,slice_kprime):
         intersection_profile_v=profile_k[intersection_mask] #s_k(v) for v such as Mest_k(v)=Mest_k'(v') and m_k(v)=1 and m_k'(v')=1
         intersection_profile_vprime=profile_kprime[intersection_mask] #s_k'(v') for v' such as Mest_k(v)=Mest_k'(v') and m_k(v)=1 and m_k'(v')=1
         
+        #square_error=error(union_profile_v,union_profile_vprime)
         square_error=error(union_profile_v,union_profile_vprime)
 
         if len(intersection_profile_v) !=0:
@@ -502,6 +512,29 @@ def cost_between_2slices(slice_k,slice_kprime):
   
         
     return square_error,common_point,2*intersection,union,ncc_var,mse_coupe
+
+def ncc_between2slice(slice_k,slice_kprime):
+#https://stackoverflow.com/questions/53436231/normalized-cross-correlation-in-python
+
+    ncc=0
+
+    resolution=min(min(slice_k.get_slice().header.get_zooms(),slice_kprime.get_slice().header.get_zooms()))
+    
+    M_k=slice_k.get_estimatedTransfo();M_kprime=slice_kprime.get_estimatedTransfo()
+    
+    _,_,profile_k,profile_kprime,m_kv,m_kvprime,nbpoint,ok = common_segment_in_image(slice_k,M_k,slice_kprime,M_kprime,resolution)
+    
+    ok=int(ok[0,0]); nbpoint=int(nbpoint[0,0]) #ok and nbpoints are 2-size vectors to allow using numba with this function
+    #print('seg :', ok)
+
+    square_error=0; common_point=0; intersection=0; union=0; ncc_var=-1; mse_coupe=(-1,-1)
+    #print(ok)
+    
+    if ok>0:
+        ncc=NCC(profile_k,profile_kprime)
+    
+    return ncc
+
 
 def update_cost_matrix(index_slice : int,
                        listOfSlices : 'list[SliceObject]',
@@ -587,7 +620,7 @@ def compute_cost_from_matrix(numerator,denumerator):
     
     return cost
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     """
     Function to compute the cost, either mse or dice. Cost is computed only on well registered slices and depend on the slice we want ot make the optimisation on.
@@ -606,17 +639,29 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     
     nbslice,nbslice = shape(grid_numerator)
     
-    grid_numerator_no_o = grid_numerator.copy()
-    grid_denumerator_no_o = grid_denumerator.copy()
+    #grid_numerator_no_o = grid_numerator.copy()
+    #grid_denumerator_no_o = grid_denumerator.copy()
     
     set_outliers = 1-set_o
-    
     set_outliers[i_slice]=1
-    grid_outliers=zeros((nbslice,nbslice))
+    #print('nb outliers :',sum(set_outliers))
+    #print("number of slice",nbslice)
+    i1 = np.linspace(0,nbslice,nbslice,dtype=int)
+    i2 = np.linspace(0,nbslice,nbslice,dtype=int)
+    index=np.meshgrid(i1,i2)
+    bool_ind=index[0]<index[1]
+    tmp_mat = [set_outliers[i]*bool_ind[:,i] for i in range(0,nbslice) ]
+    tmp_mat = np.concatenate(tmp_mat)
+    tmp_mat = tmp_mat.reshape((nbslice,nbslice)).T
+    new_ind = [set_outliers[i]*tmp_mat[i,:] for i in range(0,nbslice) ]
+    new_ind = np.concatenate(new_ind)
+    #print(new_ind)
+    new_ind = new_ind.reshape((nbslice,nbslice))
+    new_ind = np.array(new_ind,dtype=bool)
    
    
-    numerator = sum(grid_numerator_no_o)# * grid_outliers)
-    denumerator = sum(grid_denumerator_no_o)# * grid_outliers)
+    numerator = sum(grid_numerator[new_ind])# * grid_outliers)
+    denumerator = sum(grid_denumerator[new_ind])# * grid_outliers)
 
     if denumerator==0:
         cost=nan
@@ -629,6 +674,7 @@ def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     function we want to minimize.
     """
     
+    
     square_error_matrix = cost_matrix[0,:,:]
     nbpoint_matrix = cost_matrix[1,:,:]
     intersection_matrix = cost_matrix[2,:,:]
@@ -637,6 +683,7 @@ def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     x = copy(x0) #copy to use bound in miminization fonction
     #print(x)
     slicei = listOfSlice[k]
+    #print(x)
     slicei.set_parameters(x)
     #print(x)
     
@@ -654,19 +701,112 @@ def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     i_slice2 = linspace(0,nbslice,nbslice,dtype=int)
     index=np.meshgrid(i_slice1,i_slice2)
     bool_ind=index[0]<index[1]
-    dice = sum(intersection_matrix[bool_ind])
+
+    outliers = 1-set_o
+    outliers = outliers
+    outliers[k] = 1
+    #print('sum outliers :',sum(outliers))
+    tmp_mat = [outliers[i]*bool_ind[:,i] for i in range(0,nbslice) ]
+    tmp_mat = np.concatenate(tmp_mat)
+    tmp_mat = tmp_mat.reshape((nbslice,nbslice)).T
+    new_ind = [outliers[i]*tmp_mat[i,:] for i in range(0,nbslice) ]
+    new_ind = np.concatenate(new_ind)
+    new_ind = new_ind.reshape((nbslice,nbslice))
+    new_ind = np.array(new_ind,dtype=bool)
+
+
+    dice = sum(intersection_matrix)
     dice=dice/Vmx
     #print(dice)
-    #dice = cost_from_matrix(gi,gu,set_o,i_slice)
+    #dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
     #print('nbslice',i_slice,'mse',mse,'dice',dice)
     #print(dice/Vmx)
 
     cost = mse - lamb*(dice)
-    
+    #print(cost)
     return cost
 
 
+def cost_fct2(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx,W):
+    """
+    function we want to minimize.
+    """
     
+    
+    square_error_matrix = cost_matrix[0,:,:]
+    nbpoint_matrix = cost_matrix[1,:,:]
+    intersection_matrix = cost_matrix[2,:,:]
+    union_matrix = cost_matrix[3,:,:]
+    
+    x = copy(x0) #copy to use bound in miminization fonction
+    #print(x)
+    slicei = listOfSlice[k]
+    #print(x)
+    slicei.set_parameters(x)
+    #print(x)
+    
+    update_cost_matrix(k,listOfSlice,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix)
+    
+
+    cost_matrix = array([square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix])
+   
+    #print(type(set_o[0]))
+    #set_o = zeros((len(listSlice)))
+    em = np.zeros((len(listOfSlice),len(listOfSlice)))
+    for i_slice in range(0,len(listOfSlice)):
+        em[i_slice,:] = W*square_error_matrix[i_slice,:]
+        em[:,i_slice] =  W*square_error_matrix[i_slice,:]
+    mse = cost_from_matrix(em,nbpoint_matrix,set_o,k)
+
+    nbslice = shape(intersection_matrix)[0]
+    i_slice1 = linspace(0,nbslice,nbslice,dtype=int)
+    i_slice2 = linspace(0,nbslice,nbslice,dtype=int)
+    index=np.meshgrid(i_slice1,i_slice2)
+    bool_ind=index[0]<index[1]
+
+    outliers = 1-set_o
+    outliers = outliers
+    outliers[k] = 1
+    #print('sum outliers :',sum(outliers))
+    tmp_mat = [outliers[i]*bool_ind[:,i] for i in range(0,nbslice) ]
+    tmp_mat = np.concatenate(tmp_mat)
+    tmp_mat = tmp_mat.reshape((nbslice,nbslice)).T
+    new_ind = [outliers[i]*tmp_mat[i,:] for i in range(0,nbslice) ]
+    new_ind = np.concatenate(new_ind)
+    new_ind = new_ind.reshape((nbslice,nbslice))
+    new_ind = np.array(new_ind,dtype=bool)
+
+
+    dice = sum(intersection_matrix[new_ind])
+    dice=dice/Vmx
+    #print(dice)
+    #dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
+    #print('nbslice',i_slice,'mse',mse,'dice',dice)
+    #print(dice/Vmx)
+
+    cost = mse - lamb*(dice)
+    print(cost) 
+    return cost
+
+
+def cost_multi_start(x_t,x_r,k,listOfSlices,cost_matrix,set_o,lamb,Vmx):
+    x0=np.array([x_r[0],x_r[1],x_r[2],x_t[0],x_t[1],x_t[2]])
+    
+    square_error_matrix = cost_matrix[0,:,:]
+    nbpoint_matrix = cost_matrix[1,:,:]
+    intersection_matrix = cost_matrix[2,:,:]
+    union_matrix = cost_matrix[3,:,:]
+    x = copy(x0) #copy to use bound in miminization fonction
+    slicei = listOfSlices[k]
+    slicei.set_parameters(x)
+    update_cost_matrix(k,listOfSlices,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix)
+    cost_matrix = array([square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix])
+    #dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
+    dice = np.sum(intersection_matrix)
+    dice=dice/Vmx
+
+    return -dice
+
 
 def updateResults(dicRes,gridError,gridNbpoint,gridInter,gridUnion,costMse,costDice,listSlice,nbSlice):
     

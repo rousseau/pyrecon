@@ -53,14 +53,14 @@ def separate_slices_in_stacks(listOfSlice : 'list[SliceObject]') -> (np.array('l
 
     for slicei in listOfSlice:
         stack_of_slicei = slicei.get_stackIndex()
-        print(stack_of_slicei)
+        #print(stack_of_slicei)
 
         if stack_of_slicei in volume_index: #if we already encounter a slice from this volume
             index_orientation = volume_index.index(stack_of_slicei)
             volumes[index_orientation].append(slicei) #add the slice to the corresponding list ! :)
             volume_masks[index_orientation].append(slicei.get_mask())
         
-        else: #we never encounter a slice from this volume before :(
+        else: #we never encountered a slice from this volume before :(
             volume_index.append(stack_of_slicei) 
             volumes.append([]) #create a new list
             volume_masks.append([])

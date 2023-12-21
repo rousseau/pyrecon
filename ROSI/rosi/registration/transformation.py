@@ -139,3 +139,9 @@ def IsItRigid(matrix : np.array) -> bool :
     rigidity = check_homogenity and check_orthogonality and check_det
 
     return rigidity
+
+def rotation_diff(A,B):
+    tr = np.trace(np.dot(A,B.T))
+    theta=np.arccos((tr-1)/2) #difference in gradient
+    return theta
+
