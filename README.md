@@ -1,59 +1,42 @@
-# Motion Correction of 2D MRI
-## Data simulation
+# Motion Correction of 2D slices MRI
 
-To simulate LR (low-resolution) data with inter-slice motion from HR (High-resolution) image use the script **sciptSimulData.py**. The scipt simulates 3 LR images in 3 different orientation (Axial, Coronnal, and Sagittal) and save them in a specified directory, along with the simulated parameters and transformation.
-Already simulated data are available in data directory.
+## Registration of Real Data
 
-## Registration on Simulated Data
-
-To correct motion on simulated data use the script **main.py**. The script provides the evolution of the error (mse and dice), the evolution of the motion parameters (3 rotations and 3 translations), the evolution of the transformations between images coordinates and world coordinates and the error of registration (in mm). Those results can be visualised with the script **3Ddisplay.ipynb**.
-
-
-Example : 
-```
-python main.py \
---filenames image_axial.nii.gz image_coronal.nii.gz image_sagittal.nii.gz \
---filenames_masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
---simulation transformation_axial.py transformation_cornal.py transformation_sagitall.py
---ablation all
---hyperparameters 4 0.25 1e-10 2 1 4
---output res_registration
-```
-
-where filenames, simulatoin, ablationn, hyperparameters and output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames. 
-ablation is a parameters adeed for the ablation study. If you want the algorithm to perform normally choose 'all'. You can choose between 'no_dice','no_gaussian' and 'no_multistart'.
-hyperparameters corespond to the choice of hyperparameters and represents : delta (the size of the initial simplex), xatol (tolerance on parameters for the optimisation algorithm), fatol (tolerance on function value for the optimisation algorithm), error (the accepted error between position of a slices before and after registration), omega (ponderation of dice in the cost function), sigma (value for gaussian filtering).
-
-Corrected transformation for the slices are saved in 'res_registration_mvt'. The format of saved transformation is adapted for reconstruction with **NiftyMIC algorithm**[1][2][3].
-
-## Registration on Real Data
-
-To correct motion on real data use the script **main_realdata.py**. This script correct movement in stacks of 2D images acquiered in different orientation. It provides the evolution of the error (mse and dice), the evolution of the motion parameters (3 rotations and 3 translations) and the evolution of the transformations between images coordinates and world coordinates. Those results can be visualised with the script **3Ddisplay_realdata.ipynb**
+To correct motion on real data, use the script **ROSI/main_realdata.py**. This script corrects motion in stacks of 2D images acquired in different orientations. It provides the evolution of the error (mse and dice), the evolution of the motion parameters (3 rotations and 3 translations) and the evolution of the estimated transformations between image coordinates and world coordinates. These results are stored in the file "res_reigstration.joblib.gz".
 
 Example : 
 ```
 python main_realdata.py \
 --filenames image_axial.nii.gz image_coronal.nii.gz image_sagittal.nii.gz \
 --filenames_masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
---ablation all
---hyperparameters 4 0.25 1e-10 2 1 4
+--hyperparameters 4 0.25 2000 2 0 0
+--ablation multistart no_dice Nelder-Mead
 --output res_registration
 ```
 
-where filenames and output are required. filenames are the stacks of 2D images. filenames_mask are the brain mask and should be in the same order than filenames.
+where filenames and output are required. filenames are the stacks of 2D images. filenames_mask are the corresponding brain masks. 
 
-ablation is a parameters adeed for the ablation study. If you want the algorithm to perform normally choose 'all'. You can choose between 'no_dice','no_gaussian' and 'no_multistart'.
+Hyperparameters corresponds to the choice of hyperparameters and represents: delta (size of the initial simplex), xatol (tolerance on parameters for the optimisation algorithm), maxiter (maximum number of iterations in the optimisation algorithm), error (local convolution criterion), omega (number of cubes in the cost function), sigma (value for Gaussian filtering).
+**It is recommended to use the suggested parameters**.
 
-hyperparameters corespond to the choice of hyperparameters and represents : delta (the size of the initial simplex), xatol (tolerance on parameters for the optimisation algorithm), fatol (tolerance on function value for the optimisation algorithm), error (the accepted error between position of a slices before and after registration), omega (ponderation of dice in the cost function), sigma (value for gaussian filtering).
+Ablation has been added for development purposes. The first parameter allows you to choose between 'no_multisart' and 'multistart'. If you choose 'multistart', multistart will be performed after registration. Second parameter, you can choose between 'dice' and 'no_dice'. The third parameter is the optimisation algorithm. **It is recommended to use Nelder-Mead.
 
 
-Corrected transformation for the slices are saved in 'res_registration_mvt'. The format of saved transformation is adapted for reconstruction with **NiftyMIC algorithm**[1][2][3].
+Corrected transformations for the slices are saved in 'res_registration_mvt'. The format of saved transformation is adapted for reconstruction with **NiftyMIC algorithm**[1][2][3].
 
 # Reconstruction with NiftyMIC
 
-It is possible to reconstruct the motion-corrected data from our algorithm with NiftyMIC :
+It is possible to reconstruct the motion corrected data from our algorithm using NiftyMIC:
 
-After installing NiftyMIC (using docker is easier), call function : **niftymic_reconstruct_volume_from_slices.py**
+After installing NiftyMIC (using Docker is easier), call the function : **niftymic_reconstruct_volume_from_slices.py**. It's a slightly modified version of **niftymic_reconstruct_volume.py** and allows you to run the pipeline suggested in NiftyMIC on the registered data. 
+Move **ROSI/rosi/NiftyMIC/niftymic_reconstruct_volume_from_slices.py** into your NiftyMIC folder.
+
+The script do : 
+- Brain segmentation
+- Biais field correction
+- 3D Reconstruction only, using previously estimated transformation
+- Volumetric reconstruction in template space (for better visualisation)
+
 
 Example :
 ```
@@ -61,13 +44,9 @@ python niftymic_reconstruct_volume_from_slices.py \
 --filenames image_axial.nii.gz image_coronal.nii.gz image_sagittal.nii.gz
 --filenames-masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
 --dir-input-mc res_registration_mvt 
---output reconstruction_niftymic
+--dir-output reconstruction_niftymic
 ```
 
-
-# Visualisation
-
-The results can be visualize with **3Ddisplay.ipynb** and **3Ddisplay_realdata.ipynb**. You can select directly the pass to the joblib directory
 
 # References 
 
