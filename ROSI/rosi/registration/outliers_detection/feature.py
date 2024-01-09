@@ -1,7 +1,7 @@
 from math import ceil
 import pickle
 
-from numpy import concatenate, median, reshape, squeeze, std, where, zeros, array, sum, isinf, isnan, nan, ones, linspace
+from numpy import concatenate, median, quantile, reshape, squeeze, std, where, zeros, array, sum, isinf, isnan, nan, ones, linspace,mean
 from rosi.registration.intersection import cost_between_2slices,ncc_between2slice
 from rosi.registration.outliers_detection.outliers import sliceFeature
 from rosi.registration.sliceObject import SliceObject
@@ -516,13 +516,18 @@ def detect_misregistered_slice(listOfSlices : 'list[SliceObject]',
      #note à moi meme : si possible udapte directement les features
      list_without_outliers = [sliceFeature(slice_k.get_stackIndex(),slice_k.get_indexSlice()) for slice_k in listOfSlices] 
      update_features(listOfSlices,list_without_outliers,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrx) 
-     features= ['mse','inter','dice'] 
+     features= ['mse','inter'] 
 
      #convert the data into input for the classifier
-     X=data_to_classifier_real(list_without_outliers,features)
+     #X=data_to_classifier_real(list_without_outliers,features)
      
      #classifier for prediction
-     estimated_y=loaded_model.predict(X)
+     #estimated_y=loaded_model.predict(X)
+     mse_vect = [f.get_mse() for f in list_without_outliers]
+     q1 = quantile(mse_vect,0.25)
+     q3 = quantile(mse_vect,0.75)
+     estimated_y = mse_vect > (2.5*q3 - 1.5*q1)
+     estimated_y = mse_vect > (1.25*mean(mse_vect))
      #out_image,list_without_outliers = detect_slices_out_of_images(list_without_outliers,intersection_matrix)
      
      return abs(estimated_y)    
