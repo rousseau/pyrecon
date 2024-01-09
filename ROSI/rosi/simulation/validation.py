@@ -10,7 +10,6 @@ This script aims to create motion simulation on an MRI image to validate the reg
 """
 
 import numpy as np
-import random as rd
 from ..registration.intersection import common_segment_in_image 
 #import common_segment_in_image
 from scipy.ndimage import map_coordinates
@@ -19,7 +18,6 @@ from rosi.registration.tools import separate_slices_in_stacks
 from rosi.registration.outliers_detection.outliers import sliceFeature
 from rosi.registration.outliers_detection.outliers import separate_features_in_stacks
 from rosi.registration.sliceObject import SliceObject
-import joblib
 from nibabel import Nifti1Image
 
 

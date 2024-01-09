@@ -11,13 +11,10 @@ import matplotlib.pyplot as plt
 import joblib
 import os
 from rec_ebner import computeRegErrorEbner
-from tools import createVolumesFromAlist
 from load import loadSlice
-from data_simulation import ErrorOfRegistrationBtw2Slice, findCommonPointbtw2V, ErrorOfRegistrationBtw2SliceBySlice,compute_registration_error
+from data_simulation import compute_registration_error
 import nibabel as nib
 from os.path import exists
-import json
-from outliers_detection_intersection import ErrorSlice, createVolumesFromAlistError
 
 
 

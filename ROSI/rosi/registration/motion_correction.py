@@ -1,21 +1,21 @@
 
 from time import perf_counter
-from numpy import float, array,max
-from numpy import linspace, where, zeros, sqrt, asarray
+from numpy import float64, array,max
+from numpy import zeros, sqrt, asarray
 
 from .outliers_detection.outliers import sliceFeature
 
 from .optimisation import algo_optimisation
 from .intersection import compute_cost_from_matrix, compute_cost_matrix
 from .outliers_detection.feature import detect_misregistered_slice, update_features
-from .outliers_detection.multi_start import  removeBadSlice, correct_misregisterd, correct_slice
+from .outliers_detection.multi_start import  removeBadSlice, correct_slice
 from .tools import computeMaxVolume
 import os
 
 import pickle
 
 root = os.getcwd()
-load_model = pickle.load(open(root+'/my_model_test.pickle','rb'))
+load_model = pickle.load(open('ROSI/my_model_mse_mask_proportion_inter_dice_std.pickle','rb'))
 
 def global_optimisation(hyperparameters,listSlice,ablation):
 
@@ -34,7 +34,7 @@ def global_optimisation(hyperparameters,listSlice,ablation):
         
         
 
-    hyperparameters = asarray(hyperparameters,dtype=float)
+    hyperparameters = asarray(hyperparameters,dtype=float64)
 
     """
     Compute the optimised parameters for each slice. At the end of the function parameters of each slice must be the optimised parameters. The function returns the evolution of the registration on each iterarion.
