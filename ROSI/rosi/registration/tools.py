@@ -10,15 +10,10 @@ import numpy as np
 from numpy import linspace
 from numpy import concatenate
 from numpy import zeros
-from numpy import reshape
-from numpy import std
 from numpy import sum
-from numpy.linalg import eig,inv
-from scipy.linalg import expm
 from scipy.ndimage.filters import gaussian_filter
 from nibabel import Nifti1Image
 from scipy.ndimage import distance_transform_cdt
-from .transformation import rigidMatrix
 from .sliceObject import SliceObject
 from numba import jit
 
@@ -52,7 +47,7 @@ def separate_slices_in_stacks(listOfSlice : 'list[SliceObject]') -> (np.array('l
     volume_index=[]; volumes=[]; volume_masks=[]
 
     for slicei in listOfSlice:
-        stack_of_slicei = slicei.get_stackIndex()
+        stack_of_slicei = slicei.get_indexVolume()
         #print(stack_of_slicei)
 
         if stack_of_slicei in volume_index: #if we already encounter a slice from this volume

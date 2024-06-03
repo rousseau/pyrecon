@@ -1,57 +1,59 @@
-# Motion Correction of 2D slices MRI
+## Registration Based on Orthogonal Slices Intersection (ROSI) 
+ROSI performs registration on fetal MRI stacks of 2D slices. To performs 3D reconstruction, results can be pluge to other 3D reconstruction method (ex: NiftyMIC [3][4][5], or NesVOR [6]
 
-## Registration of Real Data
+ROSI performs in three stages : 1. First, motion correction is applied to all slices. 2. Second, a trained classifier is used to identify potentially misaligned slices. 3. A multi-start optimization approach allows for the correction of potentially misaligned slices.
 
-To correct motion on real data, use the script **ROSI/main_realdata.py**. This script corrects motion in stacks of 2D images acquired in different orientations. It provides the evolution of the error (mse and dice), the evolution of the motion parameters (3 rotations and 3 translations) and the evolution of the estimated transformations between image coordinates and world coordinates. These results are stored in the file "res_reigstration.joblib.gz".
+Results are saved in a joblib format, wich contains : 
+- the list of slices
+- the value of the cost at each iteration
+- the value of the dice coefficient at each iteration
+- the value of the squared error between each pair of slices, at each iteration
+- the number of points on which the square error is computed between each pair of slices, at each iteration
+- the number of intersecting points between each pair of slices, at each iteration
+- the number points on the union between each pair of slices, at each iteration
+- the list of indices corresponding to rejected slices
+- the list containing features for all slices.
+- (the Target Registration Error (TRE) for each slices)
 
-Example : 
+# To run ROSI on real data : 
+A basic usage is : 
+
 ```
-python main_realdata.py \
---filenames image_axial.nii.gz image_coronal.nii.gz image_sagittal.nii.gz \
---filenames_masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
---hyperparameters 4 0.25 2000 2 0 0
---ablation multistart no_dice Nelder-Mead
---output res_registration
-```
-
-where filenames and output are required. filenames are the stacks of 2D images. filenames_mask are the corresponding brain masks. 
-
-Hyperparameters corresponds to the choice of hyperparameters and represents: delta (size of the initial simplex), xatol (tolerance on parameters for the optimisation algorithm), maxiter (maximum number of iterations in the optimisation algorithm), error (local convolution criterion), omega (number of cubes in the cost function), sigma (value for Gaussian filtering).
-**It is recommended to use the suggested parameters**.
-
-Ablation has been added for development purposes. The first parameter allows you to choose between 'no_multisart' and 'multistart'. If you choose 'multistart', multistart will be performed after registration. Second parameter, you can choose between 'dice' and 'no_dice'. The third parameter is the optimisation algorithm. **It is recommended to use Nelder-Mead**.
-
-
-Corrected transformations for the slices are saved in 'res_registration_mvt'. The format of saved transformation is adapted for reconstruction with **NiftyMIC algorithm**[1][2][3].
-
-# Reconstruction with NiftyMIC
-
-It is possible to reconstruct the motion corrected data from our algorithm using NiftyMIC:
-
-After installing NiftyMIC (using Docker is easier), call the function : **niftymic_reconstruct_volume_from_slices.py**. It's a slightly modified version of **niftymic_reconstruct_volume.py** and allows you to run the pipeline suggested in NiftyMIC on the registered data. 
-Move **ROSI/rosi/NiftyMIC/niftymic_reconstruct_volume_from_slices.py** into your NiftyMIC folder.
-
-The script do : 
-- Brain segmentation
-- Biais field correction
-- 3D Reconstruction only, using previously estimated transformation
-- Volumetric reconstruction in template space (for better visualisation)
-
-
-Example :
-```
-python niftymic_reconstruct_volume_from_slices.py \
---filenames image_axial.nii.gz image_coronal.nii.gz image_sagittal.nii.gz
---filenames-masks mask_axial.nii.gz mask_coronal.nii.gz mask_sagittal.nii.gz \
---dir-input-mc res_registration_mvt 
---dir-output reconstruction_niftymic
+python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output
 ```
 
+Eventually, you could specify different parameters for the optimization, for example:
+```
+python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --intial_simplex 4 --final_simplex 0.25 --local_convergence 0.25 --omega 0 --optimisation "Nelder-Mead"
+```
+
+If you don't want to use multistart, specify : 
+```
+python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --no_multistart 1
+```
+
+# To run ROSI on simulated data :
+
+Data can be simulated with : 
+```
+python scriptSimulData.py --hr HR_image.nii.gz --mask HR_brainmask.nii.gz --output ouptut_directory --motion -3 3
+```
+Then you can run ROSI with : 
+```
+python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --tre 1
+```
+The Joblib output will include the TRE value for each slice.
 
 # References 
 
-[1] [EbnerWang2020] Ebner, M., Wang, G., Li, W., Aertsen, M., Patel, P. A., Aughwane, R., Melbourne, A., Doel, T., Dymarkowski, S., De Coppi, P., David, A. L., Deprest, J., Ourselin, S., Vercauteren, T. (2020). An automated framework for localization, segmentation and super-resolution reconstruction of fetal brain MRI. NeuroImage, 206, 116324.
+[1] Mercier, C., Faisan, S., Pron, A., Girard, N., Auzias, G., Chonavel, T., & Rousseau, F. (2023, August). Estimation de mouvement rétrospective pour l'IRM cérébrale foetale. In GRETSI 2023.
 
-[2] [EbnerWang2018] Ebner, M., Wang, G., Li, W., Aertsen, M., Patel, P. A., Melbourne, A., Doel, T., David, A. L., Deprest, J., Ourselin, S., Vercauteren, T. (2018). An Automated Localization, Segmentation and Reconstruction Framework for Fetal Brain MRI. In Medical Image Computing and Computer-Assisted Intervention -- MICCAI 2018 (pp. 313–320). Springer.
+[2] Mercier, C., Faisan, S., Pron, A., Girard, N., Auzias, G., Chonavel, T., & Rousseau, F. (2023, October). Retrospective motion estimation for fetal brain MRI. In 2023 Twelfth International Conference on Image Processing Theory, Tools and Applications (IPTA) (pp. 1-6). IEEE.
 
-[3] [Ebner2018]PANIST Ebner, M., Chung, K. K., Prados, F., Cardoso, M. J., Chard, D. T., Vercauteren, T., Ourselin, S. (2018). Volumetric reconstruction from printed films: Enabling 30 year longitudinal analysis in MR neuroimaging. NeuroImage, 165, 238–250
+[3] Ebner, M., Wang, G., Li, W., Aertsen, M., Patel, P. A., Aughwane, R., Melbourne, A., Doel, T., Dymarkowski, S., De Coppi, P., David, A. L., Deprest, J., Ourselin, S., Vercauteren, T. (2020). An automated framework for localization, segmentation and super-resolution reconstruction of fetal brain MRI. NeuroImage, 206, 116324.
+
+[4] Ebner, M., Wang, G., Li, W., Aertsen, M., Patel, P. A., Melbourne, A., Doel, T., David, A. L., Deprest, J., Ourselin, S., Vercauteren, T. (2018). An Automated Localization, Segmentation and Reconstruction Framework for Fetal Brain MRI. In Medical Image Computing and Computer-Assisted Intervention -- MICCAI 2018 (pp. 313–320). Springer.
+
+[5] Ebner, M., Chung, K. K., Prados, F., Cardoso, M. J., Chard, D. T., Vercauteren, T., Ourselin, S. (2018). Volumetric reconstruction from printed films: Enabling 30 year longitudinal analysis in MR neuroimaging. NeuroImage, 165, 238–250
+
+[6] Xu, J., Moyer, D., Gagoski, B., Iglesias, J. E., Grant, P. E., Golland, P., & Adalsteinsson, E. (2023). Nesvor: Implicit neural representation for slice-to-volume reconstruction in mri. IEEE Transactions on Medical Imaging.

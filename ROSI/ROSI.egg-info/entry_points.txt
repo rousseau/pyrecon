@@ -1,0 +1,2 @@
+[console_scripts]
+run_registration = rosi.run_registration_function:main

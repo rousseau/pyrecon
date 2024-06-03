@@ -7,7 +7,7 @@ from rosi.registration.outliers_detection.outliers import sliceFeature
 from rosi.registration.sliceObject import SliceObject
 from rosi.registration.tools import separate_slices_in_stacks, somme
 from rosi.simulation.validation import theorical_misregistered
-
+import numpy as np
 
 import scipy
 import csv
@@ -127,14 +127,13 @@ def update_features(listOfSlice : 'list[SliceObject]',
     
     slices_index = range(0,len(listOfSlice))
     slices_index = array(slices_index)
-    index_variance = array([img[0].get_stackIndex() for img in stacks])
-    print(index_variance)
-    
+    index_variance = array([img[0].get_indexVolume() for img in stacks])
+ 
     for k in slices_index:
         
         current_feature = listOfFeatures[k]
         slicek=listOfSlice[k]
-        fk=slicek.get_stackIndex()
+        fk=slicek.get_indexVolume()
         vk = where(index_variance==fk)[0][0]
         var_fk=variance[vk]
      
@@ -143,29 +142,35 @@ def update_features(listOfSlice : 'list[SliceObject]',
         #sum _{i=1,i!=fk} (1/ (var_fk + var_i)) *( ( sum_{k',f(k)=i} S^2(k,k') ) /  ( sum_{k',f(k)=i} N^2(k,k') ) )
         stack = stacks[vk]
         mse=[]
+        nmse=[]
         for i_stack in range(0,len(stacks)):
             if i_stack != vk:
-
-                var_i = variance[i_stack]
-                interesting_values  = [(slicei.get_stackIndex()==fk or slicei.get_stackIndex()==i_stack) for slicei in listOfSlice]
                 
+                vi = where(index_variance==i_stack)[0][0]
+                var_i = variance[vi]
+                #interesting_values  = [(slicei.get_stackIndex()==fk or slicei.get_stackIndex()==i_stack) for slicei in listOfSlice]
+                interesting_values  = [(slicei.get_indexVolume()==i_stack) for slicei in listOfSlice]
                 interesting_values = array(interesting_values)
                 zeros_values = slices_index[where(interesting_values==False)[0]]
-                print('slice',k,zeros_values)
                 mse_tmp=compute_outliers_mse(k,listOfSlice,zeros_values,square_error_matrix,nbpoint_matrix)
-                mse.append((1/(var_fk+var_i))*mse_tmp)
+                nmse.append((1/((var_fk)+(var_i)))*mse_tmp)
+                mse.append(mse_tmp)
+               
                 #*
-        print(mse[0],mse[1])
+
         if len(mse)>1: 
             mse = concatenate(mse)
+            nmse = concatenate(nmse)
+     
         current_feature.set_mse(median(mse))
+        current_feature.set_nmse(median(nmse))
         
+        current_feature.set_nbpoint(np.sum(nbpoint_matrix[:,k])+np.sum(nbpoint_matrix[k,:]))
         
         #Update DICE
         union = concatenate((union_matrix[k,:],union_matrix[:,k]))
         union=array(union)
         index_union = where(union>0)
-        print(index_union)
         union = union[index_union]
         inter = concatenate((intersection_matrix[k,:],intersection_matrix[:,k]))
         inter = inter[index_union] #we take only values where union_matrix is not zeros (if union matrix is zeros then slices to not intersect)
@@ -180,7 +185,7 @@ def update_features(listOfSlice : 'list[SliceObject]',
         current_feature.set_inter(inter)
         
         #Update mask_proportion
-        fk=slicek.get_stackIndex()
+        fk=slicek.get_indexVolume()
         mtot=pmasktot[vk]
         mask=slicek.get_mask()
         mprop=somme(mask)
@@ -250,8 +255,8 @@ def update_features_v2(listOfSlice : 'list[SliceObject]',
                 #print('mse_tmp',mse_tmp)
                 if mse_tmp != 0 :
                     n_stack+=1
-                mse = mse + (1/(var_fk+var_i))*mse_tmp 
-                #mse=mse+mse_tmp
+                #mse = mse + (1/(var_fk+var_i))*mse_tmp 
+                mse=mse+mse_tmp
 
         mse=mse/(n_stack+1e-16)
         current_feature.set_mse(mse)
@@ -297,60 +302,26 @@ def compute_noise_variance(stack : 'list[SliceObject]') -> float:
     some help on computed the noise : 
     Reference: J. Immerkær, “Fast Noise Variance Estimation”, Computer Vision and Image Understanding, Vol. 64, No. 2, pp. 300-302, Sep. 1996
     """
-    
     data=[slice_k.get_slice().get_fdata().squeeze() for slice_k in stack]
     mask=[slice_k.get_mask().squeeze() for slice_k in stack]
- 
+    values = np.concatenate(data)
+    values_mask = np.concatenate(mask)
     laplacien=array([[0,1,0],[1,-4,1],[0,1,0]]) #laplacien filter
-    laplacien_convolution = [scipy.ndimage.convolve(data_slice*mask_slice,laplacien).reshape(-1) for (data_slice,mask_slice) in zip(data,mask)] #convolve with laplacien
-
-    
+    laplacien_convolution = [scipy.ndimage.convolve(data_slice,laplacien) for (data_slice,mask_slice) in zip(data,mask)] #convolve with laplacien
     data_mask = [mask_slice.reshape(-1) for mask_slice in mask]
-    data_mask = concatenate(data_mask)
-     
-    noise = concatenate(laplacien_convolution)
+    data_mask = concatenate(data_mask).reshape(-1)
+    noise = concatenate(laplacien_convolution).reshape(-1) 
     noise=noise[data_mask>0]
-
+    
     #Estimate variance using mad estimator
     med = median(noise)
     mad = median(abs(noise - med))
     k=1.4826
     sigma=(k*mad)
     variance=sigma**2
-        
-    return variance/20
 
-
-def compute_noise_variance_v2(stack : 'list[SliceObject]') -> float:
-    """
-    Compute the noise variance for each volume of the stack. (Used to normalized the MSE for outliers detection)
-    some help on computed the noise : 
-    Reference: J. Immerkær, “Fast Noise Variance Estimation”, Computer Vision and Image Understanding, Vol. 64, No. 2, pp. 300-302, Sep. 1996
-    """
-    
-    data=[slice_k.get_slice().get_fdata().squeeze() for slice_k in stack]
-    mask=[slice_k.get_mask().squeeze() for slice_k in stack]
- 
-    laplacien=array([[0,1,0],[1,-4,1],[0,1,0]]) #laplacien filter
-    laplacien_convolution = [scipy.ndimage.convolve(data_slice,laplacien).reshape(-1) for (data_slice,mask_slice) in zip(data,mask)] #convolve with laplacien
-
-    
-    data_mask = [mask_slice.reshape(-1) for mask_slice in mask]
-    data_mask = concatenate(data_mask)
-     
-    noise = concatenate(laplacien_convolution)
-    noise=noise[data_mask>0]
-
-    #Estimate variance using mad estimator
-    med = median(noise)
-    mad = median(abs(noise - med))
-    k=1.4826
-    sigma=(k*mad)
-    variance=sigma**2
-        
-    return variance/20
-
-
+   
+    return variance/20 #(1^2*4 + (-4)^2)=20
 
 
 def compute_ncc(k : int,listSlice : 'list[SliceObject]'):
@@ -395,10 +366,8 @@ def compute_outliers_mse(k : int,
     mse_moy=array(mse_moy)
     nbpoint=array(nbpoint)
     index = array(nbpoint>0)
-    print(index)
     mse_moy=array(mse_moy[index==1])
     points_moy=array(nbpoint[index==1])
-    print('slice', k, mse_moy,points_moy)
     if somme(nbpoint[nbpoint>-1])==0:
         return array([0])
     
@@ -428,7 +397,6 @@ def data_to_classifier(listFeatures : 'list[sliceFeature]',
         fe = features[i_feature]
         vaules_features = array([getattr(currentError,'_'+fe) for currentError in listFeatures])
         vaules_features=squeeze(vaules_features)
-        print(vaules_features.shape)
         vaules_features[isnan(vaules_features)]=0
         vaules_features[isinf(vaules_features)]=0
         X[:,i_feature]=vaules_features
@@ -456,7 +424,6 @@ def data_to_classifier_real(listFeatures : 'list[sliceFeature]',
         fe = features[i_feature]
         vaules_features = array([getattr(currentError,'_'+fe) for currentError in listFeatures])
         vaules_features=squeeze(vaules_features)
-        print(vaules_features.shape)
         vaules_features[isnan(vaules_features)]=0
         vaules_features[isinf(vaules_features)]=0
         X[:,i_feature]=vaules_features
@@ -485,7 +452,6 @@ def data_to_classifier_v2(listFeatures : 'list[sliceFeature]',
         fe = features[i_feature]
         vaules_features = array([getattr(currentError,'_'+fe) for currentError in listFeatures])
         vaules_features=squeeze(vaules_features)
-        print(vaules_features.shape)
         vaules_features[isnan(vaules_features)]=0
         vaules_features[isinf(vaules_features)]=0
         X[:,i_feature]=vaules_features
@@ -502,7 +468,8 @@ def data_to_classifier_v2(listFeatures : 'list[sliceFeature]',
 
 def detect_misregistered_slice(listOfSlices : 'list[SliceObject]',
                                cost_matrix : array,
-                               loaded_model : pickle) -> (array,array):
+                               loaded_model : pickle,
+                               threshold : int) -> (array,array):
      """
      Labels each slices to well-registered or badly-registered
      """
@@ -516,19 +483,14 @@ def detect_misregistered_slice(listOfSlices : 'list[SliceObject]',
      #note à moi meme : si possible udapte directement les features
      list_without_outliers = [sliceFeature(slice_k.get_stackIndex(),slice_k.get_indexSlice()) for slice_k in listOfSlices] 
      update_features(listOfSlices,list_without_outliers,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrx) 
-     features= ['mse','mask_proportion','inter','dice','std_intensity']  
+     features= ['inter','nmse','dice'] 
 
      #convert the data into input for the classifier
      X=data_to_classifier_real(list_without_outliers,features)
      
      #classifier for prediction
-     estimated_y=loaded_model.predict(X)
-     #mse_vect = [f.get_mse() for f in list_without_outliers]
-     #q1 = quantile(mse_vect,0.25)
-     #q3 = quantile(mse_vect,0.75)
-     #estimated_y = mse_vect > (2.5*q3 - 1.5*q1)
-     #estimated_y = mse_vect > (1.25*mean(mse_vect))
-     #out_image,list_without_outliers = detect_slices_out_of_images(list_without_outliers,intersection_matrix)
+     proba=loaded_model.predict_proba(X)
+     estimated_y = proba[:,0]<threshold
      
      return abs(estimated_y)    
 

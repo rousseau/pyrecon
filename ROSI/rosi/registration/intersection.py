@@ -6,23 +6,12 @@ Created on Tue Oct 19 13:59:55 2021
 """
 
 
-from nibabel import Nifti1Image
 import numpy as np
-from numpy import concatenate, copy, transpose, mean,sqrt,asarray,array, cross, std,ascontiguousarray,float_,equal, where, abs, shape,nan,reshape,isinf,eye,logical_or,ones,all,linspace,sum,ceil,isnan,zeros, logical_and
+from numpy import concatenate, copy, mean,array, cross, std,ascontiguousarray,float_,equal, abs, shape,nan,logical_or,ones,linspace,sum,isnan,zeros, logical_and
 from numpy.linalg import norm,inv
-from numpy.random import shuffle
 from scipy.ndimage import map_coordinates
-from scipy.optimize import minimize
-from scipy import stats
-from time import perf_counter
-from .tools import line, separate_slices_in_stacks,apply_gaussian_filtering, computeMaxVolume, somme
-from .transformation import ParametersFromRigidMatrix, rigidMatrix
-from numba import jit,njit
-from multiprocessing import Pool
-from functools import partial
-import pickle
-from .outliers_detection.outliers import sliceFeature, separate_features_in_stacks
-from scipy.optimize import Bounds
+from .tools import line, somme
+from numba import jit
 from .sliceObject import SliceObject
 
 
@@ -662,7 +651,10 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
    
     numerator = sum(grid_numerator[new_ind])# * grid_outliers)
     denumerator = sum(grid_denumerator[new_ind])# * grid_outliers)
+    #numerator = sum(grid_numerator)
+    #denumerator = sum(grid_denumerator)
 
+    #cost = np.sum(numerator)/npdenumerator)
     if denumerator==0:
         cost=nan
     cost=numerator/denumerator
@@ -715,83 +707,19 @@ def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     new_ind = np.array(new_ind,dtype=bool)
 
 
-    dice = sum(intersection_matrix)
+    dice = sum(intersection_matrix[new_ind])
     dice=dice/Vmx
-    #print(dice)
-    #dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
-    #print('nbslice',i_slice,'mse',mse,'dice',dice)
-    #print(dice/Vmx)
 
-    cost = mse - lamb*(dice)
+
+    cost = mse - lamb*(dice) #+ lamb*(union)
     #print(cost)
     return cost
 
 
-def cost_fct2(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx,W):
-    """
-    function we want to minimize.
-    """
+
+def cost_multi_start(x_t,x_r,k,listOfSlices,cost_matrix,set_o):
     
-    
-    square_error_matrix = cost_matrix[0,:,:]
-    nbpoint_matrix = cost_matrix[1,:,:]
-    intersection_matrix = cost_matrix[2,:,:]
-    union_matrix = cost_matrix[3,:,:]
-    
-    x = copy(x0) #copy to use bound in miminization fonction
-    #print(x)
-    slicei = listOfSlice[k]
-    #print(x)
-    slicei.set_parameters(x)
-    #print(x)
-    
-    update_cost_matrix(k,listOfSlice,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix)
-    
-
-    cost_matrix = array([square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix])
-   
-    #print(type(set_o[0]))
-    #set_o = zeros((len(listSlice)))
-    em = np.zeros((len(listOfSlice),len(listOfSlice)))
-    for i_slice in range(0,len(listOfSlice)):
-        em[i_slice,:] = W*square_error_matrix[i_slice,:]
-        em[:,i_slice] =  W*square_error_matrix[i_slice,:]
-    mse = cost_from_matrix(em,nbpoint_matrix,set_o,k)
-
-    nbslice = shape(intersection_matrix)[0]
-    i_slice1 = linspace(0,nbslice,nbslice,dtype=int)
-    i_slice2 = linspace(0,nbslice,nbslice,dtype=int)
-    index=np.meshgrid(i_slice1,i_slice2)
-    bool_ind=index[0]<index[1]
-
-    outliers = 1-set_o
-    outliers = outliers
-    outliers[k] = 1
-    #print('sum outliers :',sum(outliers))
-    tmp_mat = [outliers[i]*bool_ind[:,i] for i in range(0,nbslice) ]
-    tmp_mat = np.concatenate(tmp_mat)
-    tmp_mat = tmp_mat.reshape((nbslice,nbslice)).T
-    new_ind = [outliers[i]*tmp_mat[i,:] for i in range(0,nbslice) ]
-    new_ind = np.concatenate(new_ind)
-    new_ind = new_ind.reshape((nbslice,nbslice))
-    new_ind = np.array(new_ind,dtype=bool)
-
-
-    dice = sum(intersection_matrix[new_ind])
-    dice=dice/Vmx
-    #print(dice)
-    #dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
-    #print('nbslice',i_slice,'mse',mse,'dice',dice)
-    #print(dice/Vmx)
-
-    cost = mse - lamb*(dice)
-    print(cost) 
-    return cost
-
-
-def cost_multi_start(x_t,x_r,k,listOfSlices,cost_matrix,set_o,lamb,Vmx):
-    x0=np.array([x_r[0],x_r[1],x_r[2],x_t[0],x_t[1],x_t[2]])
-    
+    x0=np.array([x_r[0],x_r[1],x_r[2],x_t[0],x_t[1],x_t[2]]) 
     square_error_matrix = cost_matrix[0,:,:]
     nbpoint_matrix = cost_matrix[1,:,:]
     intersection_matrix = cost_matrix[2,:,:]
@@ -801,9 +729,8 @@ def cost_multi_start(x_t,x_r,k,listOfSlices,cost_matrix,set_o,lamb,Vmx):
     slicei.set_parameters(x)
     update_cost_matrix(k,listOfSlices,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix)
     cost_matrix = array([square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix])
-    #dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
-    dice = np.sum(intersection_matrix)
-    dice=dice/Vmx
+    dice = cost_from_matrix(intersection_matrix,union_matrix,set_o,k)
+
 
     return -dice
 

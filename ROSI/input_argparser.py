@@ -35,7 +35,7 @@ class InputArgparser(object):
         nargs="+",
         help="image data in nii.gz",
         default=None,
-        required=False,
+        required=True,
                     ):
         self._add_argument(dict(locals()))
         
@@ -45,7 +45,7 @@ class InputArgparser(object):
         nargs="+",
         help="mask of the data in nii.gz",
         default=None,
-        required=False,
+        required=True,
                     ):
         self._add_argument(dict(locals()))   
         
@@ -76,39 +76,128 @@ class InputArgparser(object):
         type=str,
         help="joblib wich contains all the output data, there is no need to provide extension, ex 'result' ",
         default=None,
-        required=False,
+        required=True,
                    ):
         self._add_argument(dict(locals()))
         
         
-    def add_simulation(
+    def add_transformation(
         self,
-        option_string="--simulation",
+        option_string="--transformation",
         nargs="+",
         help=" ",
         default=None,
         required=False,
                     ):
         self._add_argument(dict(locals()))
-        
-    def add_ablation(
+
+    def add_tre(
         self,
-        option_string="--ablation",
+        option_string="--tre",
+        type=bool,
+        default=0,
+        help="Set to 1 if you are using the simulated data generated from (script_of_simulation) and want to know the TRE (Target Registration Error) obtained on each slice ",
+        ):     
+        self._add_argument(dict(locals()))
+
+    def add_classifier(
+        self,
+        option_string="--classifier",
         type=str,
-        nargs="+",
-        default=None,
+        default='ROSI/my_model_nmse_inter_dice.pickle',
+        help="",
         required=False,
-            ):
+        ):
         self._add_argument(dict(locals()))
         
-    def add_hyperparameters(
+    def add_isimplex(
         self,
-        option_string="--hyperparameters",
-        nargs="+",
-        default=None,
+        option_string="--initial_simplex",
+        type=float,
+        default=4,
+        help="If optimisation is Nelder-Mead: size of the initial simplex used for optimisation, default=4mm",
         required=False,
-            ):
+        ):
         self._add_argument(dict(locals()))
+    
+    def add_fsimplex(
+        self,
+        option_string="--final_simplex",
+        type=float,
+        default=0.25,
+        help="If optimisation is Nelder-Mead: size of the final simplex used for optimisation, default=0.25mm",
+        required=False,
+        ):
+        self._add_argument(dict(locals()))
+    
+    def add_localConvergence(
+        self,
+        option_string="--local_convergence",
+        type=float,
+        default=0.25,
+        help="Value for convergence, default is 2",
+        required=False,
+        ):
+        self._add_argument(dict(locals()))
+    
+    def add_omega(
+        self,
+        option_string="--omega",
+        type=float,
+        default=0,
+        help="Weigth of the intersection in the cost function, 0 by default",
+        required=False,
+        ):
+        self._add_argument(dict(locals()))
+
+    def add_no_mutlistart(
+        self,
+        option_string="--no_multistart",
+        type=bool,
+        default=0,
+        help="Set to 1 if you dont want to use multistart",
+        required=False,
+        ):
+        self._add_argument(dict(locals()))
+    
+    def add_optimisation(
+        self,
+        option_string="--optimisation",
+        type=str,
+        default='Nelder-Mead',
+        help="Optimisation method, refer to : https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html ",
+        required=False,
+        ):
+        self._add_argument(dict(locals()))
+    
+
+    #def add_threshold(
+    #    self,
+    #    option_string="--threshold",
+    #    type=str,
+    #    default=None,
+    #    required=False,
+    #                ):
+    #    self._add_argument(dict(locals()))
+
+
+    #def add_hr(
+    #    self,
+    #    option_string="--hr",
+    #    type=str,
+    #    default=None,
+    #    required=False,
+    #                ):
+    #    self._add_argument(dict(locals()))
+
+    #def add_hr_mask(
+    #    self,
+    #    option_string="--hr_mask",
+    #    type=str,
+    #    default=None,
+    #    required=False,
+    #                ):
+    #    self._add_argument(dict(locals()))
         
     def _add_argument(self, allvars):
 

@@ -17,6 +17,7 @@ class sliceFeature: #object that contains all features for outliers classificati
         self._index = index_slice
         self._dice = 0
         self._mse = 0
+        self._nmse = 0
         self._inter = 0
         self._error = 0
         self._nbpoint = 0
@@ -28,11 +29,12 @@ class sliceFeature: #object that contains all features for outliers classificati
         self._center_distance = 0
         self._ncc=-1
         self._mask_point=0
+        self._errorpoint=0
 
     def add_registration_error(self,new_error):
         self._error=self._error+new_error
-        self._nbpoint=self._nbpoint+1
-        self._slice_error = self._error/self._nbpoint
+        self._errorpoint=self._errorpoint+1
+        self._slice_error = self._error/self._errorpoint
      
     def get_error(self):
         return self._slice_error
@@ -40,7 +42,7 @@ class sliceFeature: #object that contains all features for outliers classificati
     def reinitialized_error(self):
         self._slice_error=0
         self._error=0
-        self._nbpoint=0
+        self._errorpoint=0
     
     def set_error(self,er):
         self._slice_error = er
@@ -56,6 +58,12 @@ class sliceFeature: #object that contains all features for outliers classificati
         
     def get_mse(self):
         return self._mse
+
+    def get_nmse(self):
+        return self._nmse
+
+    def set_nmse(self,new_nmse):
+        self._nmse=new_nmse
     
     def set_mask_proportion(self,pmask):
         self._mask_proportion = pmask
@@ -116,7 +124,9 @@ class sliceFeature: #object that contains all features for outliers classificati
     
     def get_ncc(self):
         return self._ncc
-        
+    
+
+    
 
 def separate_features_in_stacks(list_error_feature : 'list[sliceFeature]') -> ('list[sliceFeature]','list[sliceFeature]','list[sliceFeature]'):
    

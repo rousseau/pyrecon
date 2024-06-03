@@ -1,6 +1,4 @@
 import numpy as np
-from numpy.linalg import inv,eig
-from scipy.linalg import expm
 
 def rotationCentre(mask : np.array) -> np.array:
     """

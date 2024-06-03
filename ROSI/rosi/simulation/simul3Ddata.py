@@ -9,7 +9,7 @@ Created on Mon Jul 25 15:49:35 2022
 import numpy as np
 #import nibabel as nib
 from nibabel import Nifti1Image
-from rosi.registration.tools import rigidMatrix
+from rosi.registration.transformation import rigidMatrix
 from scipy.ndimage import map_coordinates
 import random as rd
 
@@ -69,14 +69,14 @@ def extract_mask(NiftiMask : Nifti1Image) -> Nifti1Image:
    X,Y,Z=NiftiMask.shape
    mask[mask==4]=0
    mask=mask>1e-2
-   newMask = Nifti1Image(mask.astype(np.float),NiftiMask.affine)
+   newMask = Nifti1Image(mask.astype(np.float64),NiftiMask.affine)
     
    return newMask
 
 def simulateMvt(image : Nifti1Image,
                 AngleMinMax : np.array(2),
                 TransMinMax : np.array(2),
-                sub_sampling_index : float,
+                sub_sampling_index : np.float64,
                 stack_num : int,
                 mask : Nifti1Image,
                 motion : bool = True) -> (Nifti1Image,Nifti1Image,np.array,np.array):
@@ -100,9 +100,9 @@ def simulateMvt(image : Nifti1Image,
         
         new_x=x;new_y=y;new_z=z
         current_thikness = image.header.get_zooms()[2]
-        slice_thikness = (current_thikness*new_z)/sub_sampling_index
+        slice_thikness = sub_sampling_index*current_thikness
         #matrix to change image orientation and sub-sample the image
-        sub_sample_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,slice_thikness,0],[0,0,0,1]]) 
+        sub_sample_matrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,sub_sampling_index,0],[0,0,0,1]]) 
 
         
     #create an LR image in coronal orientation
@@ -110,9 +110,9 @@ def simulateMvt(image : Nifti1Image,
         
         new_x=x;new_y=z;new_z=y
         current_thikness = image.header.get_zooms()[1]
-        slice_thikness = (current_thikness*new_z)/sub_sampling_index
+        slice_thikness = sub_sampling_index*current_thikness
         #matrix to change image orientation and sub-sample the image
-        sub_sample_matrix = np.array([[1,0,0,0],[0,0,slice_thikness,0],[0,1,0,0],[0,0,0,1]])
+        sub_sample_matrix = np.array([[1,0,0,0],[0,0,sub_sampling_index,0],[0,1,0,0],[0,0,0,1]])
 
         
         
@@ -121,16 +121,18 @@ def simulateMvt(image : Nifti1Image,
         
         new_x=z;new_y=y;new_z=x 
         current_thikness = image.header.get_zooms()[0]
-        slice_thikness = (current_thikness*new_z)/sub_sampling_index
+        slice_thikness = sub_sampling_index*current_thikness
         #matrix to change image orientation and sub-sample the image
-        sub_sample_matrix = np.array([[0,0,slice_thikness,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
+        sub_sample_matrix = np.array([[0,0,sub_sampling_index,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
 
    
     else :
         print('unkown orientation, choose between axial, coronal and sagittal')
         return 0
     
-    slices_number=new_z/slice_thikness
+    print("slice_thikness :",slice_thikness)
+    slices_number=np.int32(new_z//sub_sampling_index)
+    print("new_z :",new_z,"slice_number :",slices_number)
     
     #Initialisation
     low_resolution_image = np.zeros((new_x,new_y,slices_number))
@@ -142,6 +144,7 @@ def simulateMvt(image : Nifti1Image,
     
     hr_to_world = image.affine
     lr_to_world =  hr_to_world @ sub_sample_matrix
+    print(lr_to_world)
 
     
     #point coordinate for the PSF (in voxel coordinate)
@@ -246,78 +249,4 @@ def simulateMvt(image : Nifti1Image,
 
 
 
-
-def displaySampling(image,TransfoImages):
-    """
-    The function display the sampling point that are taken on the HR image, when simulated motion in a low resolution image
-    image is the HR original image 
-    TransfoImages is the list of transformation applied to the low resolution slice. Transfo is an array of slice three, the first element are transformation of the axial image, second from the coronal and third, from the sagittal.
-
-    """
-    
-    #result image
-    X,Y,Z = image.shape
-    res = np.zeros((X,Y,Z))
-    
-    sliceRes=6
-    
-    imageAffine=image.affine
-    
-    #Transformation are considered for three stacks: axial, coronal and sagittal
-    for indexTransfo in range(len(TransfoImages)):
-        
-        TR = TransfoImages[indexTransfo]
-        
-        #create low resolution images,  in axial, coronal and sagittal
-        if indexTransfo==0 :
-            S1=X;S2=Y;S3=Z
-            transfo = np.array([[1,0,0,0],[0,1,0,0],[0,0,sliceRes,0],[0,0,0,1]])
-        elif indexTransfo==1 :
-            S1=X;S2=Z;S3=Y
-            transfo = np.array([[1,0,0,0],[0,0,sliceRes,0],[0,1,0,0],[0,0,0,1]])
-        elif indexTransfo==2 :
-            S1=Z;S2=Y;S3=X #Z,Y
-            transfo = np.array([[0,0,sliceRes,0],[0,1,0,0],[1,0,0,0],[0,0,0,1]])
-            
-        LRAffine = imageAffine @ transfo
-        nbTransfo = TR.shape[0]
-
-        zi=0
-        for it in range(nbTransfo):
-            
-            T1=TR[it,:,:]
-            
-            coordinate_in_lr = np.zeros((4,S1*S2*6)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
-            #create the coordinate of points of the slice i in the LR image, with 6 points per voxel, center in 0
-            ii = np.arange(0,S1) 
-            jj = np.arange(0,S2)
-    
-            zz = np.linspace(0,1,6,endpoint=False)
-            
-            iv,jv,zv = np.meshgrid(ii,jj,zz,indexing='ij')
-
-            iv = np.reshape(iv, (-1))
-            jv = np.reshape(jv, (-1))
-            zv = np.reshape(zv, (-1))
-            
-            
-            coordinate_in_lr[0,:] = iv
-            coordinate_in_lr[1,:] = jv
-            coordinate_in_lr[2,:] = zi+zv
-            coordinate_in_lr[3,:] = 1#np.ones(S1*S2*1)
-            
-            coordinate_in_world = T1 @ LRAffine @ coordinate_in_lr
-            coordinate_in_hr = np.round(np.linalg.inv(image.affine) @ coordinate_in_world).astype(int) #np.linalg.inv(image.affine) @ coordinate_in_world
-            
-            zi=zi+1
-            nb_point=coordinate_in_hr[0:3,:].shape[1]
-            
-            for p in range(nb_point):
-                x,y,z=coordinate_in_hr[0:3,p]
-                if x<X  and x>0 and y>0 and y<Y and z>0 and z<Z:
-                    res[x,y,z]=image.get_fdata()[x,y,z]
-           
-        
-    img_res=Nifti1Image(res,image.affine)
-    return img_res
 

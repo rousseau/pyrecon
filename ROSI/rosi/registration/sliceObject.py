@@ -13,8 +13,9 @@ from nibabel import Nifti1Image
 """
 A sliceObject is a 2D image that
 * belongs to a stack : self.__stack_index
+* has an 2D binary segmetantion 
 * has a position within a stack : self.__slice_index 
-* has a particular orientation (e.g. axial) : self.__image_index
+* has a particular orientation (e.g. axial) : self.__volume_index
 * has a brain segmentation : self.__mask
 * has an estimated position in the world coordinate system : self._estimated_transfo   
 """
@@ -30,12 +31,12 @@ class SliceObject:
         self.__2dslice = sliceimage  
         self.__parameters = np.zeros(6) #initial parameters of the rigid transformation, 3 for rotation and 3 for translation
         self.__rigid_matrix = rigidMatrix(self.__parameters) #initial rigid matrix : M(theta_k,t_k)
-        slice_centrer_in_world = rotationCentre(slicemask) #The barycentre of the mask
+        slice_center_in_image = rotationCentre(slicemask) #The barycentre of the mask
         
         self.__corner_to_center = np.eye(4) 
         self.__center_to_corner = np.eye(4) 
         slice_transformation = self.__2dslice.affine #transformation matrix to convert the 2d slice into the world coordinate system
-        center = slice_transformation @ slice_centrer_in_world #the barycentre of the mask, converted to world coordinate system : c_k
+        center = slice_transformation @ slice_center_in_image #the barycentre of the mask, converted to world coordinate system : c_k
         self.__corner_to_center[0:3,3] = -center[0:3] #Translation, in world coordinates, from the slice corner (point (0,0) - the default value when applying a transformation) to the slice centre : T(-c_k)
         self.__center_to_corner[0:3,3] = +center[0:3] #the inverse translation : T(c_k)
         

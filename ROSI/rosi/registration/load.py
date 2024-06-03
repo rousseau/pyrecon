@@ -37,7 +37,7 @@ def convert2Slices(stack : Nifti1Image,
     for zi in range(Z): #for each slices in the stack
         
         slice_value[:,:,0] = stack.get_fdata()[:,:,zi]
-        slice_mask[:,:,0] = mask.get_fdata()[:,:,zi]
+        slice_mask[:,:,0] = mask.get_fdata()[:,:,zi].astype(int)
         slice_mask[np.isnan(slice_mask)]=0
         
         #The slice is linearly cropped according to the distance to the mask
