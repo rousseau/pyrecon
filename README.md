@@ -1,9 +1,9 @@
 ## Registration Based on Orthogonal Slices Intersection (ROSI) 
-ROSI performs registration on fetal MRI stacks of 2D slices. To performs 3D reconstruction, results can be pluge to other 3D reconstruction method (ex: NiftyMIC [3][4][5], or NesVOR [6]
+ROSI performs registration on fetal MRI stacks of 2D slices. To perform 3D reconstruction, results can be plugged to other 3D reconstruction method (ex: NiftyMIC [3][4][5], or NesVOR [6]).
 
-ROSI performs in three stages : 1. First, motion correction is applied to all slices. 2. Second, a trained classifier is used to identify potentially misaligned slices. 3. A multi-start optimization approach allows for the correction of potentially misaligned slices.
+ROSI consists in three stages: 1. motion correction is applied to all slices. 2. a trained classifier is used to identify potentially misaligned slices. 3. a multi-start optimization approach allows for the correction of potentially misaligned slices.
 
-Results are saved in a joblib format, wich contains : 
+Results are saved in a joblib format, wich contains: 
 - the list of slices
 - the value of the cost at each iteration
 - the value of the dice coefficient at each iteration
