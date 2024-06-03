@@ -13,6 +13,7 @@ Results are saved in a joblib format, wich contains :
 - the number points on the union between each pair of slices, at each iteration
 - the list of indices corresponding to rejected slices
 - the list containing features for all slices.
+- (the Target Registration Error (TRE) for each slices)
 
 # To run ROSI on real data : 
 A basic usage is : 
@@ -41,6 +42,7 @@ Then you can run ROSI with :
 ```
 python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --tre 1
 ```
+The Joblib output will include the TRE value for each slice.
 
 # References 
 
