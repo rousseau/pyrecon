@@ -94,7 +94,6 @@ for file in ${images_list}
 for data in ${file_list}
 	    do	
 
-			 echo 'igli is so cute'
 		     #echo $data
 		     #fonction "$data" 
 

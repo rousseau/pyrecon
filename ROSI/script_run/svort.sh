@@ -87,7 +87,6 @@ for data in ${images_list}
 
 			for file in ${file_list}
 				do
-				echo 'igli is so cute'
 		   		echo $file
 		    	fonction "$file" 
 				done
