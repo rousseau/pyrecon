@@ -17,14 +17,14 @@ echo $listr
 #	sim_list+=(${sim#*${simul_file}'/'})
 #done
 
-output_path='../res/no_flip'
+output_path='../res/check_code'
 mkdir $output_path
 #echo $images_list
 
 docker start wizardly_brattain
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
-results='../res/no_flip/value'
+results='../res/check_code/value'
 mkdir $results
 for file in ${images_list}
 	do     
@@ -100,7 +100,6 @@ for file in ${images_list}
 for data in ${file_list}
 	    do	
 
-			 echo 'igli is so cute'
 		     #echo $data
 		     #fonction "$data" 
 
@@ -224,7 +223,7 @@ do
 		#simuldata=${simul_file}${simul}
 		echo $simul
 		
-		task "$simul" &
+		#task "$simul" &
 		
 		#echo 'simul directory'
 		#echo $simul &
