@@ -4,7 +4,7 @@ simul_file='../simu_no_flip'
 
 
 echo $images_file
-images_list="$(find $images_file -name '*sub*' -type d)"
+images_list="$(find $images_file -name '*sub-0828*' -type d)"
 images_simul="$(find $simul_file -type d )"
 mask="$(find $simul_file -type d -name '*brain_mask*')"
 #echo $images_simul
@@ -66,6 +66,7 @@ for file in ${images_list}
 		     mkdir ${results}'/'${file1}
 		     mkdir ${results}'/'${file1}'/'${file2}
 		     output_registration=${results}'/'${sub_file}'/res_test_lamb0'
+			 echo $output_registration
 
 		
 		     #
@@ -101,7 +102,7 @@ for data in ${file_list}
 	    do	
 
 		     #echo $data
-		     #fonction "$data" 
+		     fonction "$data" 
 
 		done
 

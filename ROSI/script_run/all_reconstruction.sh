@@ -4,7 +4,7 @@ simul_file='../simu'
 
 
 echo $images_file
-images_list="$(find $images_file -name  '*sub-0340*'  -type d)"
+images_list="$(find $images_file -name  '*sub-0004*'  -type d)"
 images_simul="$(find $simul_file -type d )"
 echo $images_simul
 mask="$(find $simul_file -type d -name '*brain_mask*')"
@@ -18,14 +18,14 @@ echo $listr
 #	sim_list+=(${sim#*${simul_file}'/'})
 #done
 
-output_path='../res/outliers'
+output_path='../res/check_code/'
 mkdir $output_path
 #echo $images_list
 
 #docker start wizardly_brattain
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
-results='/mnt/Data/Chloe/res/res/lamb0/value/'
+results='../res/check_code/value'
 mkdir $results
 for file in ${images_list}
 	do     
@@ -77,7 +77,7 @@ for file in ${images_list}
 		    
 		     mkdir ${results}'/'${file1}
 		     mkdir ${results}'/'${file1}'/'${file2}
-		     output_registration='~/Chloe/res/res/multi/final_multi_start/value/'${sub_file}'/res_test_final_multi_start_2'
+		     output_registration='../res/check_code/value/'${sub_file}'/res_test_lamb0_mvt'
 
 		
 		     #
@@ -85,7 +85,7 @@ for file in ${images_list}
 		
 
 		     output_reconstruction_inter=${output_path}'/'${sub_file}'/intersection_test.nii.gz'
-		     output_reconstruction_pipeline='NiftyMIC/ipta/'${sub_file}'/outliers/'
+		     output_reconstruction_pipeline='NiftyMIC/ipta/'${sub_file}
 		
 		     dir_output=${output_path}'/'${sub_file}'/pipeline_multi/final_multi_start/recon_subject_space/motion_correction'
 		     echo $output_registration
@@ -95,11 +95,11 @@ for file in ${images_list}
 			 docker exec ebner mkdir 'NiftyMIC/ipta/'
 	     	 docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}
 		     docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}
-			 docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}'/outliers'
+			 docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}
 
-		     docker cp ${output_registration}'_mvt' ebner:'/app/NiftyMIC/ipta/'${file1}'/'${file2}'/res_test_final_mutli_start_2_mvt'
+		     docker cp ${output_registration} ebner:'/app/NiftyMIC/ipta/'${file1}'/'${file2}'/res_test_lamb0_mvt'
 
-		     dir_output_motion='NiftyMIC/ipta/'${sub_file}'/res_test_final_multi_start_2_mvt'
+		     dir_output_motion='NiftyMIC/ipta/'${sub_file}'/res_test_lamb0_mvt'
 		     #echo $dir_output_motion
 		                   
 		     docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline  --dir-input-mc $dir_output_motion 
@@ -111,8 +111,8 @@ for file in ${images_list}
 for data in ${file_list}
 	    do	
 
-		     echo $data
-		     #fonction "$data" 
+		     #echo $data
+		     fonction "$data" 
 
 		done
 
@@ -217,8 +217,8 @@ task (){
 			#python ROSI/main.py --filenames ${image}  --filenames_masks "${mask[@]}" --nomvt "${nomvt[@]}" --simulation "${transfo[@]}" --output ${output_simul}  --ablation no_multistart dice --hyperparameters 4 0.3 2000 2 1 0 --classifier 'ROSI/my_model_mse_inter_std_intensity_mask_proportion_dice.pickle' 
 			docker exec ebner mkdir 'NiftyMIC/ipta/'${suffix} 
 			docker exec ebner mkdir 'NiftyMIC/ipta/'${suffix}'/lamb0'
-			docker cp ${output_simul}'_mvt'  ebner:'/app/NiftyMIC/ipta/'${suffix}'/lamb0' 
-			dir_output_motion='NiftyMIC/ipta/'${suffix}'/lamb0/res_test_lamb0_mvt'
+			docker cp ${output_simul}  ebner:'/app/NiftyMIC/ipta/'${suffix}'/lamb0' 
+			dir_output_motion='NiftyMIC/ipta/'${suffix}'/res_test_lamb0'
 			docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_res  --dir-input-mc $dir_output_motion  
 			#docker cp e91b0f478887:'/app/NiftyMIC/ipta/'${suffix}'/final_multi_start' ${results}'/simul_data/'${suffix}'/multi/final_multi_start'
 					
@@ -232,7 +232,7 @@ do
 		#simuldata=${simul_file}${simul}
 		echo $simul
 		
-		task "$simul" 
+		#task "$simul" 
 		
 		#echo 'simul directory'
 		#echo $simul &

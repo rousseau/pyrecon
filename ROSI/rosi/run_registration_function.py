@@ -192,7 +192,7 @@ def main():
     #save results
     print('-----Save Results : ')
     dirname = os.path.dirname(__file__)
-    joblib_name = os.path.join(dirname,'../'+ args.output + '.joblib.gz')
+    joblib_name = os.path.join(dirname,'../../'+ args.output + '.joblib.gz')
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     
     

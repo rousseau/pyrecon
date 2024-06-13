@@ -4,7 +4,7 @@ simul_file='../simu_no_flip'
 
 
 echo $images_file
-images_list="$(find $images_file -name '*sub-828*'  -type d)"
+images_list="$(find $images_file -name '*sub-0004*'  -type d)"
 images_simul="$(find $simul_file -type d )"
 mask="$(find $simul_file -type d -name '*brain_mask*')"
 #echo $images_simul
