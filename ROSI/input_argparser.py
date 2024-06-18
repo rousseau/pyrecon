@@ -104,7 +104,7 @@ class InputArgparser(object):
         self,
         option_string="--classifier",
         type=str,
-        default='ROSI/my_model_nmse_inter_dice.pickle',
+        default='my_model_nmse_inter_dice.pickle',
         help="",
         required=False,
         ):
