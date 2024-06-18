@@ -24,10 +24,9 @@ import nibabel as nib
 
 
 def main():
-            
-    input_parser = InputArgparser()
     
-    
+    print('test')
+    input_parser = InputArgparser() 
     input_parser.add_filenames(required=True) #load images
     input_parser.add_filenames_masks(required=True) #load masks
     input_parser.add_output(required=True) #output 
