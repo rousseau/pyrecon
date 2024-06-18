@@ -2,7 +2,7 @@ import os
 
 if __name__=="__main__":
 	
-	DB_path = "/envau/work/meca/data/Fetus/datasets/MarsFet/preprocessing"
+	DB_path = "/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	sequences = ["haste", "tru"]
 
 	subjects = os.listdir(DB_path)
