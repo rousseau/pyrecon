@@ -9,7 +9,7 @@ if __name__=="__main__":
 	subjects.sort()
 	
 	for subject in subjects:
-		subj_dir = os.path.join(DB_path, "preprocessing", subject)
+		subj_dir = os.path.join(DB_path, subject)
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
 		for session in sessions:
