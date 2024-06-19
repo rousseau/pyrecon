@@ -7,10 +7,9 @@ if __name__=="__main__":
 	subjects = os.listdir(DB_path)
 	subjects.sort()
 
-	list_stacks = []
-	list_masks = []
-	
 	for subject in subjects:
+		list_stacks = []
+		list_masks = []
 		subj_dir = os.path.join(DB_path, subject)
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
