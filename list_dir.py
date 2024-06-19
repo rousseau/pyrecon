@@ -24,7 +24,7 @@ if __name__=="__main__":
 				if file.endswith("_desc-denoised_T2w.nii.gz") and 'haste' in file:
 					#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
 					list_stacks.append(file)
-				elif file.endswith("_desc-brainmask_T2w.nii.gz"):
+				elif file.endswith("_desc-brainmask_T2w.nii.gz") and 'haste' in file:
 					list_masks.append(file)
 		print('---stacks----')
 		print(list_stacks)
