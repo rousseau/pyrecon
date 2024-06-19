@@ -12,7 +12,7 @@ if __name__=="__main__":
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
 		print(subj_dir)
-		if subj_dir=='sub-0018':
+		if subject=='sub-0018':
 			for session in sessions:
 				print(session)
 				if session=='ses-0021':
