@@ -193,7 +193,7 @@ def main():
     dirname = os.path.dirname(__file__)
     if not os.path.exists(args.output):
         os.mkdir(args.output)
-    joblib_name = os.path.join(args.output + 'res.joblib.gz')
+    joblib_name = os.path.join(args.output + '/res.joblib.gz')
     #joblib_name = os.path.join(dirname,'../../'+ args.output + '.joblib.gz')
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     
@@ -212,7 +212,7 @@ def main():
         list_prefixImage.append(name)
         
     #parent_dir = getcwd() + '/'
-    path_dir = os.path.join(args.output + 'niftimic_mvt')
+    path_dir = os.path.join(args.output + '/niftimic_mvt')
     #path_dir = path.join(parent_dir, directory)
     if not path.isdir(path_dir):
         mkdir(path_dir) 
