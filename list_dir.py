@@ -11,8 +11,10 @@ if __name__=="__main__":
 		subj_dir = os.path.join(DB_path, subject)
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
+		print(subj_dir)
 		if subj_dir=='sub-0018':
 			for session in sessions:
+				print(session)
 				if session=='ses-0021':
 					list_stacks = []
 					list_masks = []
