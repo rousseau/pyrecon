@@ -17,7 +17,8 @@ if __name__=="__main__":
 			for sequence in sequences:
 				print("--------------" + subject)
 				dir_reconst = os.path.join(DB_path, "", subject, session, sequence)
-				for file in dir_reconst:
+				list_files = os.listdir(dir_reconst)
+				for file in list_files:
 					print(file)
 					if file.endswith("_desc-denoised_T2w.nii.gz"):
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
