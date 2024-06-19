@@ -41,7 +41,7 @@ if __name__=="__main__":
 					os.mkdir(output_ses)
 				print(output_ses)
 				output = os.path.join(output_ses,"res")
-				command = 'python run_registration.py --filenames %s --filenames_mask %s --ouptut %s --no_multistart 1' %(list_stacks,list_masks,output)
+				command = 'python run_registration.py --filenames %s --filenames_mask %s --output %s --no_multistart 1' %(list_stacks,list_masks,output)
 				os.system(command)
 				print(command)
 				print('---stacks----')
