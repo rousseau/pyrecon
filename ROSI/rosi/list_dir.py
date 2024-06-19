@@ -13,7 +13,7 @@ if __name__=="__main__":
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
 		#print(subj_dir)
-		print(subject)
+		#print(subject)
 		if subject=='sub-0018':
 			for session in sessions:
 				print(session)
@@ -39,6 +39,7 @@ if __name__=="__main__":
 				os.mkdir(output_ses)
 				output = os.path.join(output_ses,"/res")
 				command = 'run_registration_function.py --filenames %s --filenames_mask %s --ouptut %s --no_multistart 1' %(list_stacks,list_masks,output)
+				print(command)
 				print('---stacks----')
 				print(list_stacks)
 				print('---masks----')
