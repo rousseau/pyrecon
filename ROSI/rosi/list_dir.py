@@ -34,9 +34,11 @@ if __name__=="__main__":
 				list_stacks = ''.join(str(list_stacks) for list_stacks in list_stacks)
 				list_masks = ''.join(str(list_masks) for list_masks in list_masks)
 				output_sub = os.path.join(res_path,subject)
-				os.mkdir(output_sub)
+				if not os.path.exists(output_sub):
+					os.mkdir(output_sub)
 				output_ses = os.path.join(output_sub,session)
-				os.mkdir(output_ses)
+				if not os.path.exists(output_ses):
+					os.mkdir(output_ses)
 				output = os.path.join(output_ses,"/res")
 				command = 'run_registration_function.py --filenames %s --filenames_mask %s --ouptut %s --no_multistart 1' %(list_stacks,list_masks,output)
 				print(command)
