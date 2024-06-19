@@ -3,6 +3,7 @@ import os
 if __name__=="__main__":
 	
 	DB_path = "/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
+	res_path = "/envau/work/meca/users/2024_mercier.c/results/"
 	
 	subjects = os.listdir(DB_path)
 	subjects.sort()
@@ -30,9 +31,19 @@ if __name__=="__main__":
 							list_stacks.append(file)
 						elif file.endswith("_desc-brainmask_T2w.nii.gz") and 'haste' in file:
 							list_masks.append(file)
+					list_stacks = ''.join(str(list_stacks) for list_stacks in list_stacks)
+					list_masks = ''.join(str(list_masks) for list_masks in list_masks)
+					output_sub = os.join(res_path,subject)
+					os.mkdir(output_sub)
+					output_ses = os.join(output_sub,session)
+					os.mkdir(output_ses)
+					output = os.path.join(output_ses,"/res")
+					command = 'run_registration_function.py --filenames %s --filenames_mask %s --ouptut %s --no_multistart 1' %(list_stacks,list_masks,output)
 				print('---stacks----')
 				print(list_stacks)
 				print('---masks----')
 				print(list_masks)
+
+
             			
                     
