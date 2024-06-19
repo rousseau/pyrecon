@@ -11,7 +11,8 @@ if __name__=="__main__":
 		subj_dir = os.path.join(DB_path, subject)
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
-		print(subj_dir)
+		#print(subj_dir)
+		print(subject)
 		if subject=='sub-0018':
 			for session in sessions:
 				print(session)
