@@ -8,12 +8,12 @@ if __name__=="__main__":
 	subjects.sort()
 
 	for subject in subjects:
-		list_stacks = []
-		list_masks = []
 		subj_dir = os.path.join(DB_path, subject)
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
 		for session in sessions:
+			list_stacks = []
+			list_masks = []
 			dir_session = os.path.join(subj_dir, session)
 			print("--------------" + subject)
 			dir_reconst = os.path.join(DB_path, "", subject, session)
