@@ -18,6 +18,7 @@ if __name__=="__main__":
 				print("--------------" + subject)
 				dir_reconst = os.path.join(DB_path, "", subject, session, sequence)
 				for file in dir_reconst:
+					print(file)
 					if file.endswith("_desc-denoised_T2w.nii.gz"):
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
 						print(file)
