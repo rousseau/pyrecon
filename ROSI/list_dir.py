@@ -9,9 +9,10 @@ if __name__=="__main__":
 	list_data = []
 
 	with open(path_to_subjectofinterest,'r') as csvfile:
-		csvsub = csv.reader(csvfile,delimiter=' ')
+		csvsub = csv.reader(csvfile,delimiter=',')
 
 		for row in csvsub:
+			print(row)
 			data = (row[0],row[1])
 			print(data)
 			list_data.append(data)
