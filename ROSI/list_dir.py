@@ -15,7 +15,7 @@ if __name__=="__main__":
 			print(row)
 			data = (row[0],row[1])
 			print(data)
-			list_data.append(data)
+			list_data.extend(data)
 
 	subjects = os.listdir(DB_path)
 	subjects.sort()
