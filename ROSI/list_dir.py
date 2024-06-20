@@ -46,23 +46,23 @@ if __name__=="__main__":
 						elif file.endswith("_desc-brainmask_T2w.nii.gz") and 'haste' in file:
 							path_to_file = os.path.join(dir_reconst,file)
 							list_masks.append(path_to_file)
-				list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
-				list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-				output_sub = os.path.join(res_path,subject)
-				if not os.path.exists(output_sub):
-					os.mkdir(output_sub)
-				output_ses = os.path.join(output_sub,session)
-				if not os.path.exists(output_ses):
-					os.mkdir(output_ses)
-				print(output_ses)
-				output = os.path.join(output_ses,"res")
-				command = 'python run_registration.py --filenames %s --filenames_mask %s --output %s --no_multistart 1' %(list_stacks,list_masks,output)
-				#os.system(command)
-				print(command)
-				print('---stacks----')
-				print(list_stacks)
-				print('---masks----')
-				print(list_masks)
+					list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
+					list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
+					output_sub = os.path.join(res_path,subject)
+					if not os.path.exists(output_sub):
+						os.mkdir(output_sub)
+					output_ses = os.path.join(output_sub,session)
+					if not os.path.exists(output_ses):
+						os.mkdir(output_ses)
+					print(output_ses)
+					output = os.path.join(output_ses,"res")
+					command = 'python run_registration.py --filenames %s --filenames_mask %s --output %s --no_multistart 1' %(list_stacks,list_masks,output)
+					#os.system(command)
+					print(command)
+					print('---stacks----')
+					print(list_stacks)
+					print('---masks----')
+					print(list_masks)
 
 
             			
