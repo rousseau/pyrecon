@@ -17,6 +17,7 @@ if __name__=="__main__":
 			print(data)
 			list_data.extend(data)
 
+	print(list_data)
 	subjects = os.listdir(DB_path)
 	subjects.sort()
 
@@ -27,7 +28,7 @@ if __name__=="__main__":
 		#print(subj_dir)
 		#print(subject)
 		for session in sessions:
-				print(session)
+				print(subject,session)
 				if (subject,session) in list_data:
 					list_stacks = []
 					list_masks = []
