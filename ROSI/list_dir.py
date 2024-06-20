@@ -11,7 +11,7 @@ if __name__=="__main__":
 	with open(path_to_subjectofinterest,'r') as csvfile:
 		csvsub = csv.reader(csvfile,delimiter=' ')
 
-		for row in range(1,csvsub):
+		for row in csvsub:
 			data = (row[0],row[1])
 			print(data)
 			list_data.append(data)
