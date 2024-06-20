@@ -33,8 +33,8 @@ if __name__=="__main__":
 						elif file.endswith("_desc-brainmask_T2w.nii.gz") and 'haste' in file:
 							path_to_file = os.path.join(dir_reconst,file)
 							list_masks.append(path_to_file)
-				list_stacks = ''.join(str(list_stacks) for list_stacks in list_stacks)
-				list_masks = ''.join(str(list_masks) for list_masks in list_masks)
+				list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
+				list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
 				output_sub = os.path.join(res_path,subject)
 				if not os.path.exists(output_sub):
 					os.mkdir(output_sub)
