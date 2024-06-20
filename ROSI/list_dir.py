@@ -1,10 +1,21 @@
 import os
+import csv
 
 if __name__=="__main__":
 	
 	DB_path = "/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	res_path = "/envau/work/meca/users/2024_mercier.c/results/"
-	
+	path_to_subjectofinterest = "/envau/work/meca/users/2024_mercier.c/marsfet_tables/marsfet_latest_participants.csv"
+	list_data = []
+
+	with open(path_to_subjectofinterest,'r') as csvfile:
+		csvsub = csv.reader(csvfile,delimiter=' ')
+
+		for row in range(1,csvsub):
+			data = (row[0],row[1])
+			print(data)
+			list_data.append(data)
+
 	subjects = os.listdir(DB_path)
 	subjects.sort()
 
@@ -14,10 +25,9 @@ if __name__=="__main__":
 		sessions.sort()
 		#print(subj_dir)
 		#print(subject)
-		if subject=='sub-0018':
-			for session in sessions:
+		for session in sessions:
 				print(session)
-				if session=='ses-0021':
+				if (subject,session) in data:
 					list_stacks = []
 					list_masks = []
 					dir_session = os.path.join(subj_dir, session)
@@ -44,7 +54,7 @@ if __name__=="__main__":
 				print(output_ses)
 				output = os.path.join(output_ses,"res")
 				command = 'python run_registration.py --filenames %s --filenames_mask %s --output %s --no_multistart 1' %(list_stacks,list_masks,output)
-				os.system(command)
+				#os.system(command)
 				print(command)
 				print('---stacks----')
 				print(list_stacks)
