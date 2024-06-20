@@ -28,7 +28,7 @@ if __name__=="__main__":
 		#print(subject)
 		for session in sessions:
 				print(session)
-				if (subject,session) in data:
+				if (subject,session) in list_data:
 					list_stacks = []
 					list_masks = []
 					dir_session = os.path.join(subj_dir, session)
