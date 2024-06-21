@@ -139,6 +139,7 @@ def main():
         listSliceNorm = listSliceNorm + normalization(m)
     
     listSlice = listSliceNorm
+    print(len(listSlice))
     
     #Algorithm of motion correction
     print("--Method use for optimisation is :", args.optimisation)
