@@ -50,6 +50,7 @@ def convert2Slices(stack : Nifti1Image,
              index+=1
  
         if ~(np.all(slice_mask==0)): #Check that the slice mask is not null. If it is, the slice will be deleted because it has no interest.
+            print('mask_nul')
            
             mz = np.eye(4)
 
