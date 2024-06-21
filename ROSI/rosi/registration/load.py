@@ -80,7 +80,7 @@ def loadStack(fileImage : str,
           stmask = load(fileMask)
           #check that the mask is a binary image
           data = stmask.get_fdata().reshape(-1)
-          data = np.array(data.tolist(),dtype=np.int64)
+          data = np.array(round(data.tolist()),dtype=np.int64)
 
           if not (np.all((data==0)|(data==1))):
                raise Exception('The mask is not a binary image')
