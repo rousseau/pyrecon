@@ -50,7 +50,7 @@ def convert2Slices(stack : Nifti1Image,
              index+=1
  
         if ~(np.all(slice_mask==0)): #Check that the slice mask is not null. If it is, the slice will be deleted because it has no interest.
-            print('mask_nul')
+            
            
             mz = np.eye(4)
 
@@ -62,6 +62,8 @@ def convert2Slices(stack : Nifti1Image,
             new_slice = Nifti1Image(slice_value.copy(),slice_transformation)
             new_object = SliceObject(new_slice,slice_mask.copy(),index_stack,zi,index_volume)
             OutputList.append(new_object)
+        else :
+            print('mask_nul')
    
     return OutputList
 
@@ -83,7 +85,8 @@ def loadStack(fileImage : str,
           data = stmask.get_fdata().reshape(-1)
           print(data[data<1])
           data = np.round(data)
-          data = np.array(data.tolist(),dtype=np.int64)
+          stmask = Nifti1Image(data,stack.affine)
+          #data = np.array(data.tolist(),dtype=np.int64)
 
           if not (np.all((data==0)|(data==1))):
                raise Exception('The mask is not a binary image')
