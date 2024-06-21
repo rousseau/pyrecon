@@ -80,7 +80,7 @@ def loadStack(fileImage : str,
           stmask = load(fileMask)
           #check that the mask is a binary image
           data = stmask.get_fdata().reshape(-1)
-          print(data[data>0])
+          print(data[data<1])
           data = np.round(data)
           data = np.array(data.tolist(),dtype=np.int64)
 
