@@ -84,7 +84,7 @@ def loadStack(fileImage : str,
           #check that the mask is a binary image
           #
           stmask = np.round(stmask)
-          data = np.array(stmask,dtype=np.int64)
+          stmask = np.array(stmask,dtype=np.int64)
           data = stmask.get_fdata().reshape(-1)
           stmask = Nifti1Image(stmask,stack.affine)
           print(data[data<1])
