@@ -75,7 +75,8 @@ def loadStack(fileImage : str,
     Load stack and mask from files using nibabel library
     """
     
-    stack = load(fileImage)
+    stack_original = load(fileImage)
+    stack = stack_original.copy()
     if fileMask == None: ##If the mask wasn't provided, one is created covering the entire image.
           fileMask = np.ones(stack.get_fdata().shape)
           stmask = Nifti1Image(fileMask,stack.affine)
@@ -83,10 +84,10 @@ def loadStack(fileImage : str,
           stmask = load(fileMask)
           #check that the mask is a binary image
           #
-          stmask = np.round(stmask.get_fdata())
+          stmask = np.round(stmask)
           stmask = np.array(stmask,dtype=np.int64)
-          data = stmask.get_fdata().reshape(-1)
-          stmask = Nifti1Image(stmask,stack.affine)
+          data = stmask.reshape(-1)
+          stmask = Nifti1Image(data,stack.affine)
           print(data[data<1])
           #)
 
