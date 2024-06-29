@@ -91,7 +91,9 @@ def loadStack(fileImage : str,
           print(stmask[np.where(stmask>0)])
           data = stmask.reshape(-1)
           stmask = Nifti1Image(stmask,stack.affine,dtype=np.int64)
-          print(data[data<1])
+          stmask = stmask.get_fdata()
+          print(stmask[np.where(stmask>0)])
+          #print(data[data<1])
           #)
 
           if not (np.all((data==0)|(data==1))):
