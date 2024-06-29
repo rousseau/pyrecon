@@ -87,7 +87,7 @@ def loadStack(fileImage : str,
           stmask = np.round(stmask)
           stmask = np.array(stmask,dtype=np.int64)
           data = stmask.reshape(-1)
-          stmask = Nifti1Image(data,stack.affine)
+          stmask = Nifti1Image(data,stack.affine,dtype=np.int64)
           print(data[data<1])
           #)
 
