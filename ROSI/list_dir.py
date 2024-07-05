@@ -32,11 +32,12 @@ if __name__=="__main__":
 				print(dir_reconst)
 				dir_mask = os.path.join(masks_path,"",subject,session)
 				list_files = os.listdir(dir_session)
+				print(list_files)
 				for file in list_files:
 						#print(file)
 						if file.endswith("_T2w.nii.gz") and 'haste' in file:
 							#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
-							path_to_file = os.path.join(dir_reconst,file)
+							path_to_file = os.path.join(dir_session,file)
 							list_stacks.append(path_to_file)
 							path_to_file = os.path.join(dir_mask,file)
 							list_masks.append(path_to_file)
