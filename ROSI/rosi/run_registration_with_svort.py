@@ -58,7 +58,7 @@ def main():
         listnomvt = [] #list of the slices without simulated motion : use to compute the tre
     
 
-    dir_input = args.filenames
+    dir_input = args.filenames[0]
     print(dir_input)
     listSlice = loadFromdir(dir_input)
 
