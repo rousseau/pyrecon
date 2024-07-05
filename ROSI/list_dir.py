@@ -29,6 +29,7 @@ if __name__=="__main__":
 				dir_session = os.path.join(subj_dir, session)
 				print("--------------" + subject)
 				dir_reconst = os.path.join(stacks_path, "", subject, session)
+				print(dir_reconst)
 				dir_mask = os.path.join(masks_path,"",subject,session)
 				list_files = os.listdir(dir_reconst)
 				for file in list_files:
