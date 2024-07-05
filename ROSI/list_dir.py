@@ -4,7 +4,7 @@ import csv
 if __name__=="__main__":
 	
 	DB_path = "/scratch/gauzias/data/datasets/MarsFet/"
-	stacks_path  = os.path.join(DB_path,"derivatives","preprocessing")
+	stacks_path  = os.path.join(DB_path,"derivatives","preprocessing/")
 	print(stacks_path)
 	#"/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	#"/envau/work/meca/users/2024_mercier.c/results/"
@@ -35,7 +35,7 @@ if __name__=="__main__":
 							#print(file)
 							if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
 								#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
-								path_to_file = os.path.join('data',subject,session,file)
+								path_to_file = os.path.join('/data',subject,session,file)
 								list_stacks.append(path_to_file)
 								run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
 								num_index = run + 4
@@ -43,7 +43,7 @@ if __name__=="__main__":
 								print("number run",num)
 								for file in list_files:
 									if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
-										path_to_file = os.path.join('data',subject,session,file)
+										path_to_file = os.path.join('/data',subject,session,file)
 										list_masks.append(path_to_file)
 										break
 					print(list_stacks)
