@@ -117,7 +117,7 @@ def loadFromdir(dir_input):
           if not "mask" in file:
             slice_path = os.path.join(dir_input,file)
             nib_slice = load(slice_path)
-            mask_path=os.path.join(dir_input,'/mask_' + file)
+            mask_path=os.path.join(dir_input,'mask_' + file)
             nib_mask = load(mask_path)
             
             new_stack = False
