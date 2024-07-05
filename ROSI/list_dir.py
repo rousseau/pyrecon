@@ -39,7 +39,7 @@ if __name__=="__main__":
 								list_stacks.append(path_to_file)
 								run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
 								num_index = run + 4
-								num = file[num_index]
+								num = "run-%s" %(file[num_index])
 								print("number run",num)
 								for file in list_files:
 									if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
