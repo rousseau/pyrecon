@@ -58,7 +58,7 @@ if __name__=="__main__":
 							os.mkdir(output_ses)
 					print(output_ses)
 					output = os.path.join(output_ses,"res")
-					command = "singularity exec --nv -B %s:/data nesvor_latest.sif nesvor /scratch/cmercier/softs/register --input-stacks %s --stack-masks %s --output-slices %s" %(DB_path,list_stacks,list_masks,output)
+					command = "singularity exec --nv -B %s:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register --input-stacks %s --stack-masks %s --output-slices %s" %(DB_path,list_stacks,list_masks,output)
 						#command = 'python run_registration.py --filenames %s --filenames_mask %s --output %s --no_multistart 1' %(list_stacks,list_masks,output)
 					os.system(command)
 					print(command)
