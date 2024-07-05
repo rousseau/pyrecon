@@ -109,7 +109,7 @@ def loadFromdir(dir_input):
      Create a listofSlice from the direcory containing all the slices
      """
 
-     list_file = sorted_alphanumeric(os.listdir(dir_input))
+     list_file = sorted_alphanumeric(file for file in os.listdir(dir_input) if os.path.isdir(dir_input))
      OutputList = []
      list_stack_ortho = []
      list_stack_zi = []

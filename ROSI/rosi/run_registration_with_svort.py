@@ -59,6 +59,7 @@ def main():
     
 
     dir_input = args.filenames
+    print(dir_input)
     listSlice = loadFromdir(dir_input)
 
     print('\n')
