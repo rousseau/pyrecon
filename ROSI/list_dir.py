@@ -31,14 +31,16 @@ if __name__=="__main__":
 					dir_reconst = os.path.join(stacks_path, "", subject, session,"anat")
 					print(dir_reconst)
 					list_files = os.listdir(dir_session)
-					print(list_files)
 					for file in list_files:
 							#print(file)
 							if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
 								#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
 								path_to_file = os.path.join(dir_session,file)
 								list_stacks.append(path_to_file)
-							if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file:
+								run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
+								num_index = run + 4
+								num = file[num_index]
+							if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
 								path_to_file = os.path.join(dir_session,file)
 								list_masks.append(path_to_file)
 					list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
