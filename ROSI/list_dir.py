@@ -9,7 +9,7 @@ if __name__=="__main__":
 	#"/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	#"/envau/work/meca/users/2024_mercier.c/results/"
 	res_path = "/home/cmercier/results"
-	list_data = [('sub-0000','ses-0000')]
+	#list_data = [('sub-0000','ses-0000')]
 
 	subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(os.path.join(stacks_path,sub))]
 	subjects.sort()
@@ -22,7 +22,7 @@ if __name__=="__main__":
 		#print(subject)
 		for session in sessions:
 				print(subject,session)
-				if (subject,session) in list_data:
+				if True #(subject,session) in list_data:
 					print('ici')
 					list_stacks = []
 					list_masks = []
