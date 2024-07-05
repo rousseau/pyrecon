@@ -3,7 +3,7 @@ import csv
 
 if __name__=="__main__":
 	
-	DB_path = "/scratch/gauzias/data/datasets/Marsefet/"
+	DB_path = "/scratch/gauzias/data/datasets/MarsFet/"
 	stacks_path  = os.path.join(DB_path,"rawdata/")
 	masks_path = os.path.join(DB_path,"derivatives/")
 	#"/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
