@@ -15,7 +15,7 @@ if __name__=="__main__":
 
 
 	print(list_data)
-	subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(sub)]
+	subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(os.path.join(stacks_path,sub))]
 	print(os.listdir(stacks_path))
 	subjects.sort()
 	print(subjects)
