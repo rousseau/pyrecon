@@ -15,11 +15,12 @@ if __name__=="__main__":
 
 
 	print(list_data)
-	subjects = os.listdir(stacks_path)
+	subjects = [sub for sub in os.listdir(stacks_path) if os.isdir(sub)]
 	subjects.sort()
 
 	for subject in subjects:
 		subj_dir = os.path.join(stacks_path, subject)
+
 		sessions = os.listdir(subj_dir)
 		sessions.sort()
 		#print(subj_dir)
