@@ -4,10 +4,8 @@ import csv
 if __name__=="__main__":
 	
 	DB_path = "/scratch/gauzias/data/datasets/MarsFet/"
-	stacks_path  = os.path.join(DB_path,"rawdata/")
+	stacks_path  = os.path.join(DB_path,"derivatives","preprocessing")
 	print(stacks_path)
-	masks_path = os.path.join(DB_path,"derivatives/")
-	print(masks_path)
 	#"/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	#"/envau/work/meca/users/2024_mercier.c/results/"
 	res_path = "/home/cmercier/results"
@@ -28,18 +26,18 @@ if __name__=="__main__":
 				list_masks = []
 				dir_session = os.path.join(subj_dir, session)
 				print("--------------" + subject)
-				dir_reconst = os.path.join(stacks_path, "", subject, session)
+				dir_reconst = os.path.join(stacks_path, "", subject, session,"anat")
 				print(dir_reconst)
-				dir_mask = os.path.join(masks_path,"",subject,session)
 				list_files = os.listdir(dir_session)
 				print(list_files)
 				for file in list_files:
 						#print(file)
-						if file.endswith("_T2w.nii.gz") and 'haste' in file:
+						if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
 							#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
 							path_to_file = os.path.join(dir_session,file)
 							list_stacks.append(path_to_file)
-							path_to_file = os.path.join(dir_mask,file)
+						if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file:
+							path_to_file = os.path.join(dir_session,file)
 							list_masks.append(path_to_file)
 				list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
 				list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
