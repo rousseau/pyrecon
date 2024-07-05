@@ -57,6 +57,8 @@ if __name__=="__main__":
 				print(list_stacks)
 				print('---masks----')
 				print(list_masks)
+				print('--output--')
+				print(output)
 
 
             			
