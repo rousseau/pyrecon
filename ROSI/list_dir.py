@@ -46,6 +46,8 @@ if __name__=="__main__":
 										path_to_file = os.path.join(dir_session,file)
 										list_masks.append(path_to_file)
 										break
+					print(list_stacks)
+					print(list_masks)
 					list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
 					list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
 					output_sub = os.path.join(res_path,subject)
