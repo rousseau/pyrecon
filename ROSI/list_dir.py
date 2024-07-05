@@ -5,7 +5,9 @@ if __name__=="__main__":
 	
 	DB_path = "/scratch/gauzias/data/datasets/MarsFet/"
 	stacks_path  = os.path.join(DB_path,"rawdata/")
+	print(stacks_path)
 	masks_path = os.path.join(DB_path,"derivatives/")
+	print(masks_path)
 	#"/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	#"/envau/work/meca/users/2024_mercier.c/results/"
 	res_path = "/home/cmercier/results"
