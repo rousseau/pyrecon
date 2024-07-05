@@ -22,7 +22,7 @@ if __name__=="__main__":
 		#print(subject)
 		for session in sessions:
 				print(subject,session)
-				if True #(subject,session) in list_data:
+				if True :#(subject,session) in list_data:
 					print('ici')
 					list_stacks = []
 					list_masks = []
