@@ -60,7 +60,7 @@ if __name__=="__main__":
 					output = os.path.join(output_ses,"res")
 					command = "singularity exec --nv -B %s:/data nesvor_latest.sif nesvor register --input-stacks %s --stack-masks %s --output-slices %s" %(DB_path,list_stacks,list_masks,output)
 						#command = 'python run_registration.py --filenames %s --filenames_mask %s --output %s --no_multistart 1' %(list_stacks,list_masks,output)
-						#os.system(command)
+					os.system(command)
 					print(command)
 					print('---stacks----')
 					print(list_stacks)
