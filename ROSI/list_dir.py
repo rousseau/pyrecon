@@ -40,9 +40,12 @@ if __name__=="__main__":
 								run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
 								num_index = run + 4
 								num = file[num_index]
-							if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
-								path_to_file = os.path.join(dir_session,file)
-								list_masks.append(path_to_file)
+								print(num)
+							for file in list_files:
+								if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
+									path_to_file = os.path.join(dir_session,file)
+									list_masks.append(path_to_file)
+									break
 					list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
 					list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
 					output_sub = os.path.join(res_path,subject)
