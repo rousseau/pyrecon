@@ -31,7 +31,7 @@ if __name__=="__main__":
 				dir_reconst = os.path.join(stacks_path, "", subject, session)
 				print(dir_reconst)
 				dir_mask = os.path.join(masks_path,"",subject,session)
-				list_files = os.listdir(dir_reconst)
+				list_files = os.listdir(dir_session)
 				for file in list_files:
 						#print(file)
 						if file.endswith("_T2w.nii.gz") and 'haste' in file:
