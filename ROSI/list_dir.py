@@ -16,6 +16,7 @@ if __name__=="__main__":
 
 	print(list_data)
 	subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(sub)]
+	print(os.listdir(stacks_path))
 	subjects.sort()
 	print(subjects)
 
