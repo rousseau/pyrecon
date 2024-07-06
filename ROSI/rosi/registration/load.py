@@ -130,6 +130,7 @@ def loadFromdir(dir_input):
                 vec_orthogonal = nz/np.linalg.norm(nz)
                 print(vec_orthogonal,list_stack_ortho[i],np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])))
                 if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.75 :
+                    print('ici')
                     index_stack = i
                     break
                 else : 
@@ -147,7 +148,8 @@ def loadFromdir(dir_input):
                 index_stack = len(list_stack_zi)-1
 
             zi = list_stack_zi[index_stack]+1
-            list_stack_zi[index_stack]=list_stack_zi[index_stack]+1
+            list_stack_zi[index_stack]=zi
+            print(list_stack_zi)
             index_volume = index_stack
             print(file,index_stack,zi)
             new_object = SliceObject(nib_slice,nib_mask.get_fdata(),index_stack,zi,index_volume)
