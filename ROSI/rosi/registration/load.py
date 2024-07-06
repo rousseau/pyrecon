@@ -141,7 +141,7 @@ def loadFromdir(dir_input):
                 ny = nib_slice.affine[0:3,1]
                 nz = np.cross(nx,ny)
                 vec_orthogonal = nz/np.linalg.norm(nz)
-                
+
                 list_stack_ortho.append(vec_orthogonal)
                 list_stack_zi.append(1)
                 index_stack = len(list_stack_zi)-1
@@ -149,6 +149,7 @@ def loadFromdir(dir_input):
             zi = list_stack_zi[index_stack]+1
             list_stack_zi[index_stack]=list_stack_zi[index_stack]+1
             index_volume = index_stack
+            print(file,index_stack,zi)
             new_object = SliceObject(nib_slice,nib_mask.get_fdata(),index_stack,zi,index_volume)
             OutputList.append(new_object)
 
