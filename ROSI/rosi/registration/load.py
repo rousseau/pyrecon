@@ -125,7 +125,7 @@ def loadFromdir(dir_input):
             i=0
             for i in range(0,len(list_stack_ortho)):
                 nx = nib_slice.affine[0:3,0]/np.linalg.norm(nib_slice.affine[0:3,0])
-                ny = nib_slice.affine[0:3,1]/np.linagl.norm(nib_slice.affine[0:3,1])
+                ny = nib_slice.affine[0:3,1]/np.linalg.norm(nib_slice.affine[0:3,1])
                 vec_orthogonal = np.cross(nx,ny)
                 if np.abs(np.cross(vec_orthogonal,list_stack_ortho[i])) < 0.75 :
                     index_stack = i
@@ -136,7 +136,7 @@ def loadFromdir(dir_input):
                         
             if new_stack or len(list_stack_ortho)==0 : 
                 nx = nib_slice.affine[0:3,0]/np.linalg.norm(nib_slice.affine[0:3,0])
-                ny = nib_slice.affine[0:3,1]/np.linagl.norm(nib_slice.affine[0:3,1])
+                ny = nib_slice.affine[0:3,1]/np.linalg.norm(nib_slice.affine[0:3,1])
                 vec_orthogonal = np.cross(nx,ny)
                 list_stack_ortho.append(vec_orthogonal)
                 list_stack_zi.append(1)
