@@ -130,11 +130,11 @@ def loadFromdir(dir_input):
                 vec_orthogonal = nz/np.linalg.norm(nz)
                 print(vec_orthogonal,list_stack_ortho[i],np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])))
                 if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.75 :
-                    print('ici')
                     index_stack = i
                     break
                 else : 
-                    if i == len(list_stack_ortho):
+                    if i == (len(list_stack_ortho)-1):
+                        print('ici')
                         new_stack = True
                         
             if new_stack or len(list_stack_ortho)==0 : 
