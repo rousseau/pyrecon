@@ -114,6 +114,7 @@ def loadFromdir(dir_input):
      list_stack_ortho = []
      list_stack_zi = []
      for file in list_file:
+          index_stack=0
           if not "mask" in file:
             slice_path = os.path.join(dir_input,file)
             nib_slice = load(slice_path)
@@ -129,12 +130,13 @@ def loadFromdir(dir_input):
                 else : 
                     if i == len(list_stack_ortho):
                         new_stack = True
-                        index_stack = i +1
+                        
             if new_stack or len(list_stack_ortho)==0 : 
                 vec_orthogonal = np.linalg.norm(nib_slice.affine[0:3,0] @ nib_slice.affine[0:3,1])
                 list_stack_ortho.append(vec_orthogonal)
                 list_stack_zi.append(1)
-   
+                index_stack = i +1
+                
             zi = list_stack_zi[index_stack]+1
             list_stack_zi[index_stack]=list_stack_zi[index_stack]+1
             index_volume = index_stack
