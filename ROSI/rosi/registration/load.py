@@ -131,12 +131,13 @@ def loadFromdir(dir_input):
                 else : 
                     if i == len(list_stack_ortho):
                         new_stack = True
+                        index_stack = i+1
                         
             if new_stack or len(list_stack_ortho)==0 : 
                 vec_orthogonal = np.linalg.norm(nib_slice.affine[0:3,0] @ nib_slice.affine[0:3,1])
                 list_stack_ortho.append(vec_orthogonal)
                 list_stack_zi.append(1)
-                index_stack = i +1
+                index_stack = len(list_stack_zi)
 
             zi = list_stack_zi[index_stack]+1
             list_stack_zi[index_stack]=list_stack_zi[index_stack]+1
