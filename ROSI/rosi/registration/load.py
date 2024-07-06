@@ -128,7 +128,7 @@ def loadFromdir(dir_input):
                 ny = nib_slice.affine[0:3,1]
                 nz = np.cross(nx,ny)
                 vec_orthogonal = nz/np.linalg.norm(nz)
-
+                print(vec_orthogonal,list_stack_ortho[i],np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])))
                 if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) < 0.75 :
                     index_stack = i
                     break
