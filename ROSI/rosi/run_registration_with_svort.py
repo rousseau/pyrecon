@@ -133,27 +133,27 @@ def main():
     
     
     #Create directory of transformations for NiftyMIC
-    print('-----Save Results for NiftyMIC')
-    res = joblib.load(open(joblib_name,'rb'))
-    key=[p[0] for p in res]
-    element=[p[1] for p in res]
-    listSlice=element[key.index('listSlice')]
+    #print('-----Save Results for NiftyMIC')
+    #res = joblib.load(open(joblib_name,'rb'))
+    #key=[p[0] for p in res]
+    #element=[p[1] for p in res]
+    #listSlice=element[key.index('listSlice')]
     
-    list_prefixImage = []
-    for string_name in args.filenames:
-        name_file = string_name.split('/')[-1]
-        name = name_file.replace('.nii.gz','')
-        list_prefixImage.append(name)
+    #list_prefixImage = []
+    #for string_name in args.filenames:
+    #    name_file = string_name.split('/')[-1]
+    #    name = name_file.replace('.nii.gz','')
+    #    list_prefixImage.append(name)
         
     #parent_dir = getcwd() + '/'
-    path_dir = os.path.join(args.output + '/niftimic_mvt')
+    #path_dir = os.path.join(args.output + '/niftimic_mvt')
     #path_dir = path.join(parent_dir, directory)
-    if not path.isdir(path_dir):
-        mkdir(path_dir) 
-    else:
-        shutil.rmtree(path_dir)
-        mkdir(path_dir)
-    convert2EbnerParam(res,list_prefixImage,path_dir)
+    #if not path.isdir(path_dir):
+    #    mkdir(path_dir) 
+    #else:
+    #    shutil.rmtree(path_dir)
+    #    mkdir(path_dir)
+    #convert2EbnerParam(res,list_prefixImage,path_dir)
     
 if __name__ == '__main__':
     main()   
