@@ -8,7 +8,7 @@
 
 # Run configuration
 #SBATCH --partition=skylake
-#SBATCH -t 00-00:30:00
+#SBATCH -t 00-02:00:00
 #SBATCH -n 1
 #SBATCH -e output_slurm/rosi.%A_%j.err
 #SBATCH -o output_slurm/rosi.%A_%j.out
