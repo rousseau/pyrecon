@@ -9,10 +9,11 @@
 # Run configuration
 #SBATCH --partition=skylake
 #SBATCH -t 04-00:00:00
-#SBATCH -n 10
+#SBATCH --mem-per-cpu=5G
+#SBATCH -n 6
 #SBATCH -e output_slurm/rosi.%A_%j.err
 #SBATCH -o output_slurm/rosi.%A_%j.out
-#SBATCH --array=1-300%10
+#SBATCH --array=1-150%6
 
 
 
