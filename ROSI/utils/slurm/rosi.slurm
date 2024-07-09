@@ -26,7 +26,7 @@ OUPUT_DIR=$2
 
 
 
-conda activate rosienv
+source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
 echo INPUT_SLICES
 echo $INPUT_SLICES
