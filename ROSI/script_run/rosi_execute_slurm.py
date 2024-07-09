@@ -76,5 +76,5 @@ if __name__ == "__main__":
                 dir_out = os.path.join(output_data, subject, session)
                 print('input_slices:',input_slices)
                 print('dir_output:',dir_out)
-            #execute_rosi(input_slices,dir_out,rosi_slurm)
+                execute_rosi(input_slices,dir_out,rosi_slurm)
 
