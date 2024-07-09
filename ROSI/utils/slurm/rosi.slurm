@@ -4,7 +4,7 @@
 # GENERIC CONFIGURATION FOR COMPUTATION ON THE AIX-MARSEILLE MESOCENTRE
 
 # Generic configuration
-#SBATCH --account='b129'
+#SBATCH --account='b219'
 
 # Run configuration
 #SBATCH --partition=skylake
