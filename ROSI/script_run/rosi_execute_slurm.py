@@ -61,7 +61,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             input_slices = os.path.join(input_data,subject, session)
-            
             dir_out = os.path.join(output_data, subject, session)
+            print('input_slices:',input_slices)
+            print('dir_output:',dir_out)
             #execute_rosi(input_slices,dir_out,rosi_slurm)
 
