@@ -27,4 +27,4 @@ OUPUT_DIR=$2
 
 conda activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
-run_registration_svort.py --filenames ${INPUT_SLICES} --output ${OUPUT_DIR} 
+python run_registration_svort.py --filenames ${INPUT_SLICES} --output ${OUPUT_DIR} 
