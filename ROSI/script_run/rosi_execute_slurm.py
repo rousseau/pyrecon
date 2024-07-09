@@ -60,7 +60,7 @@ if __name__ == "__main__":
     with open(csv_file,newline='') as csvfile:
         readrow = csv.reader(csvfile,delimiter=' ')
         for row in readrow:
-            print(', '.join(row))
+            print(row)
 
     subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(os.path.join(stacks_path,sub))]
     subjects.sort()
