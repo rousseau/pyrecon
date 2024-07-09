@@ -35,7 +35,7 @@ def execute_rosi(input_slices,output_dir,slurm_config):
             dir_in,
             dir_out,
             ]
-            subprocess.run(cmd)
+        subprocess.run(cmd)
     pass
 
 if __name__ == "__main__":
