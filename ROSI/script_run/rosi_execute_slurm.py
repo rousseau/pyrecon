@@ -61,7 +61,7 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             if subject == 'sub-0001' and session == 'ses-0001':
-                input_slices = os.path.join(input_data,subject, session)
+                input_slices = os.path.join(input_data,subject, session, 'res')
                 dir_out = os.path.join(output_data, subject, session)
                 print('input_slices:',input_slices)
                 print('dir_output:',dir_out)
