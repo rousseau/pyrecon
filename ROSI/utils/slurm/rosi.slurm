@@ -8,8 +8,8 @@
 
 # Run configuration
 #SBATCH --partition=skylake
-#SBATCH -t 00-30:00:00
-#SBATCH -n 10
+#SBATCH -t 00-00:30:00
+#SBATCH -n 1
 #SBATCH -e output_slurm/rosi.%A_%j.err
 #SBATCH -o output_slurm/rosi.%A_%j.out
 #SBATCH --array=1-300%10
@@ -25,6 +25,7 @@ INPUT_SLICES=$1
 OUPUT_DIR=$2
 
 
+module load conda
 conda activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
 python run_registration_svort.py --filenames ${INPUT_SLICES} --output ${OUPUT_DIR} 
