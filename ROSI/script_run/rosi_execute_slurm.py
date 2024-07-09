@@ -58,7 +58,7 @@ if __name__ == "__main__":
     csv_file =  MARSFET_DATABASE
 
     with open(csv_file,newline='') as csvfile:
-        readrow = csv.read(csvfile,delimiter=' ')
+        readrow = csv.reader(csvfile,delimiter=' ')
         for row in readrow:
             print(', '.join(row))
 
