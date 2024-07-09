@@ -58,9 +58,9 @@ if __name__ == "__main__":
     csv_file =  MARSFET_DATABASE
 
     with open(csv_file,newline='') as csvfile:
-        readrow = csv.reader(csvfile,delimiter=' ')
+        readrow = csv.reader(csvfile)
         for row in readrow:
-            print(row)
+            print(row[0])
 
     subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(os.path.join(stacks_path,sub))]
     subjects.sort()
