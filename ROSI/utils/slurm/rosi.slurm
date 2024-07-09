@@ -28,4 +28,6 @@ OUPUT_DIR=$2
 module load conda
 conda activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
+echo INPUT_SLICES
+echo $INPUT_SLICES
 python run_registration_svort.py --filenames ${INPUT_SLICES} --output ${OUPUT_DIR} 
