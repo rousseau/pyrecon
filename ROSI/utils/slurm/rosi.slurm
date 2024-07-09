@@ -10,8 +10,8 @@
 #SBATCH --partition=skylake
 #SBATCH -t 00-30:00:00
 #SBATCH -n 10
-#SBATCH -e rosi.%A_%j.err
-#SBATCH -o rosi.%A_%j.out
+#SBATCH -e output_slurm/rosi.%A_%j.err
+#SBATCH -o output_slurm/rosi.%A_%j.out
 #SBATCH --array=1-300%10
 
 
