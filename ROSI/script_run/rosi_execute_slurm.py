@@ -41,7 +41,7 @@ def execute_rosi(input_slices,output_dir,slurm_config):
 if __name__ == "__main__":
 
     rosi_slurm = (
-        "/scratch/cmercier/code/ROSI/utils/slurm/rosi.slurm"
+        "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/rosi.slurm"
     )
 
     MARSFET_DATAPATH = "/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing"  
