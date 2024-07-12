@@ -38,15 +38,16 @@ if __name__ == "__main__":
             #== "sub-0002" and session == "ses-0002":
                 input_slices = os.path.join(input_data,subject, session, 'res')
                 dir_out = os.path.join(output_data, subject, session)
-                print('input_slices:',input_slices)
-                print('dir_output:',dir_out)
-                cmd = (
-                    "sbatch"
-                    + " "
-                    + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/rosi.slurm"
-                    + " "
-                    + input_slices
-                    + " "
-                    + dir_out
-                    )
+                if not os.exists(os.path.join(dir_out,'res.joblib.gz')):
+                    print('input_slices:',input_slices)
+                    print('dir_output:',dir_out)
+                    cmd = (
+                        "sbatch"
+                        + " "
+                        + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/rosi.slurm"
+                        + " "
+                        + input_slices
+                        + " "
+                        + dir_out
+                        )
 
