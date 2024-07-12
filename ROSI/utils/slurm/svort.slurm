@@ -31,4 +31,5 @@ source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
 echo INPUT_SLICES
 echo $INPUT_SLICES
-singularity exec --nv -B ${DATA}:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register --input-stacks $INPUT_SLICES --stack-masks $INPUT_MASK --output-slices $OUTPUT_DIR
+echo $DATA
+singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register --input-stacks $INPUT_SLICES --stack-masks $INPUT_MASK --output-slices $OUTPUT_DIR
