@@ -24,7 +24,7 @@
 INPUT_SLICES=$1
 INPUT_MASK=$2
 OUTPUT_DIR=$3
-DATA=/scratch/cmercier/
+DATA=/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing
 
 
 source activate rosienv

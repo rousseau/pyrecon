@@ -8,7 +8,7 @@ import csv
 if __name__ == "__main__":
 
 
-    MARSFET_DATAPATH = "/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing"  
+    MARSFET_DATAPATH = "/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessingpreprocessing/"  
 
     MARSFET_MESO_SVORT_INIT = "/scratch/cmercier/results/"
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/ROSI/"
