@@ -50,4 +50,5 @@ if __name__ == "__main__":
                         + " "
                         + dir_out
                         )
+                    os.system(cmd)
 
