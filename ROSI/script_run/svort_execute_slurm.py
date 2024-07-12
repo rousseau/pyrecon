@@ -57,8 +57,8 @@ if __name__ == "__main__":
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
                 dir_out = os.path.join(output_data, subject, session)
-                if not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
-                    print('input_slices:',input_stacks)
+                if not os.path.exists(os.path.join(dir_out)):
+                    print('input_slices:',list_stacks)
                     print('dir_output:',dir_out)
                     
                     cmd = (
@@ -67,6 +67,8 @@ if __name__ == "__main__":
                         + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/svort.slurm"
                         + " "
                         + list_stacks
+                        + " "
+                        + list_masks
                         + " "
                         + dir_out
                         )
