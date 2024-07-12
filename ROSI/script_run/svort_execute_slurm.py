@@ -15,8 +15,7 @@ if __name__ == "__main__":
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/marsfet_latest_participants.csv"
 
-    input_data = MARSFET_MESO_SVORT_INIT
-    output_data = MARSFET_MESO_ROSI
+    output_data = MARSFET_MESO_SVORT_INIT
     stacks_path = MARSFET_DATAPATH
     csv_file =  MARSFET_DATABASE
     sub_list = []
@@ -37,6 +36,8 @@ if __name__ == "__main__":
             if subject in sub_list and session in ses_list :
             #== "sub-0002" and session == "ses-0002":
                 input_stacks = os.listdir(os.path.join(stacks_path,subject, session))
+                list_stacks=[]
+                list_masks=[]
                 for file in input_stacks:
                     if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
@@ -65,7 +66,7 @@ if __name__ == "__main__":
                         + " "
                         + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/svort.slurm"
                         + " "
-                        + input_stacks
+                        + list_stacks
                         + " "
                         + dir_out
                         )
