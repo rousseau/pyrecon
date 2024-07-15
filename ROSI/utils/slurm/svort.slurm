@@ -27,4 +27,5 @@ DATA=/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing
 
 source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
-singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register $COMMAND
+echo $COMMAND
+#singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register $COMMAND
