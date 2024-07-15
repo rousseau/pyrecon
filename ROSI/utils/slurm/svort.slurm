@@ -21,17 +21,10 @@
 ################################################################################
 
 
-INPUT_SLICES=$1
-INPUT_MASK=$2
-OUTPUT_DIR=$3
+COMMAND=$1
 DATA=/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing
 
 
 source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
-echo INPUT_SLICES
-echo $INPUT_SLICES
-echo $DATA
-echo TRUC
-echo $OUTPUT_DIR
-singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register --input-stacks $INPUT_SLICES --stack-masks $INPUT_MASK --output-slices $OUTPUT_DIR
+singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register $COMMAND
