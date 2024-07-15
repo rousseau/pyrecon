@@ -56,8 +56,10 @@ if __name__ == "__main__":
                 print(list_stacks)
                 print(list_masks)
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
+                print(list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
                 dir_out = os.path.join(output_data, subject, session,'res')
+                print(dir_out)
                 cmd_os = "--input-slices " + list_stacks + "--stack-masks " + list_masks + "--output-slices " + dir_out
                 if not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
                     print('input_slices:',list_stacks)
@@ -71,5 +73,5 @@ if __name__ == "__main__":
                         + cmd_os
                         )
                     
-                    os.system(cmd)
+                    #os.system(cmd)
 
