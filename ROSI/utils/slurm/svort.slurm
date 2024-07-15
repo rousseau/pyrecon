@@ -27,4 +27,5 @@ DATA=$2
 source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
 echo $COMMAND
+echo $DATA
 singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register $COMMAND
