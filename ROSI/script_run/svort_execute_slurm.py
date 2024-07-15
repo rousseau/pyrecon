@@ -61,8 +61,8 @@ if __name__ == "__main__":
                 dir_out = os.path.join(output_data, subject, session,'res')
                 print(dir_out)
                 cmd_os = "--input-slices " + list_stacks 
-                cmd_os += "--stack-masks " + list_masks 
-                cmd_os += "--output-slices " + dir_out
+                cmd_os += " --stack-masks " + list_masks 
+                cmd_os += " --output-slices " + dir_out
                 if not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
                 #if subject == "sub-0191" and session == "ses-0225" :
                     print('input_slices:',list_stacks)
