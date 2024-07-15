@@ -73,7 +73,9 @@ if __name__ == "__main__":
                         + " "
                         + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/svort.slurm"
                         + " "
+                        + '"'
                         + cmd_os
+                        + '"'
                         )
                     
                     os.system(cmd)
