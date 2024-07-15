@@ -77,6 +77,7 @@ if __name__ == "__main__":
                         + '"'
                         + cmd_os
                         + '"'
+                        + MARSFET_DATAPATH
                         )
                     
                     os.system(cmd)

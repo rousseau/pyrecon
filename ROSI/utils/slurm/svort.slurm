@@ -9,7 +9,6 @@
 # Run configuration
 #SBATCH --partition=volta
 #SBATCH -t 24:00:00
-#SBATCH --mem-per-cpu=50G
 #SBATCH -c 1
 #SBATCH -e output_slurm/svort.%A_%j.err
 #SBATCH -o output_slurm/svort.%A_%j.out
@@ -22,7 +21,7 @@
 
 
 COMMAND=$1
-DATA=/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing
+DATA=$2
 
 
 source activate rosienv
