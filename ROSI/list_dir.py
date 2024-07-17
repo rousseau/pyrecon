@@ -8,7 +8,7 @@ if __name__=="__main__":
 	print(stacks_path)
 	#"/envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing"
 	#"/envau/work/meca/users/2024_mercier.c/results/"
-	res_path = "/home/cmercier/results"
+	res_path = "/home/cmercier/results/svort"
 	#list_data = [('sub-0000','ses-0000')]
 
 	subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(os.path.join(stacks_path,sub))]
