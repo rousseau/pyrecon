@@ -60,7 +60,8 @@ if __name__ == "__main__":
                                 break
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-                output_svort = os.path.join('/data','rosi', 'slices', subject, session)
+                output_svort = os.path.join(output,'nesvor', 'rosi_slices', subject, session)
+                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
