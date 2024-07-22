@@ -94,7 +94,7 @@ if __name__ == "__main__":
                     snap_ax=os.path.join(prefix_output,"snap_axial.png")
                     snap_cor=os.path.join(prefix_output,"snap_cor.png")
                     snap_sag=os.path.join(prefix_output,"snap_sagital.png")
-                    image_shape = nib.load(path_to_volume).shape()
+                    image_shape = nib.load(path_to_volume).shape
                     data = np.ones(image_shape)
                     output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
                     nib.save(output_mask,path_to_mask)
