@@ -237,6 +237,41 @@ def same_order(listSlice,listnomvt,listFeature,transfo):
     print(minnomvt)
 
     return img,nomvt[minnomvt],features,transfo[minnomvt]
+    
+def same_order(listSlice,listnomvt):
+    
+    img,_=separate_slices_in_stacks(listSlice)
+    img=np.array(img,dtype=list)
+    nomvt,_=separate_slices_in_stacks(listnomvt)
+    nomvt=np.array(nomvt,dtype=list)
+    vectzimg = np.zeros(len(img))
+    vectznomvt = np.zeros(len(img))
+
+    
+    #affine matrix are supposed to be the same, but in different order
+    for image in range(0,len(img)):
+            
+            timg=img[image][0].get_slice().affine
+            nximg=timg[0:3,0].copy()
+            nyimg=timg[0:3,1].copy()
+            nx=nximg/np.linalg.norm(nximg)
+            ny=nyimg/np.linalg.norm(nyimg)
+            nz=np.abs(np.cross(nx,ny))
+            vectzimg[image]=np.argmax(nz)
+
+            tnomvt=nomvt[image][0].get_slice().affine
+            nxnomvt=tnomvt[0:3,0].copy()
+            nynomvt=tnomvt[0:3,1].copy()
+            nx=nxnomvt/np.linalg.norm(nxnomvt)
+            ny=nynomvt/np.linalg.norm(nynomvt)
+            nz=np.abs(np.cross(nx,ny))
+            vectznomvt[image]=np.argmax(nz)
+
+
+    minnomvt = [j for i in range(0,len(vectzimg)) for j in range(0,len(vectznomvt)) if vectzimg[i]==vectznomvt[j]]
+    print(minnomvt)
+
+    return img,nomvt[minnomvt]
        
 def tre_for_each_slices(NoMotionSlices : 'list[SliceObject]',
                         listOfSlice : 'list[SliceObject]',
