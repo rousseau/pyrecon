@@ -52,6 +52,7 @@ if __name__ == "__main__":
                 output_svort_mask = os.path.join(output,'nesvor', 'rosi_slices_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
+                output_mask = os.path.join('/data','nesvor',subject,session,"volume_mask.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
@@ -67,7 +68,7 @@ if __name__ == "__main__":
                     cmd_os_2 += " --no-transformation-optimization "
 
                     cmd_os_3 =  " --input-slices " + output_svort_mask
-                    cmd_os_3 += " --output-volume " + output_nesvor + "'_mask"
+                    cmd_os_3 += " --output-volume " + output_mask
                     cmd_os_3 += " --output-slices " + output_nesvor_slices + "_mask"
                     cmd_os_3 += " --registration none "
                     cmd_os_3 += " --no-transformation-optimization "
