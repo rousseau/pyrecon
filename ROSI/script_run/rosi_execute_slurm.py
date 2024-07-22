@@ -46,16 +46,9 @@ if __name__ == "__main__":
                         + " "
                         + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/rosi.slurm"
                         + " "
-                        + '"'
-                        + cmd_os_1
-                        +
-                        + '"'
+                        + input_slices
                         + " "
-                        + '"'
-                        + cmd_os_2
-                        + '"'
-                        + " "
-                        + MARSFET_DATAPATH
+                        + dir_out
                         )
                     os.system(cmd)
 

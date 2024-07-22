@@ -202,7 +202,7 @@ task (){
 			docker exec nesvor_contener nesvor reconstruct --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-volume $output_res'/volume.nii.gz'  --output-slices $output_res --registration svort
   
 	
-					
+			
 		fi 
 		
 }
