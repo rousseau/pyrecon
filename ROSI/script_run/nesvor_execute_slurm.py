@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
 
-    MARSFET_MESO_RESULTS = "/scratch/cmercier/results/"
+    MARSFET_MESO_RESULTS = "/home/cmercier/results/"
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/marsfet_latest_participants.csv"
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
                     if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
                         #print(file)
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
-                        path_to_file = os.path.join('/data',subject,session,file)
+                        path_to_file = os.path.join(stacks_path,subject,session,file)
                         list_stacks.append(path_to_file)
                         run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
                         num_index = run + 4
@@ -55,13 +55,13 @@ if __name__ == "__main__":
                         print("number run",num)
                         for file in input_stacks:
                             if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
-                                path_to_file = os.path.join('/data',subject,session,file)
+                                path_to_file = os.path.join(stacks_path,subject,session,file)
                                 list_masks.append(path_to_file)
                                 break
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-                output_svort = os.path.join(output,'rosi', 'slices', subject, session)
-                output_nesvor = os.path.join(output,'nesvor',subject,session,"volume.nii")
+                output_svort = os.path.join('/data','rosi', 'slices', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                         + cmd_os_2
                         + '"'
                         + " "
-                        + MARSFET_DATABASE
+                        + MARSFET_MESO_RESULTS
                         )
                     
                     os.system(cmd)
