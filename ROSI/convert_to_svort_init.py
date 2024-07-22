@@ -67,7 +67,6 @@ class InputArgparser(object):
         self,
         option_string="--input_slices",
         type=str,
-        nargs="+",
         default=None,
         required=True,
     ):
