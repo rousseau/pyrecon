@@ -93,7 +93,6 @@ if __name__ == "__main__":
                     snap_ax=os.path.join(prefix_output,"snap_axial.png")
                     snap_cor=os.path.join(prefix_output,"snap_cor.png")
                     snap_sag=os.path.join(prefix_output,"snap_sagital.png")
-                    output_mask = output_mask
                     image_shape = nib.load(output_nesvor).shape()
                     data = np.ones(image_shape)
                     output_mask = nib.Nifti1Image(data,nib.load(output_nesvor).affine)
