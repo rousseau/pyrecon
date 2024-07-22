@@ -85,7 +85,6 @@ if __name__ == "__main__":
                         + cmd_os_1
                         + '"'
                         + " "
-                        + os.linesep
                         + '"'
                         + cmd_os_2
                         + "'"

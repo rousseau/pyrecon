@@ -26,5 +26,5 @@ DATA=$3
 
 source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
-python conver_to_svort.py $COMMAND_1
-singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor reconstruct $COMMAND_2
+echo "python conver_to_svort.py" $COMMAND_1
+echo "singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor reconstruct" $COMMAND_2
