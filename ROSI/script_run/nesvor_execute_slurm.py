@@ -65,8 +65,8 @@ if __name__ == "__main__":
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
-                    cmd_os_1 = " --input-stacks " + list_stacks
-                    cmd_os_1 += " --input-mask " + list_masks
+                    cmd_os_1 = " --input_stacks " + list_stacks
+                    cmd_os_1 += " --input_masks " + list_masks
                     cmd_os_1 += " --output " + output_svort
                     cmd_os_1 += " --results " + joblib_path
 
