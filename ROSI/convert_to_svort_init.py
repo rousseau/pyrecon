@@ -91,6 +91,15 @@ class InputArgparser(object):
     ):
         self._add_argument(dict(locals()))
 
+    def add_output_mask(
+        self,
+        option_string="--output_mask",
+        type=str,
+        default=None,
+        required=True,
+    ):
+        self._add_argument(dict(locals()))
+
 
     def add_results(
         self,
@@ -148,6 +157,7 @@ if __name__ == '__main__':
     #input_parser.add_input_mask(required=True) #load masks
     input_parser.add_results(required=True)
     input_parser.add_output(required=True) #load simulated transformation
+    input_parser.add_output_mask(required=True)
     args = input_parser.parse_args()
 
     print(type(args.results))
@@ -155,6 +165,7 @@ if __name__ == '__main__':
     listSlice = res[0][1]
     nbSlice = len(listSlice)
     dir = args.output
+    dirmask = args.output_mask
     
 
     #load original data to get the data without normalisation
@@ -182,6 +193,6 @@ if __name__ == '__main__':
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
         nib.save(nibslice,dir+'/%d.nii.gz'%(i))
-        #nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
+        nib.save(nibmask,dirmask+'/mask_%d.nii.gz'%(i))
 
 print(nibslice.header)

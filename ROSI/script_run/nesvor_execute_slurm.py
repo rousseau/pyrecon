@@ -3,6 +3,7 @@ import re
 import pathlib
 import subprocess
 import csv
+import nisnap
 
 
 if __name__ == "__main__":
@@ -48,6 +49,7 @@ if __name__ == "__main__":
             
                 
                 output_svort = os.path.join(output,'nesvor', 'rosi_slices', subject, session)
+                output_svort_mask = os.path.join(output,'nesvor', 'rosi_slices_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
@@ -55,6 +57,7 @@ if __name__ == "__main__":
                 if os.path.exists(joblib_path):
                     cmd_os_1 = " --input_slices " + input_slices
                     cmd_os_1 += " --output " + output_svort
+                    cmd_os_1 += " --output_mask " + output_svort_mask
                     cmd_os_1 += " --results " + joblib_path
 
                     cmd_os_2 =  " --input-slices " + output_svort
@@ -62,6 +65,12 @@ if __name__ == "__main__":
                     cmd_os_2 += " --output-slices " + output_nesvor_slices
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
+
+                    cmd_os_3 =  " --input-slices " + output_svort_mask
+                    cmd_os_3 += " --output-volume " + output_nesvor + "'_mask"
+                    cmd_os_3 += " --output-slices " + output_nesvor_slices + "_mask"
+                    cmd_os_3 += " --registration none "
+                    cmd_os_3 += " --no-transformation-optimization "
 
                     cmd = (
                         "sbatch"
@@ -76,9 +85,25 @@ if __name__ == "__main__":
                         + cmd_os_2
                         + '"'
                         + " "
+                        + '"'
+                        + cmd_os_3
+                        + '"'
+                        + " "
                         + MARSFET_MESO_RESULTS
                         )
                     
                     os.system(cmd)
+
+
+
+                    #save in nisnap simple visualisation
+                    prefix_output = os.path.join(output,'nesvor',subject,session)
+                    snap_ax=os.path.join(prefix_output,"snap_axial.png")
+                    snap_cor=os.path.join(prefix_output,"snap_cor.png")
+                    snap_sag=os.path.join(prefix_output,"snap_sagital.png")
+                    output_mask = output_nesvor + "_mask"
+                    nisnap.plot_segment(output_mask,axes='x',bg=output_nesvor,opacity=20,savefig=snap_ax,contours=False)
+                    nisnap.plot_segment(output_mask,axes='y',bg=output_nesvor,opacity=20,savefig=snap_cor,contours=False)
+                    nisnap.plot_segment(output_mask,axes='z',bg=output_nesvor,opacity=20,savefig=snap_sag,contours=False)
                     #print(cmd)
 

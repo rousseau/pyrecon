@@ -22,9 +22,11 @@
 
 COMMAND_1=$1
 COMMAND_2=$2
-DATA=$3
+COMMAND_3=$3
+DATA=$4
 
 source activate rosienv
 cd /scratch/cmercier/code/pyrecon/ROSI
 python convert_to_svort_init.py $COMMAND_1
 singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor reconstruct $COMMAND_2
+singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor reconstruct $COMMAND_3
