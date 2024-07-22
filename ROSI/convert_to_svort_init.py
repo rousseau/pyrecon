@@ -178,6 +178,7 @@ if __name__ == '__main__':
         os.makedirs(dirmask)
 
     listOriginal = [file for file in os.listdir(args.input_slices) if not 'mask' in file]
+    print(listOriginal)
                 
 
     for i in range(0,nbSlice):
