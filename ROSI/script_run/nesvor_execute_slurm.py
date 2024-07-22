@@ -102,7 +102,7 @@ if __name__ == "__main__":
                     snap_ax=os.path.join(prefix_output,"snap_axial.png")
                     snap_cor=os.path.join(prefix_output,"snap_cor.png")
                     snap_sag=os.path.join(prefix_output,"snap_sagital.png")
-                    output_mask = output_nesvor + "_mask"
+                    output_mask = output_mask
                     nisnap.plot_segment(output_mask,axes='x',bg=output_nesvor,opacity=20,savefig=snap_ax,contours=False)
                     nisnap.plot_segment(output_mask,axes='y',bg=output_nesvor,opacity=20,savefig=snap_cor,contours=False)
                     nisnap.plot_segment(output_mask,axes='z',bg=output_nesvor,opacity=20,savefig=snap_sag,contours=False)
