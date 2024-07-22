@@ -191,7 +191,7 @@ if __name__ == '__main__':
         sliceoriginal = sliceor.get_fdata()
         dataslice = sliceoriginal
         #dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
-        nibslice = nib.Nifti1Image((islice.get_slice.get_data()),affine)
+        nibslice = nib.Nifti1Image((islice.get_slice().get_fdata()),affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
