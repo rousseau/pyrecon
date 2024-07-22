@@ -40,10 +40,12 @@ if __name__ == "__main__":
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
                 input_stacks = os.path.join(stacks_path,subject,session)
+                print("input_stacks",input_stacks)
                 list_stacks=[]
                 list_masks=[]
                 for file in input_stacks:
                     if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
+                        print(file)
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join('/data',subject,session,file)
                         list_stacks.append(path_to_file)
@@ -59,7 +61,7 @@ if __name__ == "__main__":
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
                 output_svort = os.path.join(output,'rosi', 'slices', subject, session)
-                output_nesvor = os.path.join(output,'nesvor',subject,session)
+                output_nesvor = os.path.join(output,'nesvor',subject,session,"volume.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
