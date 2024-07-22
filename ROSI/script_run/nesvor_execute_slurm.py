@@ -91,15 +91,15 @@ if __name__ == "__main__":
 
                     #save in nisnap simple visualisation
                     prefix_output = os.path.join(output,'nesvor',subject,session)
-                    snap_ax=os.path.join(prefix_output,"snap_axial.png")
+                    snap_ax=os.path.join(prefix_output,"snap.png")
                     snap_cor=os.path.join(prefix_output,"snap_cor.png")
                     snap_sag=os.path.join(prefix_output,"snap_sagital.png")
                     image_shape = nib.load(path_to_volume).shape
                     data = np.ones(image_shape)
                     output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
                     nib.save(output_mask,path_to_mask)
-                    nisnap.plot_segment(path_to_mask,axes='x',bg=path_to_volume,opacity=20,savefig=snap_ax,contours=False)
-                    nisnap.plot_segment(path_to_mask,axes='y',bg=path_to_volume,opacity=20,savefig=snap_cor,contours=False)
-                    nisnap.plot_segment(path_to_mask,axes='z',bg=path_to_volume,opacity=20,savefig=snap_sag,contours=False)
+                    nisnap.plot_segment(path_to_mask,{'x': 9, 'y': 9, 'z': 6},bg=path_to_volume,opacity=20,savefig=snap_ax,contours=False)
+                    #nisnap.plot_segment(path_to_mask,axes='y',bg=path_to_volume,opacity=20,savefig=snap_cor,contours=False)
+                    #nisnap.plot_segment(path_to_mask,axes='z',bg=path_to_volume,opacity=20,savefig=snap_sag,contours=False)
                     #print(cmd)
 
