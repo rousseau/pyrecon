@@ -54,6 +54,7 @@ if __name__ == "__main__":
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 path_to_mask = os.path.join('/data','nesvor',subject,session,"volume_mask.nii")
+                path_to_volume = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
@@ -97,8 +98,8 @@ if __name__ == "__main__":
                     data = np.ones(image_shape)
                     output_mask = nib.Nifti1Image(data,nib.load(output_nesvor).affine)
                     nib.save(output_mask,path_to_mask)
-                    nisnap.plot_segment(path_to_mask,axes='x',bg=output_nesvor,opacity=20,savefig=snap_ax,contours=False)
-                    nisnap.plot_segment(path_to_mask,axes='y',bg=output_nesvor,opacity=20,savefig=snap_cor,contours=False)
-                    nisnap.plot_segment(path_to_mask,axes='z',bg=output_nesvor,opacity=20,savefig=snap_sag,contours=False)
+                    nisnap.plot_segment(path_to_mask,axes='x',bg=path_to_volume,opacity=20,savefig=snap_ax,contours=False)
+                    nisnap.plot_segment(path_to_mask,axes='y',bg=path_to_volume,opacity=20,savefig=snap_cor,contours=False)
+                    nisnap.plot_segment(path_to_mask,axes='z',bg=path_to_volume,opacity=20,savefig=snap_sag,contours=False)
                     #print(cmd)
 
