@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
                 output_svort = os.path.join(output,'rosi', 'slices', subject, session)
                 output_nesvor = os.path.join(output,'nesvor',subject,session)
-                output_nesvor_slices = os.path.joint(output,'nesvor','slices',subject,session)
+                output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
                     cmd_os_1 = " --input-stacks " + list_stacks
