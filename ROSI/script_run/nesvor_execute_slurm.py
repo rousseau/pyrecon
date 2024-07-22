@@ -13,13 +13,16 @@ if __name__ == "__main__":
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
 
     MARSFET_MESO_RESULTS = "/home/cmercier/results/"
+
+    MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/marsfet_latest_participants.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
-    stacks_path = MARSFET_DATAPATH
+    slices_path = MARSFET_MESO_SVORT_INIT
     csv_file =  MARSFET_DATABASE
+    stacks_path = MARSFET_DATAPATH
     sub_list = []
     ses_list = []
     with open(csv_file,newline='') as csvfile:
@@ -39,35 +42,17 @@ if __name__ == "__main__":
             #in sub_list and session in ses_list :
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
-                input_stacks = os.listdir(os.path.join(stacks_path,subject,session))
+                input_slices = os.listdir(os.path.join(slices_path,subject,session,'res'))
                 #print("input_stacks",input_stacks)
-                list_stacks=[]
-                list_masks=[]
-                for file in input_stacks:
-                    if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
-                        #print(file)
-						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
-                        path_to_file = os.path.join(stacks_path,subject,session,file)
-                        list_stacks.append(path_to_file)
-                        run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
-                        num_index = run + 4
-                        num = "run-%s" %(file[num_index])
-                        print("number run",num)
-                        for file in input_stacks:
-                            if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
-                                path_to_file = os.path.join(stacks_path,subject,session,file)
-                                list_masks.append(path_to_file)
-                                break
-                list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
-                list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
+            
+                
                 output_svort = os.path.join(output,'nesvor', 'rosi_slices', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
 
                 if os.path.exists(joblib_path):
-                    cmd_os_1 = " --input_stacks " + list_stacks
-                    cmd_os_1 += " --input_masks " + list_masks
+                    cmd_os_1 = " --input_slices " + input_slices
                     cmd_os_1 += " --output " + output_svort
                     cmd_os_1 += " --results " + joblib_path
 
