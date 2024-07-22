@@ -177,8 +177,8 @@ if __name__ == '__main__':
     if not(os.path.exists(dirmask)):
         os.makedirs(dirmask)
 
-    listOriginal = os.listdir(args.input_slices)
-   
+    listOriginal = [file for file in os.listdir(args.input_slices) if not 'mask' in file)]
+                
 
     for i in range(0,nbSlice):
         islice = listSlice[i]
