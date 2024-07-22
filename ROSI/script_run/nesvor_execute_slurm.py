@@ -87,7 +87,7 @@ if __name__ == "__main__":
                         + " "
                         + '"'
                         + cmd_os_2
-                        + "'"
+                        + '"'
                         + " "
                         + MARSFET_DATABASE
                         )
