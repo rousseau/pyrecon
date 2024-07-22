@@ -170,7 +170,7 @@ if __name__ == '__main__':
             listOriginal+=out
 
     if not(os.path.exists(dir)):
-        os.mkdir(dir)
+        os.makedirs(dir)
 
     image,ori = same_order(listSlice,listOriginal)
     listSlice = np.concatenate(image)
