@@ -39,7 +39,7 @@ if __name__ == "__main__":
             #in sub_list and session in ses_list :
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
-                input_stacks = os.path.join(stacks_path,subject,session)
+                input_stacks = os.path.listdir(os.path.join(stacks_path,subject,session))
                 print("input_stacks",input_stacks)
                 list_stacks=[]
                 list_masks=[]
