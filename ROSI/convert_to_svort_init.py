@@ -184,7 +184,7 @@ if __name__ == '__main__':
     for i in range(0,nbSlice):
         islice = listSlice[i]
         index_slice = (islice.get_indexSlice(),islice.get_indexVolume())
-        sliceor = nib.load(listOriginal[i])
+        sliceor = nib.load(os.join(args.input_slices,listOriginal[i]))
         mask = islice.get_mask()
         affine = islice.get_slice().affine
         #path_to_original = os.path.join(args.input_slices,listOriginal[i])
