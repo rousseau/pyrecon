@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     snap_sag=os.path.join(prefix_output,"snap_sagital.png")
                     image_shape = nib.load(output_nesvor).shape()
                     data = np.ones(image_shape)
-                    output_mask = nib.Nifti1Image(data,nib.load(output_nesvor).affine)
+                    output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
                     nib.save(output_mask,path_to_mask)
                     nisnap.plot_segment(path_to_mask,axes='x',bg=path_to_volume,opacity=20,savefig=snap_ax,contours=False)
                     nisnap.plot_segment(path_to_mask,axes='y',bg=path_to_volume,opacity=20,savefig=snap_cor,contours=False)
