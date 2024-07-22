@@ -40,12 +40,12 @@ if __name__ == "__main__":
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
                 input_stacks = os.listdir(os.path.join(stacks_path,subject,session))
-                print("input_stacks",input_stacks)
+                #print("input_stacks",input_stacks)
                 list_stacks=[]
                 list_masks=[]
                 for file in input_stacks:
                     if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
-                        print(file)
+                        #print(file)
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join('/data',subject,session,file)
                         list_stacks.append(path_to_file)
@@ -92,6 +92,6 @@ if __name__ == "__main__":
                         + MARSFET_DATABASE
                         )
                     
-                    #os.system(cmd)
-                    print(cmd)
+                    os.system(cmd)
+                    #print(cmd)
 
