@@ -174,6 +174,7 @@ if __name__ == '__main__':
 
     if not(os.path.exists(dir)):
         os.makedirs(dir)
+        os.makedirs(dirmask)
 
     listOriginal = os.listdir(args.input_slices)
    
