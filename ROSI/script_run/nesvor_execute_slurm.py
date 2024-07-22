@@ -91,14 +91,25 @@ if __name__ == "__main__":
 
                     #save in nisnap simple visualisation
                     prefix_output = os.path.join(output,'nesvor',subject,session)
-                    snap_ax=os.path.join(prefix_output,"snap.png")
-                    snap_cor=os.path.join(prefix_output,"snap_cor.png")
-                    snap_sag=os.path.join(prefix_output,"snap_sagital.png")
+                    snap=os.path.join(prefix_output,"snap.png")
                     image_shape = nib.load(path_to_volume).shape
                     data = np.ones(image_shape)
                     output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
                     nib.save(output_mask,path_to_mask)
-                    nisnap.plot_segment(path_to_mask,{'x': 9, 'y': 9, 'z': 6},bg=path_to_volume,opacity=20,savefig=snap_ax,contours=False)
+                    if not os.path.exists(snap):
+                        done = 0
+                        d_max = 150
+                        step = 20
+                        while (done < 1) and (d_max > 20):
+                            try:
+                                slices = {'x': list(range(30, d_max, step)),'y': list(range(60, d_max, step)),'z': list(range(40, d_max, step))}
+                                nisnap.plot_segment(path_to_mask,slices=slices,bg=path_to_volume,opacity=20,savefig=snap,contours=False)
+                                done=1
+                            except Exception as e:
+                                print(e)
+                                d_max = d_max - 20
+                                step = step-5
+                                print("d_max is now set to ", d_max)
                     #nisnap.plot_segment(path_to_mask,axes='y',bg=path_to_volume,opacity=20,savefig=snap_cor,contours=False)
                     #nisnap.plot_segment(path_to_mask,axes='z',bg=path_to_volume,opacity=20,savefig=snap_sag,contours=False)
                     #print(cmd)
