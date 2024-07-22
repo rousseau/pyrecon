@@ -79,7 +79,7 @@ if __name__ == "__main__":
                     cmd = (
                         "sbatch"
                         + " "
-                        + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/nesvor.slurm"
+                        + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/rosi_nesvor.slurm"
                         + " "
                         + '"'
                         + cmd_os_1
