@@ -90,7 +90,9 @@ if __name__ == "__main__":
 
 
                     #save in nisnap simple visualisation
-                    prefix_output = os.path.join(output,'nesvor',subject,session)
+                    prefix_output = os.path.join(output,'snap',subject,session)
+                    if not os.path.exists(prefix_output):
+                        os.makedirs(prefix_output)
                     snap=os.path.join(prefix_output,"snap.png")
                     image_shape = nib.load(path_to_volume).shape
                     data = np.ones(image_shape)

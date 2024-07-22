@@ -186,8 +186,8 @@ if __name__ == '__main__':
         sliceor = listOriginal[i]
         mask = islice.get_mask()
         affine = islice.get_slice().affine
-        path_to_original = os.path.join(args.input_slices,listOriginal[i])
-        sliceoriginal = nib.load(path_to_original).get_fdata()
+        #path_to_original = os.path.join(args.input_slices,listOriginal[i])
+        sliceoriginal = nib.load(sliceor).get_fdata()
         dataslice = sliceoriginal
         #dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
         nibslice = nib.Nifti1Image((dataslice),affine)
