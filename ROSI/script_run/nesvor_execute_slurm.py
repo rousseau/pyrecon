@@ -70,7 +70,7 @@ if __name__ == "__main__":
                     cmd_os_1 += " --output " + output_svort
                     cmd_os_1 += " --results " + joblib_path
 
-                    cmd_os_2 =  " --input_slices " + output_svort
+                    cmd_os_2 =  " --input-slices " + output_svort
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --output-slices " + output_nesvor_slices
                     cmd_os_2 += " --registration none "
