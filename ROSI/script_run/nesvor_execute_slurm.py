@@ -49,14 +49,13 @@ if __name__ == "__main__":
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_slices', subject, session)
+                output_svort = os.path.join(output,'nesvor', 'rosi_slices_test', subject, session)
                 output_svort_mask = os.path.join(output,'nesvor', 'rosi_slices_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume.nii")
-                output_nesvor_slices = os.path.join(output,'nesvor','slices',subject,session)
-
+               
                 if os.path.exists(joblib_path):
                     cmd_os_1 = " --input_slices " + input_slices
                     cmd_os_1 += " --output " + output_svort
@@ -65,7 +64,6 @@ if __name__ == "__main__":
 
                     cmd_os_2 =  " --input-slices " + output_svort
                     cmd_os_2 += " --output-volume " + output_nesvor
-                    cmd_os_2 += " --output-slices " + output_nesvor_slices
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
 
