@@ -11,6 +11,7 @@ import argparse
 import six
 import sys
 from rosi.simulation.validation import same_order
+from rosi.registration.load import loadFromdir
 #import sklearn.externals.joblib
 
 class InputArgparser(object):
@@ -177,18 +178,20 @@ if __name__ == '__main__':
     if not(os.path.exists(dirmask)):
         os.makedirs(dirmask)
 
-    listOriginal = [file for file in os.listdir(args.input_slices) if not 'mask' in file]
+    #listOriginal = [file for file in os.listdir(args.input_slices) if not 'mask' in file]
+    listOriginal = loadFromdir(args.input_slices)
     print(listOriginal)
                 
 
     for i in range(0,nbSlice):
         islice = listSlice[i]
         index_slice = (islice.get_indexSlice(),islice.get_indexVolume())
-        sliceor = nib.load(os.path.join(args.input_slices,listOriginal[i]))
+        sliceor = listOriginal[i]
+        #nib.load(os.path.join(args.input_slices,listOriginal[i]))
         mask = islice.get_mask()
         affine = islice.get_slice().affine
         #path_to_original = os.path.join(args.input_slices,listOriginal[i])
-        sliceoriginal = islice.get_slice().get_fdata() * mask
+        sliceoriginal = sliceor.get_slice().get_fdata() * mask
         dataslice = sliceoriginal
         dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
         nibslice = nib.Nifti1Image((sliceoriginal),affine)
