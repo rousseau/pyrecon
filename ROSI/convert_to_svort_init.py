@@ -190,8 +190,8 @@ if __name__ == '__main__':
         #path_to_original = os.path.join(args.input_slices,listOriginal[i])
         sliceoriginal = sliceor.get_fdata()
         dataslice = sliceoriginal
-        #dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
-        nibslice = nib.Nifti1Image((sliceoriginal),affine)
+        dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
+        nibslice = nib.Nifti1Image((sliceoriginal)*mask,affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
