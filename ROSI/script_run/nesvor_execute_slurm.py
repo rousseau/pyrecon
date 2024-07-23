@@ -62,7 +62,7 @@ if __name__ == "__main__":
                     cmd_os_1 += " --output_mask " + output_svort_mask
                     cmd_os_1 += " --results " + joblib_path
 
-                    cmd_os_2 =  " --input-slices " + output_svort
+                    cmd_os_2 =  " --input-slices " + output_svort_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "

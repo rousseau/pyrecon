@@ -1,6 +1,7 @@
 ##nb : nesvor ne gère pas les inténsité négative, donc si on veut utilisé ROSI avec Svort, il faut revoir la normalisation
 ##surtout que par defaut, toute les valeurs en dessous de zeros sont considérées comme ne faisant pas partie du masque et donc son enlevées....
 
+from ROSI.rosi.registration.tools import separate_slices_in_stacks
 from rosi.registration.intersection import compute_cost_matrix
 from rosi.registration.outliers_detection.feature import update_features
 from rosi.registration.outliers_detection.outliers import sliceFeature
@@ -194,6 +195,11 @@ if __name__ == '__main__':
                     del listOriginal[it]
             else:
                     it+=1
+
+    image,mask = separate_slices_in_stacks(listOriginal.copy())
+    for m in image:
+        listSliceNorm = listSliceNorm + m
+
     print(len(listOriginal))
     print(len(listSlice))
                 
@@ -206,7 +212,7 @@ if __name__ == '__main__':
         mask = islice.get_mask()
         affine = islice.get_slice().affine
         #path_to_original = os.path.join(args.input_slices,listOriginal[i])
-        sliceoriginal = sliceor.get_slice().get_fdata() * mask
+        sliceoriginal = islice.get_slice().get_fdata() * mask
         dataslice = sliceoriginal
         dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
         nibslice = nib.Nifti1Image((sliceoriginal),affine)
