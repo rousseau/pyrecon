@@ -180,7 +180,8 @@ if __name__ == '__main__':
 
     #listOriginal = [file for file in os.listdir(args.input_slices) if not 'mask' in file]
     listOriginal = loadFromdir(args.input_slices)
-    print(listOriginal)
+    print(len(listOriginal))
+    print(len(listSlice))
                 
 
     for i in range(0,nbSlice):
