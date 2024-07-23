@@ -200,6 +200,7 @@ if __name__ == '__main__':
     for m in image:
         listSliceNorm = listSliceNorm + m
 
+    listOriginal = listSliceNorm
     print(len(listOriginal))
     print(len(listSlice))
                 
