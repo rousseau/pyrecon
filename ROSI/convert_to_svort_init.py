@@ -1,7 +1,7 @@
 ##nb : nesvor ne gère pas les inténsité négative, donc si on veut utilisé ROSI avec Svort, il faut revoir la normalisation
 ##surtout que par defaut, toute les valeurs en dessous de zeros sont considérées comme ne faisant pas partie du masque et donc son enlevées....
 
-from ROSI.rosi.registration.tools import separate_slices_in_stacks
+from rosi.registration.tools import separate_slices_in_stacks
 from rosi.registration.intersection import compute_cost_matrix
 from rosi.registration.outliers_detection.feature import update_features
 from rosi.registration.outliers_detection.outliers import sliceFeature
