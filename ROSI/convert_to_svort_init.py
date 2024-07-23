@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
     #listOriginal = [file for file in os.listdir(args.input_slices) if not 'mask' in file]
     listOriginal = loadFromdir(args.input_slices)
-    listErrorSlice = [sliceFeature(slicei.get_stackIndex(),slicei.get_indexSlice()) for slicei in listSlice]
+    listErrorSlice = [sliceFeature(slicei.get_stackIndex(),slicei.get_indexSlice()) for slicei in listOriginal]
     
     squarre_error,number_point,intersection,union=compute_cost_matrix(listOriginal) 
     update_features(listOriginal,listErrorSlice,squarre_error,number_point,intersection,union)
