@@ -82,8 +82,8 @@ if __name__ == "__main__":
                         + " "
                         + MARSFET_MESO_RESULTS
                         )
-                    print(cmd)
-                    #os.system(cmd)
+                    
+                    os.system(cmd)
 
 
 
