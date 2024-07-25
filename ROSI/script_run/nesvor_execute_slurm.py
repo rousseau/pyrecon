@@ -66,6 +66,8 @@ if __name__ == "__main__":
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
+                    cmd_os_2 += " --inference-batch-size 256 "
+                    cmd_os_2 += " --n-inference-samples 128 "
 
                     cmd = (
                         "sbatch"
