@@ -197,8 +197,9 @@ if __name__ == '__main__':
                     it+=1
 
     image,mask = separate_slices_in_stacks(listOriginal.copy())
+    listSliceNorm = []
     for m in image:
-        listSliceNorm = listSliceNorm + m
+        listSliceNorm = listSliceNorm +m
 
     listOriginal = listSliceNorm
     print(len(listOriginal))
