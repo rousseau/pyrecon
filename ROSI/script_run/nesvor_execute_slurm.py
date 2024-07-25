@@ -40,7 +40,7 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            if subject == "sub-0002" and session == "ses-0002":
+            if subject == "sub-0051" and session == "ses-0061":
             #in sub_list and session in ses_list :
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
@@ -87,31 +87,5 @@ if __name__ == "__main__":
 
 
 
-                    #save in nisnap simple visualisation
-                    prefix_output = os.path.join(output,'snap',subject,session)
-                    figsize = {'x': (18, 4), 'y': (18, 4), 'z': (18, 5)}
-                    if not os.path.exists(prefix_output):
-                        os.makedirs(prefix_output)
-                    snap=os.path.join(prefix_output,"snap.png")
-                    image_shape = nib.load(path_to_volume).shape
-                    data = np.ones(image_shape)
-                    output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
-                    nib.save(output_mask,path_to_mask)
-                    if not os.path.exists(snap):
-                        done = 0
-                        d_max = 150
-                        step = 20
-                        while (done < 1) and (d_max > 20):
-                            try:
-                                slices = {'x': list(range(30, d_max, step)),'y': list(range(60, d_max, step)),'z': list(range(40, d_max, step))}
-                                nisnap.plot_segment(path_to_mask,slices=slices,bg=path_to_volume,opacity=20,savefig=snap,contours=False,samebox=True,figsize=figsize)
-                                done=1
-                            except Exception as e:
-                                print(e)
-                                d_max = d_max - 20
-                                step = step-5
-                                print("d_max is now set to ", d_max)
-                    #nisnap.plot_segment(path_to_mask,axes='y',bg=path_to_volume,opacity=20,savefig=snap_cor,contours=False)
-                    #nisnap.plot_segment(path_to_mask,axes='z',bg=path_to_volume,opacity=20,savefig=snap_sag,contours=False)
-                    #print(cmd)
+                    
 
