@@ -41,7 +41,7 @@ def nelder_mead_optimisation(hyperparameters : dict,
     x_tol = hyperparameters['fs']
     omega = hyperparameters['omega']
     epsilon = hyperparameters['T']
-    maxiter=5000
+    maxiter=2000
 
     #optimisation with Nelder-Mead
     ftol=1e-4

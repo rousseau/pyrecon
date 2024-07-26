@@ -118,7 +118,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
         print('th =',sqrt(6*(hyperparameters["T"]/v[iter])**2))
         print('omega =',hyperparameters["omega"])
 
-        new_hyperparameters={'ds':hyperparameters['ds']/v[iter],'fs':hyperparameters['fs']/v[iter],'T':sqrt(6*(hyperparameters["T"]/v[iter])**2),'omega':hyperparameters['omega']/v[iter]}
+        new_hyperparameters={'ds':hyperparameters['ds']/v[iter],'fs':hyperparameters['fs']/v[iter],'T':sqrt(6*(hyperparameters["T"]/v[iter])**2),'omega':hyperparameters['omega']}
         squarre_error,number_point,intersection,union,dicRes=algo_optimisation(new_hyperparameters,listSlice,set_o,set_r,grid_slices,dicRes,Vmx,10,optimisation)
         grid_slices=array([squarre_error,number_point,intersection,union])
         set_r=zeros(nbSlice)

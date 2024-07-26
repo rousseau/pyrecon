@@ -134,7 +134,7 @@ class InputArgparser(object):
         self,
         option_string="--local_convergence",
         type=float,
-        default=0.25,
+        default=2,
         help="Value for convergence, default is 2",
         required=False,
         ):
@@ -144,7 +144,7 @@ class InputArgparser(object):
         self,
         option_string="--omega",
         type=float,
-        default=0,
+        default=1,
         help="Weigth of the intersection in the cost function, 0 by default",
         required=False,
         ):

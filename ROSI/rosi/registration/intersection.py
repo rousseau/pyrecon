@@ -707,7 +707,7 @@ def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     new_ind = np.array(new_ind,dtype=bool)
 
 
-    dice = sum(intersection_matrix[new_ind])
+    dice = sum(intersection_matrix)
     dice=dice/Vmx
 
 

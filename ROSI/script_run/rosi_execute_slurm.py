@@ -34,11 +34,13 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            if subject in sub_list and session in ses_list :
-            #== "sub-0002" and session == "ses-0002":
+            if subject == "sub-0051" and session == "ses-0061":
+            #in sub_list and session in ses_list :
+            #
                 input_slices = os.path.join(input_data,subject, session, 'res')
                 dir_out = os.path.join(output_data, subject, session)
-                if not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
+                if True : 
+                #not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
                     print('input_slices:',input_slices)
                     print('dir_output:',dir_out)
                     cmd = (
