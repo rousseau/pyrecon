@@ -134,7 +134,7 @@ class InputArgparser(object):
         self,
         option_string="--local_convergence",
         type=float,
-        default=0.25,
+        default=2,
         help="Value for convergence, default is 2",
         required=False,
         ):
