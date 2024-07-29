@@ -118,7 +118,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
         print('th =',sqrt(6*(hyperparameters["T"]/v[iter])**2))
         
 
-        if iter ==len(v)-1:
+        if iter==(len(v)-1):
               omega=0
         else :
               omega=hyperparameters["omega"]
