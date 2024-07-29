@@ -36,7 +36,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
                     it+=1
         
     
-
+    squarre_error,number_point,intersection,union=compute_cost_matrix(listSlice) 
     """
     Compute the optimised parameters for each slice. At the end of the function parameters of each slice must be the optimised parameters. The function returns the evolution of the registration on each iterarion.
     
