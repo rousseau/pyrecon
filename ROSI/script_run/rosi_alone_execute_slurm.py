@@ -44,7 +44,7 @@ if __name__ == "__main__":
                 for file in input_stacks:
                     if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
-                        path_to_file = os.path.join('/data',subject,session,file)
+                        path_to_file = os.path.join(stacks_path,subject,session,file)
                         list_stacks.append(path_to_file)
                         run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
                         num_index = run + 4
@@ -80,7 +80,6 @@ if __name__ == "__main__":
                         + cmd_os
                         + '"'
                         + " "
-                        + MARSFET_DATAPATH
                         )
                     
                     os.system(cmd)
