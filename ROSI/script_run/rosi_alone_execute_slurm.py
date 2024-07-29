@@ -52,7 +52,7 @@ if __name__ == "__main__":
                         print("number run",num)
                         for file in input_stacks:
                             if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
-                                path_to_file = os.path.join('/data',subject,session,file)
+                                path_to_file = os.path.join(stacks_path,subject,session,file)
                                 list_masks.append(path_to_file)
                                 break
                 print(list_stacks)
