@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_nesvor.nii")
                
                 if True :
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     cmd_os_2 =  " --input-slices " + output_svort_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --registration none "
-                    cmd_os_2 += " --no-transformation-optimization "
+                    #cmd_os_2 += " --no-transformation-optimization "
                     #cmd_os_2 += " --inference-batch-size 32 "
                     #cmd_os_2 += " --n-inference-samples 128 "
                     #cmd_os_2 += " --single-precision "
