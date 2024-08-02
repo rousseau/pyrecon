@@ -67,7 +67,8 @@ if __name__ == "__main__":
                 cmd_os += " --output " + dir_out
                 #if True :
                 #not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
-                if subject == "sub-0051" and session == "ses-0061" :
+                if subject in sub_list and session in ses_list :
+                #subject == "sub-0051" and session == "ses-0061" :
                     print('input_slices:',list_stacks)
                     print('dir_output:',dir_out)
                     

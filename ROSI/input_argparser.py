@@ -144,7 +144,7 @@ class InputArgparser(object):
         self,
         option_string="--omega",
         type=float,
-        default=2,
+        default=0,
         help="Weigth of the intersection in the cost function, 0 by default",
         required=False,
         ):
