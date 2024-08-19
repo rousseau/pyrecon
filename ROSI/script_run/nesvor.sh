@@ -69,7 +69,7 @@ for file in ${images_list}
 		     mkdir ${results}'/'${file1}'/'${file2}
 
 		      
-		     output_reconstruction_pipeline='/usr/local/NeSVoR/res/'${sub_file}
+		     output_reconstruction_pipeline='/usr/local/NeSVoR/nesvor_alone/'${sub_file}
 		    	     	    
 		     #echo "${list_docker[@]}"
 		     #echo "${mask_docker[@]}"
@@ -85,7 +85,7 @@ for file in ${images_list}
 			 docker exec nesvor_contener echo 'docker is running'
 			 #docker exec nesvor_contener nesvor -h
 		     
-		     docker exec nesvor_contener nesvor reconstruct --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-volume $output_reconstruction_pipeline'/volume.nii.gz'  --registration svort
+		     docker exec nesvor_contener nesvor reconstruct --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-volume $output_reconstruction_pipeline'/volume.nii.gz' --output-slices $output_reconstruction_pipeline --registration none
 	     	 #docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/all'${all} ${results}'/'${sub_file}'/'
 	     	    
 		     
@@ -95,7 +95,7 @@ for data in ${file_list}
 	    do	
 
 		     echo $data
-		     fonction "$data" 
+		     #fonction "$data" 
 
 		done
 
@@ -189,7 +189,7 @@ task (){
 			output_simul_path=${results}'/simul_data/'${suffix}/'all'
 			output_simul=${output_simul_path}'/res_test_all'
 			mkdir output_simul
-			output_res='/usr/local/NeSVoR/res/nesvor/'${suffix}
+			output_res='/usr/local/NeSVoR/nesvor_alone/'${suffix}
 					
 					
 					#echo $list_docker
@@ -199,7 +199,7 @@ task (){
 		    echo "${mask[@]}"
 			docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/nesvor'
 			docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/nesvor/'${suffix}
-			docker exec nesvor_contener nesvor reconstruct --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-volume $output_res'/volume.nii.gz'  --output-slices $output_res --registration svort
+			docker exec nesvor_contener nesvor reconstruct --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-volume $output_res'/volume.nii.gz'  --output-slices $output_res --registration none
   
 	
 			
@@ -208,7 +208,7 @@ task (){
 }
 
 mkdir ${results}'/simul_data/'
-for simul in $simul_file'/Grand3'
+for simul in $simul_file 
 #${listr[@]}
 do
 		#simuldata=${simul_file}${simul}
