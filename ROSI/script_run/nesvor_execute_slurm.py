@@ -40,8 +40,8 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            if subject in sub_list and session in ses_list :
-            #== "sub-0051" and session == "ses-0061":
+            #if subject in sub_list and session in ses_list :
+            if subject == "sub-0675" and session == "ses-0801":
             #in sub_list and session in ses_list :
             #== "sub-0009" and session == "ses-0012":
             #== "sub-0002" and session == "ses-0002":
