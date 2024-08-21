@@ -33,8 +33,8 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            if subject== "sub-0117" and session == "ses-0137":
-            #subject in sub_list and session in ses_list :
+            if subject in sub_list and session in ses_list : 
+            #subject== "sub-0117" and session == "ses-0137":
             #subject== "sub-0001" and session == "ses-0001":
             #subject in sub_list and session in ses_list :
             #
@@ -65,8 +65,7 @@ if __name__ == "__main__":
                 cmd_os = "--input-stacks " + list_stacks 
                 cmd_os += " --stack-masks " + list_masks 
                 cmd_os += " --output-slices " + dir_out
-                if True :
-                #not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
+                if not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
                 #if subject == "sub-0191" and session == "ses-0225" :
                     print('input_slices:',list_stacks)
                     print('dir_output:',dir_out)
