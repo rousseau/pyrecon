@@ -496,3 +496,61 @@ def computeResidu(br_image : 'list[SliceObject]',hr_image : 'Nifty1image',hr_mas
         residu[:,:,islice] = res
 
     return residu
+
+
+def QualityMetric(br_image : 'list[SliceObject]',hr_image : 'Nifty1image',hr_mask : 'np.array',metric : 'str'):
+    """
+    compute residus between one low resolution image (br) and one high resolution image (hr)
+
+    """
+    
+    #result image
+    X,Y,_ = br_image[0].get_slice().shape
+    residu = np.zeros((X,Y,len(br_image)))
+    
+    
+    hr_affine=hr_image.affine
+    hr_data=hr_image.get_fdata()
+
+    for islice in range(0,len(br_image)):
+        
+        data = br_image[islice].get_slice().get_fdata() *  br_image[islice].get_mask()
+        data = data.squeeze()
+
+        coordinate_in_lr = np.zeros((4,X*Y)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
+            #create the coordinate of points of the slice i in the LR image, with 6 points per voxel, center in 0
+        ii = np.arange(0,X) 
+        jj = np.arange(0,Y)
+    
+        iv,jv = np.meshgrid(ii,jj,indexing='ij')
+
+        iv = np.reshape(iv, (-1))
+        jv = np.reshape(jv, (-1))
+
+        coordinate_in_lr[0,:] = iv
+        coordinate_in_lr[1,:] = jv
+        coordinate_in_lr[2,:] = 0
+        coordinate_in_lr[3,:] = 1
+            
+        T1 = br_image[islice].get_estimatedTransfo()
+        br_affine = br_image[islice].get_slice().affine
+        coordinate_in_world = T1 @ coordinate_in_lr
+        coordinate_in_hr = (np.linalg.inv(hr_affine) @ coordinate_in_world) #np.linalg.inv(image.affine) @ coordinate_in_world
+
+        interpolate = np.zeros(X*Y)
+        map_coordinates(hr_data,coordinate_in_hr[0:3,:],output=interpolate,order=3,mode='constant',cval=0,prefilter=False)
+        value_in_hr = np.reshape(interpolate,(X,Y))
+
+        slice_mask = np.zeros(X*Y)
+        map_coordinates(hr_mask,coordinate_in_hr[0:3,:],output=slice_mask,order=0,mode='constant',cval=0,prefilter=False)
+        mask_in_hr = np.reshape(slice_mask,(X,Y))
+
+        values = value_in_hr*mask_in_hr
+        #print('values :',mask_in_hr[np.where(mask_in_hr>0)])
+        #print('data :',data[np.where(data>0)])
+        res = np.abs(values - data)
+
+
+        residu[:,:,islice] = res
+
+    return residu
