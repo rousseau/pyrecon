@@ -2,38 +2,48 @@ from os import listdir
 from skimage.metrics import structural_similarity as ssim
 import numpy as np
 import re
+import nibabel as nib
+from scipy.ndimage import map_coordinates
 #import ants
 
 
 #fonction pour calculer les métriques les plus courament utilisée entre les images reconstruites et les images originales
 
 def EQM(reference_image,moving_image):
-    
-    X,Y,Z = reference_image.shape
+    size = reference_image.size
     sum_EQM = np.sum((reference_image-moving_image)**2)
-    EQM = sum_EQM/(X*Y*Z)
-    
+    EQM = sum_EQM/(size)
     return EQM
     
 def PSNR(reference_image,moving_image):
-    
-    moving_image=moving_image
     eqm = EQM(reference_image,moving_image)
-    print(eqm)
-    d=np.max(np.max(reference_image),np.max(moving_image))-np.min(np.min(reference_image),np.min(moving_image))
-    print(d)
+    d=max(np.max(reference_image),np.max(moving_image))-min(np.min(reference_image),np.min(moving_image))
+    print(d,max(np.max(reference_image),np.max(moving_image)),min(np.min(reference_image),np.min(moving_image)))
     psnr = 10*np.log10(d**2/eqm)
     return psnr
 
 def SSIM(reference_image,moving_image):
-    
     # 5. Compute the Structural Similarity Index (SSIM) between the two images
     (score, diff) = ssim(reference_image, moving_image, full=True)
     diff = (diff * 255).astype("uint8")
-    
     return score
-    
 
+def norm_data(data):
+    mean_data=np.mean(data)
+    std_data=np.std(data,ddof=1)
+    print(mean_data,std_data)
+    return (data-mean_data)/std_data  
+
+def NCC(reference_image,moving_image):
+    #index = moving_image>0
+    data0 = norm_data(moving_image)
+    data0 = data0
+    data1= norm_data(reference_image)
+    data1= data1
+    #print(len(data1),len(data0))
+    if np.all(data0 == 0) or np.all(data1 == 0) or np.isnan(np.sum(data0*data1)):
+        return 0
+    return ((1.0/(data0.size-1))* np.sum(data0*data1))
 
 from sklearn.mixture import GaussianMixture
 
@@ -72,69 +82,67 @@ def pve(reconstructed_hr_image):
     t1 = [max(0,mu1-fhwm1),mu1+fhwm1]; t2 = [max(0,mu2-fhwm2),mu2+fhwm2]; t3 = [max(0,mu3-fhwm3),mu3+fhwm3]
     pve=0
     for v in data:
-        if not ((v<t1[0] and v<t1[1]) or (v>t2[0] and v<t2[1]) or (v>t3[0] and v<t3[1])):
+        if not ((v>t1[0] and v<t1[1]) or (v>t2[0] and v<t2[1]) or (v>t3[0] and v<t3[1])):
             pve+=1
     return pve/nb_voxel*100
 
-def QualityMetric(br_image ,hr_image ,hr_mask ,metric):
+
+br_directory = "/home/mercier/Documents/res/nesvor_rosi/sub-0004/ses-0006/"
+hr_image = nib.load("/home/mercier/Documents/res/nesvor_rosi/sub-0004/ses-0006/volume.nii")
+metric = "PSNR"
+
+def QualityMetric(br_directory, hr_image ,metric):
     """
     compute residus between one low resolution image (br) and one high resolution image (hr)
-
     """
-    
     #result image
-    X,Y,Z = br_image.get_slice().shape
-    residu = np.zeros((X,Y,len(br_image)))
-    
-    
-    hr_affine=hr_image.affine
-    hr_data=hr_image.get_fdata()
-
-    for islice in range(0,len(br_image)):
-        
-        data = br_image[islice].get_slice().get_fdata() *  br_image[islice].get_mask()
-        data = data.squeeze()
-
-        coordinate_in_lr = np.zeros((4,X*Y)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
-            #create the coordinate of points of the slice i in the LR image, with 6 points per voxel, center in 0
-        ii = np.arange(0,X) 
-        jj = np.arange(0,Y)
-    
-        iv,jv = np.meshgrid(ii,jj,indexing='ij')
-
-        iv = np.reshape(iv, (-1))
-        jv = np.reshape(jv, (-1))
-
-        coordinate_in_lr[0,:] = iv
-        coordinate_in_lr[1,:] = jv
-        coordinate_in_lr[2,:] = 0
-        coordinate_in_lr[3,:] = 1
-            
-        T1 = br_image[islice].get_estimatedTransfo()
-        br_affine = br_image[islice].get_slice().affine
-        coordinate_in_world = T1 @ coordinate_in_lr
-        coordinate_in_hr = (np.linalg.inv(hr_affine) @ coordinate_in_world) #np.linalg.inv(image.affine) @ coordinate_in_world
-
-        interpolate = np.zeros(X*Y)
-        map_coordinates(hr_data,coordinate_in_hr[0:3,:],output=interpolate,order=3,mode='constant',cval=0,prefilter=False)
-        value_in_hr = np.reshape(interpolate,(X,Y))
-
-        slice_mask = np.zeros(X*Y)
-        map_coordinates(hr_mask,coordinate_in_hr[0:3,:],output=slice_mask,order=0,mode='constant',cval=0,prefilter=False)
-        mask_in_hr = np.reshape(slice_mask,(X,Y))
-
-        values = value_in_hr*mask_in_hr
-        #print('values :',mask_in_hr[np.where(mask_in_hr>0)])
-        #print('data :',data[np.where(data>0)])
-        if metric == 'PSNR':
-            res = np.abs(values - data)
-        elif metric == 'SSIM':
-            res = np.abs(values - data)
-        else :
-            res = np.abs(values - data)
-        
+    if not os.path.exists(br_directory):
+        print("This directory does not exists")
+        return 0
+    list_slice = [file for file in os.listdir(br_directory) if not "mask" in file and not "volume" in file]
+    m_value=[]
+    for slicei in range(0,len(list_slice)) : 
+        path_to_slicei = os.path.join(br_directory,list_slice[slicei])
+        dataslice = nib.load(path_to_slicei)
+        path_to_mask = os.path.join(br_directory,'mask_'+list_slice[slicei])
+        mask = nib.load(path_to_mask)
+        brdata = dataslice.get_fdata()*mask.get_fdata()
+        if not np.all(brdata==0): 
+            X,Y,_ = dataslice.shape
+            hr_affine=hr_image.affine
+            hr_data=hr_image.get_fdata()
+            brdata = brdata.squeeze()
+            coordinate_in_lr = np.zeros((4,X*Y)) #initialisation of coordinate in the low resolution image, with 6 points per voxels
+                #create the coordinate of points of the slice i in the LR image, with 6 points per voxel, center in 0
+            ii = np.arange(0,X) 
+            jj = np.arange(0,Y)
+            iv,jv = np.meshgrid(ii,jj,indexing='ij')
+            iv = np.reshape(iv, (-1))
+            jv = np.reshape(jv, (-1))
+            coordinate_in_lr[0,:] = iv
+            coordinate_in_lr[1,:] = jv
+            coordinate_in_lr[2,:] = 0
+            coordinate_in_lr[3,:] = 1
+            br_affine = dataslice.affine
+            coordinate_in_world = br_affine @ coordinate_in_lr
+            coordinate_in_hr = (np.linalg.inv(hr_affine) @ coordinate_in_world) #np.linalg.inv(image.affine) @ coordinate_in_world
+            interpolate = np.zeros(X*Y)
+            map_coordinates(hr_data,coordinate_in_hr[0:3,:],output=interpolate,order=3,mode='constant',cval=0,prefilter=False)
+            value_in_hr = np.reshape(interpolate,(X,Y))
+            hrvalue = value_in_hr / np.quantile(value_in_hr,0.99)
+            hrvalue[np.isnan(hrvalue)] = 0
+            brdata[np.isnan(brdata)] = 0
+            print(hrvalue[np.isnan(hrvalue)])
+            print(brdata[np.isnan(brdata)])
+            #print('values :',mask_in_hr[np.where(mask_in_hr>0)])
+            #print('data :',data[np.where(data>0)])
+            if metric=="NCC" :
+                m_value.append(NCC(hrvalue,brdata))
+            if metric=="PSNR" :
+                m_value.append(PSNR(hrvalue,brdata))
+            if metric=="SSIM" :
+                m_value.append(SSIM(brdata,hrvalue))
+    return m_value
 
 
-        residu[:,:,islice] = res
 
-    return residu
