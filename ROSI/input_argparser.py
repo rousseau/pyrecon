@@ -154,7 +154,7 @@ class InputArgparser(object):
         self,
         option_string="--no_multistart",
         type=bool,
-        default=0,
+        default=1,
         help="Set to 1 if you dont want to use multistart",
         required=False,
         ):
