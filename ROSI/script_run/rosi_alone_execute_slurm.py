@@ -11,7 +11,7 @@ if __name__ == "__main__":
     MARSFET_DATAPATH = "/scratch/gauzias/data/datasets/MarsFet/derivatives/preprocessing"  
 
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
-    MARSFET_MESO_ROSI = "/scratch/cmercier/results/ROSI/"
+    MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
