@@ -15,7 +15,7 @@ if __name__ == "__main__":
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
-    output_data = MARSFET_MESO_SVORT_INIT
+    output_data = MARSFET_MESO_ROSI
     stacks_path = MARSFET_DATAPATH
     csv_file =  MARSFET_DATABASE
     sub_list = []
