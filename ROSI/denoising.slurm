@@ -25,5 +25,5 @@
 INPUT_IMAGE=$1
 OUTPUT_IMAGE=$2
 
-/scratch/gauzias/softs/ants/bin/DenoiseImage -d 3 -i ${INPUT_IMAGE} -o ${OUTPUT_IMAGE}
+echo /scratch/gauzias/softs/ants/bin/DenoiseImage -d 3 -i ${INPUT_IMAGE} -o ${OUTPUT_IMAGE}
 
