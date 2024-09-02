@@ -124,7 +124,7 @@ class InputArgparser(object):
         self,
         option_string="--final_simplex",
         type=float,
-        default=0.25,
+        default=2,
         help="If optimisation is Nelder-Mead: size of the final simplex used for optimisation, default=0.25mm",
         required=False,
         ):
