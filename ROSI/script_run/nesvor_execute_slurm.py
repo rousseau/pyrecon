@@ -41,8 +41,9 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if subject in sub_list and session in ses_list :
-            if subject == "sub-0675" and session == "ses-0801":
-            #in sub_list and session in ses_list :
+            if subject in sub_list and session in ses_list :
+            #subject == "sub-0675" and session == "ses-0801":
+            #
             #== "sub-0009" and session == "ses-0012":
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res_alone/res.joblib.gz')
