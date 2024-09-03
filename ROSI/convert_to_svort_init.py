@@ -167,6 +167,8 @@ if __name__ == '__main__':
 
     print(type(args.results))
     res = job.load(open(args.results,"rb"))
+    listOfOutliers = res[-1][0]
+    print(listOfOutliers)
     listSlice = res[0][1]
     nbSlice = len(listSlice)
     dir = args.output
@@ -221,7 +223,8 @@ if __name__ == '__main__':
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
-        nib.save(nibslice,dir+'/%d.nii.gz'%(i))
-        nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
+        if not index_slice in listOfOutliers : 
+            nib.save(nibslice,dir+'/%d.nii.gz'%(i))
+            nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
 
 print(nibslice.header)

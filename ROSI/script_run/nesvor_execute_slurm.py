@@ -41,8 +41,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if subject in sub_list and session in ses_list :
-            if subject in sub_list and session in ses_list :
-            #subject == "sub-0675" and session == "ses-0801":
+            if subject == "sub-0675" and session == "ses-0801":
+            #subject in sub_list and session in ses_list :
             #
             #== "sub-0009" and session == "ses-0012":
             #== "sub-0002" and session == "ses-0002":
@@ -52,12 +52,12 @@ if __name__ == "__main__":
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_all_slices', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_all_slices_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_all_slices', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_alone.nii")
+                output_svort = os.path.join(output,'nesvor', 'rosi_outliers', subject, session)
+                output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_mask', subject, session)
+                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_alone.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers.nii")
                
                 if True :
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
