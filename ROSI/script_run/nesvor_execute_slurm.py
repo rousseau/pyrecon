@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/marsfet_latest_participants.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
@@ -54,9 +54,9 @@ if __name__ == "__main__":
                 output_svort = os.path.join(output,'nesvor', 'rosi_slices', subject, session)
                 output_svort_mask = os.path.join(output,'nesvor', 'rosi_slices_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_alone.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_alone.nii")
                
                 if True :
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
