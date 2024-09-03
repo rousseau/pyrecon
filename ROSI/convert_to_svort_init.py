@@ -167,7 +167,7 @@ if __name__ == '__main__':
 
     print(type(args.results))
     res = job.load(open(args.results,"rb"))
-    listOfOutliers = res[-1][0]
+    listOfOutliers = res[-1][1]
     print(listOfOutliers)
     listSlice = res[0][1]
     nbSlice = len(listSlice)
