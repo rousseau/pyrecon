@@ -387,7 +387,7 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
     if nb_outliers> np.int64(nb_slice/3):
         return set_r
 
-    while True :
+    while i<1 :
 
         set_pre = set_r
         for i_slice in range(0,len(listOfSlice)):  
@@ -432,6 +432,7 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
 
         new_set = detect_misregistered_slice(listOfSlice,matrix,loaded_model,0.8)
         set_r = np.logical_and(set_r,new_set)
+        i+=1
         
         if np.all(set_pre==set_r) and i>1:
             break
