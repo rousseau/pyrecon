@@ -381,6 +381,7 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
     mask = [e.get_mask_proportion()[0] for e in listFeatures]
     mask = np.array(mask)
 
+    it=0
     while it < len(listFeatures):
             if listFeatures[it].get_mask_proportion()<0.1:
                     del listFeatures[it]
