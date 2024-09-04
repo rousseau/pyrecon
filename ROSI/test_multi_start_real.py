@@ -60,6 +60,7 @@ if __name__ == '__main__':
 
     listOfSlice = element[0]
     number_slice = len(listOfSlice)
+    print(element[-1])
     
     listFeatures = [sliceFeature(s.get_stackIndex(),s.get_indexSlice()) for s in listOfSlice]
     squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listOfSlice)
