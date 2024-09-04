@@ -150,7 +150,7 @@ def translation_optimisation(hyperparameters : array(6),
 
     xr = x0[0:3]
     xt = x0[3:6]
-    print('xt init :', xt)
+    #print('xt init :', xt)
 
     #initial simplex
     p=(ones((xt.size,xt.size))*xt.T)+eye(3)*delta
@@ -175,7 +175,7 @@ def translation_optimisation(hyperparameters : array(6),
         print(NM.message)
     #update the parameters of the slice and the cost
     
-    print('x_est',x_est)
+    #print('x_est',x_est)
     x_opt = array([xr[0],xr[1],xr[2],x_est[0],x_est[1],x_est[2]]) 
 
     listOfSlices[k].set_parameters(x_opt)

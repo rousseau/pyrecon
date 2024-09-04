@@ -410,6 +410,7 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
                         it+=1
                     
                     new_x = choose_postion(new_x)
+                    print(len(new_x))
                     estimated_x=np.zeros((len(new_x),6))
                     cost=np.zeros((len(new_x)))
                     for it in range(0,len(new_x)):
