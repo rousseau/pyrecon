@@ -97,7 +97,8 @@ if __name__ == '__main__':
     #print('Slice not well registered before multistart')
     #print(index)
     #Vmx = computeMaxVolume(listOfSlice)
-    hyperparameters = np.array([4, 0.0001, 2000, 0.25, 1, 0])
+    #hyperparameters = np.array([4, 0.0001, 2000, 0.25, 1, 0])
+    hyperparameters={'ds':4,'fs':0.25,'T':0.25,'omega':1}
     Vmx = computeMaxVolume(listOfSlice)
     set_r = correct_slice(set_r,set_o,listOfSlice,hyperparameters,'Nelder-Mead',Vmx,matrix,listFeatures,load_model,dicRes,0.8)
     squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listOfSlice)
