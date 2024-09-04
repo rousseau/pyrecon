@@ -386,9 +386,11 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
             if listFeatures[it].get_mask_proportion()<0.1:
                     del listFeatures[it]
                     del listOfSlice[it]
+                    del set_r[it]
+                    del set_o[it]
             else:
                     it+=1
-
+    print(len(set_r))
     i=0
     nb_outliers = np.sum(set_r)
     nb_slice = len(listOfSlice)
