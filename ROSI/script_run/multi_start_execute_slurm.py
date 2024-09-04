@@ -60,9 +60,9 @@ if __name__ == "__main__":
                                 break
                 print(list_stacks)
                 print(list_masks)
-                job = os.path.join(stacks_path,subject,session,'rosi_alone')
+                job = os.path.join(job_path,subject,session,'rosi_alone')
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-                dir_out = os.path.join(output_data, subject, session,'res_alone/res.joblib.gz')
+                dir_out = os.path.join(output_data, subject, session,'res_alone/res_mse.joblib.gz')
                 print(dir_out)
                 classifier = "my_model_nmse_dice_inter.pickle"
                 cmd_os = "--filenames " + job 
