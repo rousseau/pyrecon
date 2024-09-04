@@ -91,7 +91,8 @@ if __name__ == '__main__':
 
     #if ablation!='no_multistart':
     set_r = detect_misregistered_slice(listOfSlice,matrix,load_model,0.8)
-    #before08=np.sum(set_r)
+    before08=np.sum(set_r)
+    print(before08)
     set_o = detect_misregistered_slice(listOfSlice,matrix,load_model,0.5)
     #before05=np.sum(set_o)
     #index = np.where(set_r==1)
