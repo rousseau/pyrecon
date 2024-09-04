@@ -142,7 +142,7 @@ if __name__ == '__main__':
     #strET = file + '/EvolutionTransfo.npz'
     #EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,number_slice,4,4])
     #np.savez_compressed(strET,EvolutionTransfo)
-    #strCG = file + '/CostGlobal.npz'
+    #strCG = file + '/CostGlobal.npz' 
     #costGlobal.tofile(strCG)
     #multi_start = [('Before at 0.5',before05),('Before at 0.8',before08),('After at 0.5',after05),('After at 08',after08)]
     #transfo = args.simulation
