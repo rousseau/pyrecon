@@ -147,7 +147,7 @@ if __name__ == '__main__':
     #multi_start = [('Before at 0.5',before05),('Before at 0.8',before08),('After at 0.5',after05),('After at 08',after08)]
     #transfo = args.simulation
     #tre_new = np.array([e.get_error() for e in listFeatures])
-    res_obj = [('listSlice',listOfSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo),('RejectedSlices',bad_slices),('ListError',listFeatures)]
+    res_obj = [('listSlice',listOfSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('RejectedSlices',bad_slices),('ListError',listFeatures)]
     #,('multi_start',multi_start)]
     
     joblib_name = args.output + '.joblib' + '.gz' 
