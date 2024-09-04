@@ -39,11 +39,7 @@ if __name__ == '__main__':
     args = input_parser.parse_args()
 
     mask = args.filenames_masks
-    #hyperparameters = np.array(args.hyperparameters).astype(float)
-    #hyperparameters = hyperparameters
     classifier = args.classifier
-    th = args.threshold
-    threshold = float(th)
 
 
     list_prefixImage = []
