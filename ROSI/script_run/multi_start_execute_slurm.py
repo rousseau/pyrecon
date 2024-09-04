@@ -65,7 +65,7 @@ if __name__ == "__main__":
                 dir_out = os.path.join(output_data, subject, session,'res_alone/res_mse.joblib.gz')
                 print(dir_out)
                 classifier = "my_model_nmse_dice_inter.pickle"
-                cmd_os = "--filenames " + previous_res_path
+                cmd_os = " --filenames " + previous_res_path
                 cmd_os += " --filenames_masks " + list_masks 
                 cmd_os += " --output " + dir_out
                 cmd_os += " --classifier " + classifier
