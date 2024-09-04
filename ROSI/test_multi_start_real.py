@@ -39,7 +39,6 @@ if __name__ == '__main__':
     args = input_parser.parse_args()
 
     mask = args.filenames_masks
-    opti = args.ablation
     #hyperparameters = np.array(args.hyperparameters).astype(float)
     #hyperparameters = hyperparameters
     classifier = args.classifier
@@ -104,7 +103,7 @@ if __name__ == '__main__':
     #Vmx = computeMaxVolume(listOfSlice)
     hyperparameters = np.array([4, 0.0001, 2000, 0.25, 1, 0])
     Vmx = computeMaxVolume(listOfSlice)
-    set_r = correct_slice(set_r,set_o,listOfSlice,hyperparameters,opti[0],Vmx,matrix,listFeatures,load_model,dicRes,threshold)
+    set_r = correct_slice(set_r,set_o,listOfSlice,hyperparameters,'Nelder-Mead',Vmx,matrix,listFeatures,load_model,dicRes,threshold)
     squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listOfSlice)
     matrix = np.array([squarre_error,nbpoint_matrix,intersection_matrix,union_matrix])
     #set_r = detect_misregistered_slice(listOfSlice,matrix,load_model,0.8)
