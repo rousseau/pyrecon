@@ -12,7 +12,7 @@ from os import getcwd, path, mkdir
 import numpy as np
 import joblib
 from rosi.registration.outliers_detection.outliers import sliceFeature
-from rosi.NiftyMIC.rec_ebner import convert2EbnerParam
+from rosi.reconstruction.rec_ebner import convert2EbnerParam
 from rosi.registration.load import convert2Slices
 import nibabel as nib
 from rosi.registration.outliers_detection.feature import update_features, detect_misregistered_slice
