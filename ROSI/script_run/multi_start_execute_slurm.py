@@ -60,7 +60,7 @@ if __name__ == "__main__":
                                 break
                 print(list_stacks)
                 print(list_masks)
-                previous_res_path = os.path.join(job_path,subject,session,'res_alone/res_mse.joblib.gz')
+                previous_res_path = os.path.join(job_path,subject,session,'res_alone/res.joblib.gz')
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
                 dir_out = os.path.join(output_data, subject, session,'res_alone/res_mse.joblib.gz')
                 print(dir_out)
