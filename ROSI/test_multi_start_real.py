@@ -140,7 +140,7 @@ if __name__ == '__main__':
     #np.savez_compressed(strEP,EvolutionParameters)
     
     #strET = file + '/EvolutionTransfo.npz'
-    EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,number_slice,4,4])
+    #EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,number_slice,4,4])
     #np.savez_compressed(strET,EvolutionTransfo)
     #strCG = file + '/CostGlobal.npz'
     #costGlobal.tofile(strCG)
