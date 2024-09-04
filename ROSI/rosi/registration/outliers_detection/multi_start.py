@@ -381,6 +381,13 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
     mask = [e.get_mask_proportion()[0] for e in listFeatures]
     mask = np.array(mask)
 
+    while it < len(listFeatures):
+            if listFeatures[it].get_mask_proportion()<0.1:
+                    del listFeatures[it]
+                    del listOfSlice[it]
+            else:
+                    it+=1
+
     i=0
     nb_outliers = np.sum(set_r)
     nb_slice = len(listOfSlice)
