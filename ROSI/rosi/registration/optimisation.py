@@ -161,7 +161,7 @@ def translation_optimisation(hyperparameters : array(6),
     ftol=1e-4
     #print('delta',delta,'xatol',x_tol)
     if optimisation=='Nelder-Mead' :
-        NM = minimize(cost_multi_start,xt,args=(xr,k,listOfSlices,cost_matrix,set_o),method='Nelder-Mead',options={"disp" : False, "maxiter" : 2000, "maxfev": 1e3, "fatol" : ftol,"xatol" : x_tol, "initial_simplex" : initial_s, "adaptive" :  False, "return_all" : False})
+        NM = minimize(cost_multi_start,xt,args=(xr,k,listOfSlices,cost_matrix,set_o),method='Nelder-Mead',options={"disp" : False, "maxiter" : 1000, "maxfev": 1e3, "fatol" : ftol,"xatol" : x_tol, "initial_simplex" : initial_s, "adaptive" :  False, "return_all" : False})
         x_est = NM.x
     elif optimisation != 'LM':
         NM = minimize(cost_multi_start,xt,args=(xr,k,listOfSlices,cost_matrix,set_o),method=optimisation,jac=None,options={"disp" : False,"gtol" : 1e-10, "eps" : 1e-10})

@@ -283,10 +283,7 @@ def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisa
                 grid[i,j,z]=cost
                 estimated_translation[i,j,z,:]=x_t
     t2 = time.perf_counter()
-    t = t2-t1
-    min = t%3600
-    sec = (t - min*3600)%60
-    print(min,sec)
+    print(t2-t2)
 
     return grid,estimated_translation
 
@@ -298,7 +295,7 @@ def local_minimum(grid):
     X,Y,Z = np.shape(grid)
     padding = np.ones((X+2,Y+2,Z+2))*10
     padding[1:(X+1),1:(Y+1),1:(Z+1)] = grid
-    
+    t1 = time.perf_counter() 
     for i in range(1,X+1):
         for j in range(1,Y+1):
             for z in range(1,Z+1):
@@ -316,6 +313,8 @@ def local_minimum(grid):
                         
                         cost_minimum.append(current)
                         local_minium.append((i-1,j-1,z-1))   
+    t2 = time.perf_counter()
+    print(t2-t1)
                 
     minima = [x for _,x in sorted(zip(cost_minimum,local_minium))]
 
@@ -330,11 +329,14 @@ def find_minimum(x0,index,estimated_translation):
     vect = np.array([-6,-3,0,+3,+6])
     starts = []
 
+    t1 = time.perf_counter()
     for i in range(0,len(index)):
 
         r = np.array([a+vect[index[i][0]],b+vect[index[i][1]],c+vect[index[i][2]]])
         t = estimated_translation[index[i][0],index[i][1],index[i][2],:]
         starts.append(np.concatenate((r,t)))
+    t2 = time.perf_counter()
+    print(t2-t1)
 
     return starts
 
@@ -352,11 +354,10 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
     cost_matrix = array([square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrix])
     cost_pre=compute_cost_from_matrix(cost_matrix[0,:,:],cost_matrix[1,:,:]) - hyperparameters['omega']*np.sum(cost_matrix[2,:,:])/Vmx + hyperparameters['omega']*np.sum(cost_matrix[3,:,:])/Vmx
     index = np.linspace(0,len(starts)-1,len(starts),dtype=int)
+    t1 = time.perf_counter()
     with Pool(processes=6) as p:
         tmpfun=partial(multi_start2,hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation)
-        res=p.map(tmpfun,index)
-
-    
+        res=p.map(tmpfun,index)    
     for x0 in res:
                 
         cost = cost_fct(x0,i_slice,listSlice,cost_matrix,set_o,hyperparameters['omega'],Vmx)
@@ -364,6 +365,8 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
         if cost<cost_pre:
             x_min=x0
             cost_pre=cost
+    t2 = time.perf_counter()
+    print(t2-t1)
     
     square_error_matrix = cost_matrix[0,:,:]
     nbpoint_matrix = cost_matrix[1,:,:]
