@@ -609,7 +609,7 @@ def compute_cost_from_matrix(numerator,denumerator):
     
     return cost
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     """
     Function to compute the cost, either mse or dice. Cost is computed only on well registered slices and depend on the slice we want ot make the optimisation on.
