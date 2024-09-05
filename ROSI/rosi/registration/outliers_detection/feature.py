@@ -483,7 +483,8 @@ def detect_misregistered_slice(listOfSlices : 'list[SliceObject]',
      #note à moi meme : si possible udapte directement les features
      list_without_outliers = [sliceFeature(slice_k.get_stackIndex(),slice_k.get_indexSlice()) for slice_k in listOfSlices] 
      update_features(listOfSlices,list_without_outliers,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrx) 
-     features= ['nmse','dice','inter'] 
+     #features= ['nmse','dice','inter']
+     features=["nmse","inter","dice"] 
 
      #convert the data into input for the classifier
      X=data_to_classifier_real(list_without_outliers,features)
