@@ -256,7 +256,7 @@ def computeMeanTranslation(T1 : np.array,
     
     return T_mean
 
-
+import time
 def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisation):
 
     a,b,c = x0[0:3]
@@ -269,7 +269,7 @@ def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisa
     x=np.zeros(6)
     grid = np.zeros((len(vect_a),len(vect_b),len(vect_c)))
     estimated_translation = np.zeros((len(vect_a),len(vect_b),len(vect_c),3))
-
+    t1 = time.perf_counter()
     for i in range(0,len(vect_a)):
         for j in range(0,len(vect_b)):
             for z in range(0,len(vect_c)):                
@@ -282,6 +282,11 @@ def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisa
                 cost=cost_fct(x,k,listOfSlices,cost_matrix,set_o,hyperparameters['omega'],Vmx)
                 grid[i,j,z]=cost
                 estimated_translation[i,j,z,:]=x_t
+    t2 = time.perf_counter()
+    t = t2-t1
+    min = t%3600
+    sec = (t - min*3600)%60
+    print(min,sec)
 
     return grid,estimated_translation
 
