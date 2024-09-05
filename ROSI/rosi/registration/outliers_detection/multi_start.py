@@ -295,7 +295,6 @@ def local_minimum(grid):
     X,Y,Z = np.shape(grid)
     padding = np.ones((X+2,Y+2,Z+2))*10
     padding[1:(X+1),1:(Y+1),1:(Z+1)] = grid
-    t1 = time.perf_counter() 
     for i in range(1,X+1):
         for j in range(1,Y+1):
             for z in range(1,Z+1):
@@ -313,8 +312,6 @@ def local_minimum(grid):
                         
                         cost_minimum.append(current)
                         local_minium.append((i-1,j-1,z-1))   
-    t2 = time.perf_counter()
-    print(t2-t1)
                 
     minima = [x for _,x in sorted(zip(cost_minimum,local_minium))]
 
@@ -329,14 +326,11 @@ def find_minimum(x0,index,estimated_translation):
     vect = np.array([-6,-3,0,+3,+6])
     starts = []
 
-    t1 = time.perf_counter()
     for i in range(0,len(index)):
 
         r = np.array([a+vect[index[i][0]],b+vect[index[i][1]],c+vect[index[i][2]]])
         t = estimated_translation[index[i][0],index[i][1],index[i][2],:]
         starts.append(np.concatenate((r,t)))
-    t2 = time.perf_counter()
-    print(t2-t1)
 
     return starts
 
@@ -367,7 +361,7 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
             cost_pre=cost
     t2 = time.perf_counter()
     print(t2-t1)
-    
+
     square_error_matrix = cost_matrix[0,:,:]
     nbpoint_matrix = cost_matrix[1,:,:]
     intersection_matrix = cost_matrix[2,:,:]
@@ -434,8 +428,11 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
                     cost=np.zeros((len(new_x)))
                     for it in range(0,len(new_x)):
                         grid,estimated_trans = grid_search(new_x[it,:],hyperparameters,listOfSlice,matrix,set_o,Vmx,i_slice,optimisation)
+                        t1 = time.perf_counter()
                         minimum = local_minimum(grid)
                         starts = find_minimum(new_x[it,:],minimum,estimated_trans)
+                        t2 = time.perf_counter
+                        print(t2-t1)
                         estimated_x[it,:],cost[it] = best_value(hyperparameters,listOfSlice,matrix,set_o,Vmx,i_slice,starts,optimisation)
                     
                     min_index = np.argmin(cost)
