@@ -431,7 +431,7 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
                         t1 = time.perf_counter()
                         minimum = local_minimum(grid)
                         starts = find_minimum(new_x[it,:],minimum,estimated_trans)
-                        t2 = time.perf_counter
+                        t2 = time.perf_counter()
                         print(t2-t1)
                         estimated_x[it,:],cost[it] = best_value(hyperparameters,listOfSlice,matrix,set_o,Vmx,i_slice,starts,optimisation)
                     

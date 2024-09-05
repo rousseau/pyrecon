@@ -81,7 +81,7 @@ def multi_optimisation(hyperparameters : dict,
                             optimisation) -> array(6):
     
     """
-    The function used to optimise the cost_function. It applied the Nelder-Mead to optimise parameters of one slice. 
+    The function used to optimise the cost_function in multi-start. It applied the Nelder-Mead algorithm to optimise parameters of one slice. 
     """
     
 
@@ -100,11 +100,9 @@ def multi_optimisation(hyperparameters : dict,
         initial_s=concatenate(([x0],p),axis=0)
         NM = minimize(cost_fct,x0,args=(k,listOfSlices,cost_matrix,set_o,omega,Vmx),method='Nelder-Mead',options={"disp" : True, "maxiter" : 1000, "maxfev":1e3, "fatol" : ftol,"xatol" : x_tol, "initial_simplex" : initial_s , "adaptive" :  False, "return_all" :True })
         x_opt = NM.x
-    elif optimisation != "LM":
-       
     
+    elif optimisation != "LM":
         NM = minimize(cost_fct,x0,args=(k,listOfSlices,cost_matrix,set_o,omega,Vmx),method=optimisation,jac=None,options={"disp" : False, "return_all" : False, "gtol" : 6*(1e-3), "eps" : 1e-4})
-  
         x_opt = NM.x
         print(NM)
         print(NM.message)
