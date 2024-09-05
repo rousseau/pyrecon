@@ -93,7 +93,7 @@ def estimate_new_position(listSlice,i_before,i_slice,i_after):
         estimated_rigid = inv(center_to_corner) @ ((estimated_transfo @ inv(slice_transformation)) @ inv(corner_to_center))
         #self.__estimated_transfo = self.__center_to_corner @ (self.__rigid_matrix @ (self.__corner_to_center @ slice_transformation))
         new_x = ParametersFromRigidMatrix(estimated_rigid)
-        check_transfo = rigidMatrix(new_x)
+        #check_transfo = rigidMatrix(new_x)
         
         #print('determinant :',np.linalg.det(estimated_rigid))
         #print('estimated :',estimated_rigid)
