@@ -350,7 +350,8 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
     index = np.linspace(0,len(starts)-1,len(starts),dtype=int)
     t1 = time.perf_counter()
     for id in index:
-        res=multi_start(hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation,id)
+        print(optimisation)
+        res=multi_start2(hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation,id)
     #with Pool(processes=6) as p:
     #    tmpfun=partial(multi_start2,hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation)
     #    res=p.map(tmpfun,index)    
@@ -379,9 +380,6 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
 
 def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matrix,listFeatures,loaded_model,dicRes,threshold):
 
-
-    square_error_matrix,nboint_matrix,intersection_matrix,union_matrix = compute_cost_matrix(listOfSlice)
-    matrix = np.array([square_error_matrix,nboint_matrix,intersection_matrix,union_matrix])
     mask = [e.get_mask_proportion()[0] for e in listFeatures]
     mask = np.array(mask)
 
@@ -397,6 +395,10 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
     print(np.sum(set_r))
     print(np.sum(set_o))
     i=0
+
+    square_error_matrix,nboint_matrix,intersection_matrix,union_matrix = compute_cost_matrix(listOfSlice)
+    matrix = np.array([square_error_matrix,nboint_matrix,intersection_matrix,union_matrix])
+
     nb_outliers = np.sum(set_r)
     nb_slice = len(listOfSlice)
     if nb_outliers> np.int64(nb_slice/3):
