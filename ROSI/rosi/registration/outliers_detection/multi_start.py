@@ -349,9 +349,11 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
     cost_pre=compute_cost_from_matrix(cost_matrix[0,:,:],cost_matrix[1,:,:]) - hyperparameters['omega']*np.sum(cost_matrix[2,:,:])/Vmx + hyperparameters['omega']*np.sum(cost_matrix[3,:,:])/Vmx
     index = np.linspace(0,len(starts)-1,len(starts),dtype=int)
     t1 = time.perf_counter()
-    with Pool(processes=6) as p:
-        tmpfun=partial(multi_start2,hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation)
-        res=p.map(tmpfun,index)    
+    for id in index:
+        res=multi_start(hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation,id)
+    #with Pool(processes=6) as p:
+    #    tmpfun=partial(multi_start2,hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation)
+    #    res=p.map(tmpfun,index)    
     for x0 in res:
                 
         cost = cost_fct(x0,i_slice,listSlice,cost_matrix,set_o,hyperparameters['omega'],Vmx)
