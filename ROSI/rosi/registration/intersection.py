@@ -174,7 +174,7 @@ def segment_union(segment_world_k : array((2,1)),
                 
     return seg_union 
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def common_segment_in_image(slice_k : SliceObject,
                             M_k : array((4,4)),
                             slice_kprime : array,
