@@ -351,11 +351,11 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
     t1 = time.perf_counter()
     for id in index:
         print(optimisation)
-        res=multi_start2(hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation,id)
+        x0=multi_start2(hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation,id)
     #with Pool(processes=6) as p:
     #    tmpfun=partial(multi_start2,hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation)
     #    res=p.map(tmpfun,index)    
-    for x0 in res:
+    #for x0 in res:
                 
         cost = cost_fct(x0,i_slice,listSlice,cost_matrix,set_o,hyperparameters['omega'],Vmx)
 
