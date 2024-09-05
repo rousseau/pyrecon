@@ -390,7 +390,8 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
                     del set_o[it]
             else:
                     it+=1
-    print(len(set_r))
+    print(np.sum(set_r))
+    print(np.sum(set_o))
     i=0
     nb_outliers = np.sum(set_r)
     nb_slice = len(listOfSlice)
