@@ -84,7 +84,7 @@ def multi_optimisation(hyperparameters : dict,
     The function used to optimise the cost_function in multi-start. It applied the Nelder-Mead algorithm to optimise parameters of one slice. 
     """
     
-
+    print('optimisation',optimisation)
     delta=hyperparameters['ds']
     x_tol=hyperparameters['fs']
     omega=hyperparameters['omega']
