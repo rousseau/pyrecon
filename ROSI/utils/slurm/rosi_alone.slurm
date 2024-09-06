@@ -8,7 +8,7 @@
 
 # Run configuration
 #SBATCH --partition=skylake
-#SBATCH -t 05:00:00
+#SBATCH -t 10:00:00
 #SBATCH --mem-per-cpu=5G
 #SBATCH -c 1
 #SBATCH -e output_slurm/rosi_alone.%A.err

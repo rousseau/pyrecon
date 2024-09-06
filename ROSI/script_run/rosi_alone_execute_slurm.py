@@ -67,8 +67,9 @@ if __name__ == "__main__":
                 cmd_os += " --filenames_masks " + list_masks 
                 cmd_os += " --output " + dir_out
                 #if True :
-                #not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
-                if subject == "sub-0567" and session == "ses-0681" :
+                #
+                if not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
+                #subject == "sub-0567" and session == "ses-0681" :
                 #subject in sub_list and session in ses_list :
                 #subject == "sub-0051" and session == "ses-0061" :
                     print('input_slices:',list_stacks)
