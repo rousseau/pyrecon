@@ -38,9 +38,8 @@ if __name__ == "__main__":
             #if subject== "sub-0675" and session == "ses-0801":
             #subject in sub_list and session in ses_list :
             #subject== "sub-0001" and session == "ses-0001":
-            if subject== "sub-0047" and session == "ses-0057":
-            #subject in sub_list and session in ses_list :
-            #
+            if subject in sub_list and session in ses_list :
+            #subject== "sub-0047" and session == "ses-0057":
                 input_stacks = os.listdir(os.path.join(stacks_path,subject, session))
                 list_stacks=[]
                 list_masks=[]
