@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 print(list_masks)
                 previous_res_path = os.path.join(job_path,subject,session,'res_alone/res.joblib.gz')
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-                dir_out = os.path.join(output_data, subject, session,'res_alone/res_mse.joblib.gz')
+                dir_out = os.path.join(output_data, subject, session,'res_alone/res_mse')
                 print(dir_out)
                 classifier = "my_model_nmse_inter_dice.pickle" #"/scratch/cmercier/code/pyrecon/my_model_nmse_dice_inter.pickle"
                 cmd_os = " --filenames " + previous_res_path
