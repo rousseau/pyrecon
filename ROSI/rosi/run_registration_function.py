@@ -13,7 +13,7 @@ from rosi.registration.motion_correction import global_optimisation
 from rosi.registration.load import convert2Slices,loadStack
 from input_argparser import InputArgparser
 import joblib
-from os import getcwd, path, mkdir
+from os import getcwd, path, mkdir, makedirs
 from rosi.registration.tools import separate_slices_in_stacks
 from rosi.reconstruction.rec_ebner import convert2EbnerParam
 from rosi.registration.outliers_detection.outliers import sliceFeature
@@ -193,7 +193,7 @@ def main():
     print('-----Save Results : ')
     dirname = os.path.dirname(__file__)
     if not os.path.exists(args.output):
-        os.mkdir(args.output)
+        os.makedirs((args.output)
     joblib_name = os.path.join(args.output + '/res.joblib.gz')
     #joblib_name = os.path.join(dirname,'../../'+ args.output + '.joblib.gz')
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
@@ -216,10 +216,10 @@ def main():
     path_dir = os.path.join(args.output + '/niftimic_mvt')
     #path_dir = path.join(parent_dir, directory)
     if not path.isdir(path_dir):
-        mkdir(path_dir) 
+        makedirs(path_dir) 
     else:
         shutil.rmtree(path_dir)
-        mkdir(path_dir)
+        makedirs(path_dir)
     convert2EbnerParam(res,list_prefixImage,path_dir)
     
 if __name__ == '__main__':
