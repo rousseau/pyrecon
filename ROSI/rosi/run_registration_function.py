@@ -193,7 +193,8 @@ def main():
     print('-----Save Results : ')
     dirname = os.path.dirname(__file__)
     if not os.path.exists(args.output):
-        makedirs((args.output)
+        makedirs(args.output)
+    
     joblib_name = os.path.join(args.output + '/res.joblib.gz')
     #joblib_name = os.path.join(dirname,'../../'+ args.output + '.joblib.gz')
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
