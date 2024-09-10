@@ -41,7 +41,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            if subject == "sub-0830" and session == "ses-0965":
+            if  subject in sub_list and session in ses_list :
+            #subject == "sub-0830" and session == "ses-0965":
             #subject in sub_list and session in ses_list :
             #
             # 
