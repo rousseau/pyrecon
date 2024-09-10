@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/marsfet_latest_participants.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                                 step = step-5
                                 print("d_max is now set to ", d_max)
                     else : 
-                        print("no reconstruction")
+                        print(subject,session,"no reconstruction")
 
 
 
