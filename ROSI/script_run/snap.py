@@ -80,7 +80,8 @@ if __name__ == "__main__":
                                 d_max = d_max - 20
                                 step = step-5
                                 print("d_max is now set to ", d_max)
-                    
+                    else : 
+                        print("no reconstruction")
 
 
 
