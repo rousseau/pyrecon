@@ -51,19 +51,15 @@ if __name__ == "__main__":
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
-                
-                output_svort = os.path.join(output,'nesvor', 'rosi_slices', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_slices_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_slices', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume.nii")
-                path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume.nii")
+            
+                path_to_mask = os.path.join(output,'nesvor/rosi_all_slices',subject,session,"volume_mask.nii")
+                path_to_volume = os.path.join(output,'nesvor/rosi_all_slices',subject,session,"volume.nii")
                
                 if  os.path.exists(path_to_volume):
 
                     #save in nisnap simple visualisation
                     #code issue de MarsFet/fet-processing
-                    prefix_output = os.path.join(output,'snap',subject,session)
+                    prefix_output = os.path.join(output,'snap2',subject,session)
                     figsize = {'x': (18, 4), 'y': (18, 4), 'z': (18, 5)}
                     if not os.path.exists(prefix_output):
                         os.makedirs(prefix_output)
