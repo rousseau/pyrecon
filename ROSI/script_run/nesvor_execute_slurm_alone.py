@@ -94,7 +94,7 @@ if __name__ == "__main__":
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     print(list_stacks)
                     cmd_os_1 = " --input_stacks " + list_stacks
-                    cmd_os_1 = " --input_mask " + list_masks
+                    cmd_os_1 += " --input_mask " + list_masks
                     cmd_os_1 += " --results " + joblib_path
                     cmd_os_1 += " --output " + output_svort_similarity
 
