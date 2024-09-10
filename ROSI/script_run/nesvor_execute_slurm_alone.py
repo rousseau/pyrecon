@@ -90,7 +90,8 @@ if __name__ == "__main__":
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers.nii")
                
-                if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
+                if True : 
+                #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     cmd_os_1 = " --input_stacks " + list_stacks
                     cmd_os_1 = " --input_mask " + list_masks
                     cmd_os_1 += " --results " + joblib_path
