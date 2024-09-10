@@ -92,6 +92,7 @@ if __name__ == "__main__":
                
                 if True : 
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
+                    print(list_stacks)
                     cmd_os_1 = " --input_stacks " + list_stacks
                     cmd_os_1 = " --input_mask " + list_masks
                     cmd_os_1 += " --results " + joblib_path
