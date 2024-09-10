@@ -46,14 +46,9 @@ if __name__ == "__main__":
             #
             #
             #== "sub-0002" and session == "ses-0002":
-                joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
-                input_slices = os.path.join(slices_path,subject,session,'res')
-                #print(input_sl)
-                #print("input_stacks",input_stacks)
-            
-            
+
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_all_slices.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers.nii")
                
                 if  os.path.exists(path_to_volume):
 
