@@ -66,7 +66,7 @@ if __name__ == "__main__":
                 print(list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
                 #dir_out = os.path.join(output_data, subject, session,'res_alone')
-                print(dir_out)
+                #print(dir_out)
                 #subject in sub_list and session in ses_list :
                 #
                 #subject in sub_list and session in ses_list :
