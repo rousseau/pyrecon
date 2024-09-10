@@ -81,7 +81,7 @@ if __name__ == "__main__":
                                 step = step-5
                                 print("d_max is now set to ", d_max)
                     else : 
-                        print(subject,session,"no reconstruction")
+                        print(path_to_volume)
 
 
 
