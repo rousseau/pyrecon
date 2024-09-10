@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     cmd_os_1 = " --input_stacks " + list_stacks
                     cmd_os_1 += " --input_mask " + list_masks
                     cmd_os_1 += " --results " + joblib_path
-                    cmd_os_1 += " --output " + output_svort_similarity
+                    cmd_os_1 += " --output " + output_svort
 
                     cmd_os_2 =  " --input-slices " + output_svort_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
