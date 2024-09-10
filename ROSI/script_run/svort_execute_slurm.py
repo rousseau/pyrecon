@@ -13,7 +13,7 @@ if __name__ == "__main__":
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/ROSI/"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/marsfet_latest_participants.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     output_data = MARSFET_MESO_SVORT_INIT
     stacks_path = MARSFET_DATAPATH
