@@ -48,7 +48,7 @@ if __name__ == "__main__":
             #== "sub-0002" and session == "ses-0002":
 
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_all_slices.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers.nii")
                
                 if  os.path.exists(path_to_volume):
 
