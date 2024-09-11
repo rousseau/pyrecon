@@ -206,6 +206,6 @@ if __name__ == '__main__':
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
         nib.save(nibslice,dir+'/%d.nii.gz'%(i))
-        #nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
+        nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
 
 print(nibslice.header)
