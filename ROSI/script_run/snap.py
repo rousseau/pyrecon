@@ -64,7 +64,8 @@ if __name__ == "__main__":
                     data = np.ones(image_shape)
                     output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
                     nib.save(output_mask,path_to_mask)
-                    if not os.path.exists(snap):
+                    if True :
+                    #not os.path.exists(snap):
                         done = 0
                         d_max = 150
                         step = 20
