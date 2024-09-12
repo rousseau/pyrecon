@@ -178,8 +178,8 @@ if __name__ == '__main__':
     listOriginal = np.concatenate(ori)
     print(len(listSlice))
     print(len(listOriginal))
-    index_original=[(s.get_indexSlice(),s.get_indexVolume()) for s in listOriginal]
-    index_slice=[(s.get_indexSlice(),s.get_indexVolume()) for s in listSlice]
+    index_original=[(s.get_indexVolume(),s.get_indexSlice()) for s in listOriginal]
+    index_slice=[(s.get_indexVolume(),s.get_indexSlice()) for s in listSlice]
     print(index_original)
     print(index_slice)
 
@@ -207,5 +207,7 @@ if __name__ == '__main__':
         if not index_slice in listOfOutliers : 
             nib.save(nibslice,dir+'/%d.nii.gz'%(i))
             nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
+        else : 
+            print("this is an outlier slice")
 
 print(nibslice.header)
