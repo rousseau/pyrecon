@@ -14,6 +14,7 @@ from rosi.simulation.validation import same_order
 from rosi.registration.outliers_detection.outliers import sliceFeature
 from rosi.registration.outliers_detection.feature import update_features, detect_misregistered_slice
 from rosi.registration.intersection import compute_cost_matrix, compute_cost_from_matrix
+import pickle
 #import sklearn.externals.joblib
 
 class InputArgparser(object):
@@ -173,7 +174,7 @@ if __name__ == '__main__':
     dir = args.output
     listOfOutliers = res[-1][1]
     print(listOfOutliers)
-    load_model = args.classifier
+    load_model = pickle.load(args.classifier)
     
 
     #load original data to get the data without normalisation
