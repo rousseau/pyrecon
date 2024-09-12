@@ -149,7 +149,9 @@ if __name__ == '__main__':
     input_parser.add_input_mask(required=True) #load masks
     input_parser.add_results(required=True)
     input_parser.add_output(required=True) #load simulated transformation
+    input_parser.add_classifier()
     args = input_parser.parse_args()
+
 
     print(type(args.results))
     res = job.load(open(args.results,"rb"))
@@ -158,6 +160,8 @@ if __name__ == '__main__':
     dir = args.output
     listOfOutliers = res[-1][1]
     print(listOfOutliers)
+    load_model = args.classifier
+    
 
     #load original data to get the data without normalisation
     listOriginal=[]
@@ -170,6 +174,14 @@ if __name__ == '__main__':
             out = convert2Slices(im, new_mask, [], i,i)
             listOriginal+=out
 
+
+    listFeatures = [sliceFeature(s.get_stackIndex(),s.get_indexSlice()) for s in listSlice]
+    squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listSlice)
+    matrix = np.array([squarre_error,nbpoint_matrix,intersection_matrix,union_matrix])
+    update_features(listSlice,listFeatures,squarre_error,nbpoint_matrix,intersection_matrix,union_matrix)
+    set_r = detect_misregistered_slice(listSlice,matrix,load_model,0.8)
+    listOfOutliers = removeBadSlice(listSlice,set_r)
+    
     if not(os.path.exists(dir)):
         os.makedirs(dir)
 
