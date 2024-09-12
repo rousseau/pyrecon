@@ -174,7 +174,7 @@ if __name__ == '__main__':
     dir = args.output
     listOfOutliers = res[-1][1]
     print(listOfOutliers)
-    load_model = pickle.load(args.classifier)
+    load_model = pickle.load(open(args.classifier,'rb'))
     
 
     #load original data to get the data without normalisation
