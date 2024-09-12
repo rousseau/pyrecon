@@ -11,6 +11,7 @@ import argparse
 import six
 import sys
 from rosi.simulation.validation import same_order
+from rosi.registration.outliers_detection.outliers import sliceFeature
 #import sklearn.externals.joblib
 
 class InputArgparser(object):
