@@ -15,6 +15,7 @@ from rosi.registration.outliers_detection.outliers import sliceFeature
 from rosi.registration.outliers_detection.feature import update_features, detect_misregistered_slice
 from rosi.registration.intersection import compute_cost_matrix, compute_cost_from_matrix
 import pickle
+from rosi.registration.outliers_detection.multi_start import correct_slice, removeBadSlice
 #import sklearn.externals.joblib
 
 class InputArgparser(object):
