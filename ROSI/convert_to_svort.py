@@ -101,6 +101,16 @@ class InputArgparser(object):
         required=True,
     ):
         self._add_argument(dict(locals()))
+
+    def add_classifier(
+        self,
+        option_string="--classifier",
+        type=str,
+        default='my_model_nmse_inter_dice.pickle',
+        help="",
+        required=False,
+        ):
+        self._add_argument(dict(locals()))
         
     def _add_argument(self, allvars):
 
