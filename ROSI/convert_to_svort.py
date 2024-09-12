@@ -186,7 +186,7 @@ if __name__ == '__main__':
 
     for i in range(0,nbSlice):
         islice = listSlice[i]
-        index_slice = (islice.get_indexSlice(),islice.get_indexVolume())
+        index_slice = (islice.get_indexVolume(),islice.get_indexSlice())
         ior = index_original.index(index_slice)
         sliceor = listOriginal[ior]
         mask = islice.get_mask()
