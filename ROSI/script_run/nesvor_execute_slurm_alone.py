@@ -42,6 +42,7 @@ if __name__ == "__main__":
         for session in sessions:
             #if  :
             if subject in sub_list and session in ses_list : 
+            #
             #subject == "sub-0102" and session == "ses-0118":
             #
             #
