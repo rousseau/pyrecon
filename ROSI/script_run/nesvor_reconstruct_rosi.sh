@@ -107,7 +107,7 @@ task (){
 		suffix=${simul#*${simul_file}'/'}
 		echo $suffix
 		
-		if [ "$suffix"!= "../simu" ];
+		if [ "$suffix" !=  "../simu" ];
 		
 			#
 		then
