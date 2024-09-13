@@ -107,7 +107,7 @@ task (){
 		suffix=${simul#*${simul_file}'/'}
 		echo $suffix
 		
-		if [ "$suffix" != "../simu"  ] 
+		if [ "$suffix"== "Grand1"  ] 
 		#!= "../simu" ];
 		
 			#
@@ -172,7 +172,7 @@ task (){
 			dir_input="/usr/local/NeSVoR/simul_data/"${suffix}"/svort_mvt"
 			dir_output='/usr/local/NeSVoR/nesvor_rosi_reconstruct/'${suffix}
 			docker exec nesvor_contener mkdir '/usr/local/NeSVoR/nesvor_rosi_reconstruct/'
-			docker exec nesvor_contener mkdir '/usr/local/NeSVoR/nesvor_rosi_reconstruct/'${suffix}
+			docker exec nesvor_contener mkdir '/usr/local/NeSVoR/nesvor_rosi_reconstruct/'${suffix}_test
 		    docker exec nesvor_contener nesvor reconstruct --input-slices $dir_input  --output-volume $dir_output".nii.gz"  --registration none --no-transformation-optimization --output-slices $dir_output 
 			#--no-transformation-optimization
 			#--no-pixel-variance --no-slice-variance
@@ -182,7 +182,7 @@ task (){
 }
 
 mkdir ${results}'/simul_data/'
-for simul in ${simul_file}'/Grand2'
+for simul in ${simul_file}'/Grand1'
 #${listr[@]}
 do
 		#simuldata=${simul_file}${simul}
