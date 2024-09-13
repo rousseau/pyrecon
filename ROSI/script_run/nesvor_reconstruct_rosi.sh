@@ -93,7 +93,7 @@ for data in ${file_list}
 			for file in ${file_list}
 				do
 		     	echo $data
-		     	fonction "$data"
+		     	#fonction "$data"
 				done 
 
 		done
@@ -189,7 +189,7 @@ do
 		echo "simu"
 		#echo $simul
 		
-		#task "$simul" 
+		task "$simul" 
 		
 		#echo 'simul directory'
 		#echo $simul &
