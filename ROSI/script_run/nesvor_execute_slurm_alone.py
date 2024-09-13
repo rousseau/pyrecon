@@ -88,12 +88,12 @@ if __name__ == "__main__":
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_outliers_08', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_08_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers_08', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers_08.nii")
+                output_svort = os.path.join(output,'nesvor', 'rosi_outliers_02', subject, session)
+                output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_02_mask', subject, session)
+                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers_02', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers_02.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers_08.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers_02.nii")
                
                 if True : 
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
