@@ -93,7 +93,7 @@ if __name__ == "__main__":
                 output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_02_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers_02', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers_02.nii")
-                output_slices = output_nesvor = os.path.join('/data','nesvor',subject,session,'slices')
+                output_slices = output_nesvor = os.path.join('/data','nesvor',subject,session,'slices_opti')
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers_02.nii")
                
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --output-slices " +  output_slices
                     cmd_os_2 += " --registration none "
-                    cmd_os_2 += " --no-transformation-optimization "
+                    #cmd_os_2 += " --no-transformation-optimization "
                     cmd_os_2 += " --output-resolution 0.5"
                     cmd_os_2 += " --inference-batch-size 255 "
                     cmd_os_2 += " --n-inference-samples 128 "
