@@ -83,19 +83,19 @@ if __name__ == "__main__":
                 #
                 #== "sub-0009" and session == "ses-0012":
                 #== "sub-0002" and session == "ses-0002":
-                joblib_path = os.path.join(job_res,subject, session, 'res_alone/res.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session, 'res_alone/res_mse.joblib.gz')
                 input_slices = os.path.join(slices_path,subject,session,'res')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_outliers_02', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_02_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers_02', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers_02.nii")
+                output_svort = os.path.join(output,'nesvor', 'rosi_ms', subject, session)
+                output_svort_mask = os.path.join(output,'nesvor', 'rosi_ms_mask', subject, session)
+                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_ms', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_ms.nii")
                 output_slices = output_nesvor = os.path.join('/data','nesvor',subject,session,'slices_opti')
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers_02.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_ms.nii")
                
                 if True : 
                 #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
@@ -105,11 +105,11 @@ if __name__ == "__main__":
                     cmd_os_1 += " --results " + joblib_path
                     cmd_os_1 += " --output " + output_svort
 
-                    cmd_os_2 =  " --input-slices " + output_svort_similarity
+                    #cmd_os_2 =  " --input-slices " + output_svort_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --output-slices " +  output_slices
                     cmd_os_2 += " --registration none "
-                    #cmd_os_2 += " --no-transformation-optimization "
+                    cmd_os_2 += " --no-transformation-optimization "
                     cmd_os_2 += " --output-resolution 0.5"
                     cmd_os_2 += " --inference-batch-size 255 "
                     cmd_os_2 += " --n-inference-samples 128 "
