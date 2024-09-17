@@ -41,8 +41,9 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            if subject in sub_list and session in ses_list : 
-            #subject == "sub-0379" and session == "ses-0458":
+            if subject == "sub-0002" and session == "ses-0002":
+            #subject in sub_list and session in ses_list : 
+            #
             #
             #
             #
@@ -92,6 +93,7 @@ if __name__ == "__main__":
                 output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_02_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers_02', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers_02.nii")
+                output_sluces = output_nesvor = os.path.join('/data','nesvor',subject,session,'slices')
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers_02.nii")
                
@@ -105,6 +107,7 @@ if __name__ == "__main__":
 
                     cmd_os_2 =  " --input-slices " + output_svort_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
+                    cmd_os_2 += " --output-slices " +  output_slices
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
                     cmd_os_2 += " --output-resolution 0.5"
