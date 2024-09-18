@@ -105,9 +105,9 @@ if __name__ == "__main__":
                     cmd_os_1 += " --results " + joblib_path
                     cmd_os_1 += " --output " + output_svort
 
-                    #cmd_os_2 =  " --input-slices " + output_svort_similarity
+                    cmd_os_2 =  " --input-slices " + output_svort_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
-                    cmd_os_2 += " --output-slices " +  output_slices
+                    #cmd_os_2 += " --output-slices " +  output_slices
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
                     cmd_os_2 += " --output-resolution 0.5"
