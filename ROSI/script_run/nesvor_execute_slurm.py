@@ -41,8 +41,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            if  subject == "sub-0703" and session == "ses-0829":
-            #subject in sub_list and session in ses_list :
+            #if  subject == "sub-0703" and session == "ses-0829":
+            if subject in sub_list and session in ses_list :
             #
             #subject in sub_list and session in ses_list :
             #
@@ -52,18 +52,18 @@ if __name__ == "__main__":
             #
             #== "sub-0009" and session == "ses-0012":
             #== "sub-0002" and session == "ses-0002":
-                joblib_path = os.path.join(job_res,subject, session, 'res_alone/res.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session, 'res.joblib.gz')
                 input_slices = os.path.join(slices_path,subject,session,'res')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_outliers', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_outliers_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_outliers', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_outliers.nii")
+                output_svort = os.path.join(output,'nesvor', 'rosi_svort', subject, session)
+                output_svort_mask = os.path.join(output,'nesvor', 'rosi_svort_mask', subject, session)
+                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_svort', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_svort.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_outliers.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_svort.nii")
                
                 if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     cmd_os_1 = " --input_slices " + input_slices
@@ -75,6 +75,9 @@ if __name__ == "__main__":
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
+                    cmd_os_2 += " --output-resolution 0.5"
+                    cmd_os_2 += " --inference-batch-size 255 "
+                    cmd_os_2 += " --n-inference-samples 128 "
                     #cmd_os_2 += " --inference-batch-size 32 "
                     #cmd_os_2 += " --n-inference-samples 128 "
                     #cmd_os_2 += " --single-precision "

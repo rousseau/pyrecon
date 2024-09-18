@@ -224,8 +224,8 @@ if __name__ == '__main__':
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
-        if not index_slice in listOfOutliers : 
-            nib.save(nibslice,dir+'/%d.nii.gz'%(i))
-            nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
+        #if not index_slice in listOfOutliers : 
+        nib.save(nibslice,dir+'/%d.nii.gz'%(i))
+        nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
 
 print(nibslice.header)
