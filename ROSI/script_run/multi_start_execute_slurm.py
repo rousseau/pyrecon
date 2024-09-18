@@ -39,8 +39,8 @@ if __name__ == "__main__":
             #
             #subject== "sub-0001" and session == "ses-0001":
             #if subject in sub_list and session in ses_list :
-            if subject=="sub-0263" and session == "ses-0312":
-            #subject in sub_list and session in ses_list :
+            #if subject=="sub-0263" and session == "ses-0312":
+            if subject in sub_list and session in ses_list :
             #subject== "sub-0047" and session == "ses-0057":
                 input_stacks = os.listdir(os.path.join(stacks_path,subject, session))
                 list_stacks=[]
@@ -71,8 +71,7 @@ if __name__ == "__main__":
                 cmd_os += " --output " + dir_out
                 cmd_os += " --classifier " + classifier
                 #if True :
-                #not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
-                if subject in sub_list and session in ses_list :
+                if not os.path.exists(os.path.join(dir_out,'1.nii.gz')):
                 #subject == "sub-0051" and session == "ses-0061" :
                     print('input_slices:',list_stacks)
                     print('dir_output:',dir_out)
