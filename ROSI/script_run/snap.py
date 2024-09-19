@@ -77,7 +77,7 @@ if __name__ == "__main__":
                         while (done < 1) and (d_max > 20):
                             try:
                                 slices = {'x': list(range(30, d_max, step)),'y': list(range(60, d_max, step)),'z': list(range(40, d_max, step))}
-                                #nisnap.plot_segment(path_to_mask,slices=slices,bg=path_to_volume,opacity=0,savefig=snap,contours=False,samebox=True,figsize=figsize)
+                                nisnap.plot_segment(path_to_mask,slices=slices,bg=path_to_volume,opacity=0,savefig=snap,contours=False,samebox=True,figsize=figsize)
                                 done=1
                             except Exception as e:
                                 print(e)
