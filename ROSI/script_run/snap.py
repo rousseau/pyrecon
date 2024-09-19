@@ -16,13 +16,13 @@ if __name__ == "__main__":
 
     MARSFET_MESO_RESULTS = "/home/cmercier/results/"
 
-    MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
+    MARSFET_MESO_ms_INIT = "/home/cmercier/results/ms"
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
-    slices_path = MARSFET_MESO_SVORT_INIT
+    slices_path = MARSFET_MESO_ms_INIT
     csv_file =  MARSFET_DATABASE
     stacks_path = MARSFET_DATAPATH
     sub_list = []
@@ -48,13 +48,13 @@ if __name__ == "__main__":
             #== "sub-0002" and session == "ses-0002":
 
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_svort.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_ms.nii")
                
                 if  os.path.exists(path_to_volume):
 
                     #save in nisnap simple visualisation
                     #code issue de MarsFet/fet-processing
-                    prefix_output = os.path.join(output,'snap2','svort',subject,session)
+                    prefix_output = os.path.join(output,'snap2','ms',subject,session)
                     figsize = {'x': (18, 4), 'y': (18, 4), 'z': (18, 5)}
                     if not os.path.exists(prefix_output):
                         os.makedirs(prefix_output)
