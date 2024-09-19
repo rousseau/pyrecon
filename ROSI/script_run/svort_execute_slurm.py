@@ -43,6 +43,7 @@ if __name__ == "__main__":
                 list_stacks=[]
                 list_masks=[]
                 for file in input_stacks:
+                    print(file)
                     if file.endswith("denoised_T2w.nii.gz") and 'tru' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join('/data',subject,session,file)
