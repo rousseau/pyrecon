@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
 
-    MARSFET_MESO_RESULTS = "/home/cmercier/results/"
+    MARSFET_MESO_RESULTS ="/home/cmercier/results/"
 
     MARSFET_MESO_ms_INIT = "/home/cmercier/results/ms"
     
@@ -47,14 +47,17 @@ if __name__ == "__main__":
             #
             #== "sub-0002" and session == "ses-0002":
 
-                path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_ms.nii")
-               
+                #path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
+                path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/latest_nesvor/"
+                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/",sub-%d_ses-%d_acq-haste_rec-nesvor_T2w.nii.gz %(subject,session))
+                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/",sub-%d_ses-%d_acq-haste_rec-nesvor_desc-brainmask_T2w.nii.gz %(subject,session))
+
                 if  os.path.exists(path_to_volume):
 
+                    print(path_to_volume)
                     #save in nisnap simple visualisation
                     #code issue de MarsFet/fet-processing
-                    prefix_output = os.path.join(output,'snap2','ms',subject,session)
+                    prefix_output = os.path.join(output,'snap2','nesvor',subject,session)
                     figsize = {'x': (18, 4), 'y': (18, 4), 'z': (18, 5)}
                     if not os.path.exists(prefix_output):
                         os.makedirs(prefix_output)
@@ -73,7 +76,7 @@ if __name__ == "__main__":
                         while (done < 1) and (d_max > 20):
                             try:
                                 slices = {'x': list(range(30, d_max, step)),'y': list(range(60, d_max, step)),'z': list(range(40, d_max, step))}
-                                nisnap.plot_segment(path_to_mask,slices=slices,bg=path_to_volume,opacity=0,savefig=snap,contours=False,samebox=True,figsize=figsize)
+                                #nisnap.plot_segment(path_to_mask,slices=slices,bg=path_to_volume,opacity=0,savefig=snap,contours=False,samebox=True,figsize=figsize)
                                 done=1
                             except Exception as e:
                                 print(e)
