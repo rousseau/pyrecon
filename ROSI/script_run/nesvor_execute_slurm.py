@@ -53,6 +53,7 @@ if __name__ == "__main__":
             #== "sub-0009" and session == "ses-0012":
             #== "sub-0002" and session == "ses-0002":
                 joblib_path = os.path.join(job_res,subject, session, 'res_tru','res.joblib.gz')
+                print(joblib_path)
                 input_slices = os.path.join(slices_path,subject,session,'res_tru')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
