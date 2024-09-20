@@ -42,7 +42,7 @@ if __name__ == "__main__":
             #
                 input_slices = os.path.join(input_data,subject, session, 'res_tru')
                 dir_out = os.path.join(output_data, subject, session,'res_tru')
-                if not os.path.exists(os.path.join(dir_out,'res_tru.joblib.gz')):
+                if not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
                     print('input_slices:',input_slices)
                     print('dir_output:',dir_out)
                     cmd = (
