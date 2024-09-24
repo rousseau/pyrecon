@@ -42,6 +42,7 @@ if __name__ == "__main__":
         for session in sessions:
             #if  :
             if  subject == "sub-0673" and session == "ses-0828":
+                print("this subject exist hehehe")
             #if subject in sub_list and session in ses_list :
             #
             #subject in sub_list and session in ses_list :
