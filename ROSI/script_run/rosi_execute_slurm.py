@@ -13,7 +13,7 @@ if __name__ == "__main__":
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort/"
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinique.csv"
 
     input_data = MARSFET_MESO_SVORT_INIT
     output_data = MARSFET_MESO_ROSI
@@ -34,14 +34,14 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            #if subject in sub_list and session in ses_list :
-            if subject == "sub-0662" and session == "ses-0788":
+            if subject in sub_list and session in ses_list :
+            #if subject == "sub-0662" and session == "ses-0788":
             #
             #
             #
             #
-                input_slices = os.path.join(input_data,subject, session, 'res_tru')
-                dir_out = os.path.join(output_data, subject, session,'res_tru')
+                input_slices = os.path.join(input_data,subject, session, 'res_clinique')
+                dir_out = os.path.join(output_data, subject, session,'res_clinique')
                 if not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
                     print('input_slices:',input_slices)
                     print('dir_output:',dir_out)
