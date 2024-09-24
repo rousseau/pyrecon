@@ -20,9 +20,7 @@ if __name__ == "__main__":
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
-    job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
-    slices_path = MARSFET_MESO_ms_INIT
     csv_file =  MARSFET_DATABASE
     stacks_path = MARSFET_DATAPATH
     sub_list = []
@@ -47,17 +45,18 @@ if __name__ == "__main__":
             #
             #== "sub-0002" and session == "ses-0002":
 
-                #path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/latest_nesvor/"
-                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/","%s_%s_acq-haste_rec-nesvor_T2w.nii.gz" %(subject,session))
-                path_to_mask = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/", "%s_%s_acq-haste_rec-nesvor_desc-brainmask_T2w.nii.gz" %(subject,session))
+                path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
+                #path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/latest_nesvor/"
+                path_to_reconstruction = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
+                #path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/","%s_%s_acq-haste_rec-nesvor_T2w.nii.gz" %(subject,session))
+                #path_to_mask = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/", "%s_%s_acq-haste_rec-nesvor_desc-brainmask_T2w.nii.gz" %(subject,session))
 
                 if  os.path.exists(path_to_volume):
 
                     print(path_to_volume)
                     #save in nisnap simple visualisation
                     #code issue de MarsFet/fet-processing
-                    prefix_output = os.path.join(output,'snap2','nesvor',subject,session)
+                    prefix_output = os.path.join(output,'snap2','truf',subject,session)
                     figsize = {'x': (18, 4), 'y': (18, 4), 'z': (18, 5)}
                     if not os.path.exists(prefix_output):
                         os.makedirs(prefix_output)
