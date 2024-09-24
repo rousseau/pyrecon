@@ -67,7 +67,8 @@ if __name__ == "__main__":
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                
-                if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
+                if True : 
+                #if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     cmd_os_1 = " --input_slices " + input_slices
                     cmd_os_1 += " --output " + output_svort
                     cmd_os_1 += " --output_mask " + output_svort_mask
