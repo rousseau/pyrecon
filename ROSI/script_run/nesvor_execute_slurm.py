@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinique.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
@@ -41,9 +41,9 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            if  subject == "sub-0567" and session == "ses-0681":
-                print("this subject exist hehehe")
-            #if subject in sub_list and session in ses_list :
+            #if  subject == "sub-0567" and session == "ses-0681":
+            #    print("this subject exist hehehe")
+            if subject in sub_list and session in ses_list :
             #
             #subject in sub_list and session in ses_list :
             #
