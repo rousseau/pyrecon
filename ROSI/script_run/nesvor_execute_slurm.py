@@ -41,9 +41,9 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            #if  subject == "sub-0567" and session == "ses-0681":
+            if  subject == "sub-0148" and session == "ses-0174":
             #    print("this subject exist hehehe")
-            if subject in sub_list and session in ses_list :
+            #if subject in sub_list and session in ses_list :
             #
             #subject in sub_list and session in ses_list :
             #
@@ -78,9 +78,9 @@ if __name__ == "__main__":
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
-                    cmd_os_2 += " --output-resolution 0.5"
-                    cmd_os_2 += " --inference-batch-size 255 "
-                    cmd_os_2 += " --n-inference-samples 128 "
+                    #cmd_os_2 += " --output-resolution 0.5"
+                    #cmd_os_2 += " --inference-batch-size 255 "
+                    #cmd_os_2 += " --n-inference-samples 128 "
                     #cmd_os_2 += " --inference-batch-size 32 "
                     #cmd_os_2 += " --n-inference-samples 128 "
                     #cmd_os_2 += " --single-precision "
