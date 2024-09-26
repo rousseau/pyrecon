@@ -180,6 +180,7 @@ if __name__ == '__main__':
 
     #load original data to get the data without normalisation
     listOriginal=[]
+    i_image=0
     for i in range(len(args.input_stacks)):
         print(args.input_stacks[i])
         print('------------load images--------------------')
