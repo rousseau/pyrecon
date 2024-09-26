@@ -181,6 +181,8 @@ if __name__ == '__main__':
     #load original data to get the data without normalisation
     listOriginal=[]
     i_image=0
+    nb_remove=0
+    i_prefix=0
     for i in range(len(args.input_stacks)):
         print(args.input_stacks[i])
         print('------------load images--------------------')
@@ -215,26 +217,26 @@ if __name__ == '__main__':
                     ory=np.abs(np.dot(nz_norm,ny_img1_norm))
                     orx=np.abs(np.dot(nz_norm,nx_img1_norm))
                 
-                if max(orx,ory,orz)==orx:
-                    output = convert2Slices(im,mask,[],1,i_image)
-                    listOriginal+=output
-                    print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                    print(i, ' : Coronal')
-                    i_image=i_image+1
-            
-                elif max(orx,ory,orz)==ory:
-                    output = convert2Slices(im,mask,[],2,i_image)
-                    listOriginal+=output
-                    print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                    print(i ,' : Sagittal')
-                    i_image=i_image+1
-            
-                else:
-                    output = convert2Slices(im,mask,[],0,i_image)
-                    listOrignal+=output
-                    print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                    print(i , ' : Axial')
-                    i_image=i_image+1
+                    if max(orx,ory,orz)==orx:
+                        output = convert2Slices(im,mask,[],1,i_image)
+                        listOriginal+=output
+                        print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                        print(i, ' : Coronal')
+                        i_image=i_image+1
+                
+                    elif max(orx,ory,orz)==ory:
+                        output = convert2Slices(im,mask,[],2,i_image)
+                        listOriginal+=output
+                        print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                        print(i ,' : Sagittal')
+                        i_image=i_image+1
+                
+                    else:
+                        output = convert2Slices(im,mask,[],0,i_image)
+                        listOrignal+=output
+                        print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                        print(i , ' : Axial')
+                        i_image=i_image+1
                 
                 print('i_image',i_image)
                 
