@@ -217,13 +217,13 @@ if __name__ == '__main__':
         ior = index_original.index(index_slice)
         sliceor = listOriginal[ior]
         mask = islice.get_mask()
-        affine = islice.get_slice().affine
+        #affine = islice.get_slice().affine
         print('affine sign :',np.linalg.det(affine)<0)
         #islice.get_estimatedTransfo()
         sliceoriginal = sliceor.get_slice().get_fdata()
         #sliceor.get_slice().affine
         #sliceor.get_slice().get_fdata()
-        #affine = islice.get_estimatedTransfo()
+        affine = islice.get_estimatedTransfo()
         sliceoriginal = listOriginal[ior].get_slice().get_fdata() * mask
         #dataslice = sliceoriginal
         dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
