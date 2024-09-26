@@ -181,14 +181,68 @@ if __name__ == '__main__':
     #load original data to get the data without normalisation
     listOriginal=[]
     for i in range(len(args.input_stacks)):
-            print('----load images-----')
-            im, inmask = loadStack(args.input_stacks[i], args.input_masks[i]) 
-            print(args.input_masks[i])#,print('i',i))
-            print(im.shape)
-            new_mask = nib.Nifti1Image(inmask.get_fdata().squeeze(),inmask.affine)
-            out = convert2Slices(im, new_mask, [], i,i)
-            listOriginal+=out
+        print(args.input_stacks[i])
+        print('------------load images--------------------')
+        im, inmask = loadStack(args.input_stacks[i],args.input_mask[i]) 
+        Affine = im.affine
 
+        datamask = inmask.get_fdata().squeeze()
+        ##check mask and image size : 
+        if datamask.shape==im.get_fdata().shape:
+            ##check mask and image size : 
+            if datamask.shape==im.get_fdata().shape:
+                mask = nib.Nifti1Image(datamask, inmask.affine)
+            
+                if  i==0:
+                nx_img1=Affine[0:3,0].copy()
+                ny_img1=Affine[0:3,1].copy()
+                nz_img1=np.cross(nx_img1,ny_img1)
+                nx_img1_norm=nx_img1/np.linalg.norm(nx_img1)
+                ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
+                nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
+                output = convert2Slices(im,mask,[],i_image,i_image)
+                listSlice+=output
+                i_image=i_image+1
+            
+                else:
+                nx=Affine[0:3,0].copy()
+                ny=Affine[0:3,1].copy()
+                nz=np.cross(nx,ny)
+                nz_norm=nz/np.linalg.norm(nz)
+                
+                orz=np.abs(np.dot(nz_norm,nz_img1_norm))
+                ory=np.abs(np.dot(nz_norm,ny_img1_norm))
+                orx=np.abs(np.dot(nz_norm,nx_img1_norm))
+                
+                if max(orx,ory,orz)==orx:
+                    output = convert2Slices(im,mask,[],1,i_image)
+                    listOriginal+=output
+                    print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                    print(i, ' : Coronal')
+                    i_image=i_image+1
+            
+                elif max(orx,ory,orz)==ory:
+                    output = convert2Slices(im,mask,[],2,i_image)
+                    listOriginal+=output
+                    print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                    print(i ,' : Sagittal')
+                    i_image=i_image+1
+            
+                else:
+                    output = convert2Slices(im,mask,[],0,i_image)
+                    listOrignal+=output
+                    print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                    print(i , ' : Axial')
+                    i_image=i_image+1
+                
+                print('i_image',i_image)
+                
+                
+            else :
+                i_prefix = i - nb_remove
+                del list_prefixImage[i_prefix]
+                print(list_prefixImage)
+                nb_remove=nb_remove+1
 
     listFeatures = [sliceFeature(s.get_stackIndex(),s.get_indexSlice()) for s in listSlice]
     squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listSlice)
@@ -215,7 +269,7 @@ if __name__ == '__main__':
         islice = listSlice[i]
         index_slice = (islice.get_indexVolume(),islice.get_indexSlice())
         ior = index_original.index(index_slice)
-        sliceor = listOriginal[i]
+        sliceor = listOriginal[ior]
         mask = islice.get_mask()
         #affine = islice.get_slice().affine
         print('affine sign :',np.linalg.det(affine)<0)
