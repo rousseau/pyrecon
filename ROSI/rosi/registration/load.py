@@ -152,13 +152,13 @@ def loadFromdir(dir_input):
             print(list_stack_zi)
             index_volume = index_stack
             print(file,index_stack,zi)
-            dist = distance_from_mask(nib_mask.get_fdata())*res
-            decrease=np.linspace(1,0,6,dtype=float)
-            index=0
+            #dist = distance_from_mask(nib_mask.get_fdata)*res
+            #decrease=np.linspace(1,0,6,dtype=float)
+            #index=0
         
-            for index_dist in range(4,10):
-                nb_slice[np.where(dist>index_dist)] = decrease[index]*nib_slice[np.where(dist>index_dist)]
-                index+=1
+            #for index_dist in range(4,10):
+            #    nb_slice[np.where(dist>index_dist)] = decrease[index]*nib_slice[np.where(dist>index_dist)]
+            #    index+=1
             
             new_object = SliceObject(nib_slice,nib_mask.get_fdata(),index_stack,zi,index_volume)
             OutputList.append(new_object)
