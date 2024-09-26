@@ -224,7 +224,7 @@ if __name__ == '__main__':
         #sliceor.get_slice().affine
         #sliceor.get_slice().get_fdata()
         affine = islice.get_estimatedTransfo()
-        sliceoriginal = listOriginal[i].get_slice().get_fdata() * mask
+        sliceoriginal = islice.get_fdata() * mask
         #dataslice = sliceoriginal
         dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
         nibslice = nib.Nifti1Image((dataslice),affine)
