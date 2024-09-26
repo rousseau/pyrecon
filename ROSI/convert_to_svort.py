@@ -257,7 +257,7 @@ if __name__ == '__main__':
     if not(os.path.exists(dir)):
         os.makedirs(dir)
 
-    image,ori = same_order(listSlice,listOriginal)
+    #image,ori = same_order(listSlice,listOriginal)
     listSlice = np.concatenate(image)
     listOriginal = np.concatenate(ori)
     print(len(listSlice))
