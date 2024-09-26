@@ -183,7 +183,7 @@ if __name__ == '__main__':
     for i in range(len(args.input_stacks)):
         print(args.input_stacks[i])
         print('------------load images--------------------')
-        im, inmask = loadStack(args.input_stacks[i],args.input_mask[i]) 
+        im, inmask = loadStack(args.input_stacks[i],args.input_masks[i]) 
         Affine = im.affine
 
         datamask = inmask.get_fdata().squeeze()
