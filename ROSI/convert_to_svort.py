@@ -215,7 +215,7 @@ if __name__ == '__main__':
         islice = listSlice[i]
         index_slice = (islice.get_indexVolume(),islice.get_indexSlice())
         ior = index_original.index(index_slice)
-        sliceor = listOriginal[ior]
+        sliceor = listOriginal[i]
         mask = islice.get_mask()
         #affine = islice.get_slice().affine
         print('affine sign :',np.linalg.det(affine)<0)
@@ -224,7 +224,7 @@ if __name__ == '__main__':
         #sliceor.get_slice().affine
         #sliceor.get_slice().get_fdata()
         affine = islice.get_estimatedTransfo()
-        sliceoriginal = listOriginal[ior].get_slice().get_fdata() * mask
+        sliceoriginal = listOriginal[i].get_slice().get_fdata() * mask
         #dataslice = sliceoriginal
         dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
         nibslice = nib.Nifti1Image((dataslice),affine)
