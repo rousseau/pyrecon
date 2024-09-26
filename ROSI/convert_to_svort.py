@@ -194,25 +194,25 @@ if __name__ == '__main__':
                 mask = nib.Nifti1Image(datamask, inmask.affine)
             
                 if  i==0:
-                nx_img1=Affine[0:3,0].copy()
-                ny_img1=Affine[0:3,1].copy()
-                nz_img1=np.cross(nx_img1,ny_img1)
-                nx_img1_norm=nx_img1/np.linalg.norm(nx_img1)
-                ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
-                nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
-                output = convert2Slices(im,mask,[],i_image,i_image)
-                listSlice+=output
-                i_image=i_image+1
+                    nx_img1=Affine[0:3,0].copy()
+                    ny_img1=Affine[0:3,1].copy()
+                    nz_img1=np.cross(nx_img1,ny_img1)
+                    nx_img1_norm=nx_img1/np.linalg.norm(nx_img1)
+                    ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
+                    nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
+                    output = convert2Slices(im,mask,[],i_image,i_image)
+                    listSlice+=output
+                    i_image=i_image+1
             
                 else:
-                nx=Affine[0:3,0].copy()
-                ny=Affine[0:3,1].copy()
-                nz=np.cross(nx,ny)
-                nz_norm=nz/np.linalg.norm(nz)
-                
-                orz=np.abs(np.dot(nz_norm,nz_img1_norm))
-                ory=np.abs(np.dot(nz_norm,ny_img1_norm))
-                orx=np.abs(np.dot(nz_norm,nx_img1_norm))
+                    nx=Affine[0:3,0].copy()
+                    ny=Affine[0:3,1].copy()
+                    nz=np.cross(nx,ny)
+                    nz_norm=nz/np.linalg.norm(nz)
+                    
+                    orz=np.abs(np.dot(nz_norm,nz_img1_norm))
+                    ory=np.abs(np.dot(nz_norm,ny_img1_norm))
+                    orx=np.abs(np.dot(nz_norm,nx_img1_norm))
                 
                 if max(orx,ory,orz)==orx:
                     output = convert2Slices(im,mask,[],1,i_image)
