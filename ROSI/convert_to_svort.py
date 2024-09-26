@@ -233,7 +233,7 @@ if __name__ == '__main__':
                 
                     else:
                         output = convert2Slices(im,mask,[],0,i_image)
-                        listOrignal+=output
+                        listOriginal+=output
                         print('orx :', orx, 'ory :', ory, 'orz :', orz)
                         print(i , ' : Axial')
                         i_image=i_image+1
