@@ -209,7 +209,7 @@ if __name__ == '__main__':
     print(len(listSlice))
                 
 
-    for i in range(0,nbSlice):x
+    for i in range(0,nbSlice):
         islice = listSlice[i]
         index_slice = (islice.get_indexSlice(),islice.get_indexVolume())
         sliceor = listOriginal[i]
