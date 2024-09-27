@@ -204,7 +204,7 @@ if __name__ == '__main__':
                     ny_img1_norm=ny_img1/np.linalg.norm(ny_img1)
                     nz_img1_norm=nz_img1/np.linalg.norm(nz_img1)
                     output = convert2Slices(im,mask,[],i_image,i_image)
-                    listSlice+=output
+                    listOriginal+=output
                     i_image=i_image+1
             
                 else:
