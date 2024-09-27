@@ -254,6 +254,7 @@ if __name__ == '__main__':
     set_r = detect_misregistered_slice(listSlice,matrix,load_model,0.8)
     listOfOutliers = removeBadSlice(listSlice,set_r)
 
+    listErrorSlice = [sliceFeature(s.get_stackIndex(),s.get_indexSlice()) for s in listOriginal]
     squarre_error,number_point,intersection,union=compute_cost_matrix(listOriginal) 
     update_features(listOriginal,listErrorSlice,squarre_error,number_point,intersection,union)
     it=0
