@@ -253,6 +253,16 @@ if __name__ == '__main__':
     update_features(listSlice,listFeatures,squarre_error,nbpoint_matrix,intersection_matrix,union_matrix)
     set_r = detect_misregistered_slice(listSlice,matrix,load_model,0.8)
     listOfOutliers = removeBadSlice(listSlice,set_r)
+
+    squarre_error,number_point,intersection,union=compute_cost_matrix(listOriginal) 
+    update_features(listOriginal,listErrorSlice,squarre_error,number_point,intersection,union)
+    it=0
+    while it < len(listErrorSlice):
+            if listErrorSlice[it].get_mask_proportion()<0.1:
+                    del listErrorSlice[it]
+                    del listOriginal[it]
+            else:
+                    it+=1
     
     if not(os.path.exists(dir)):
         os.makedirs(dir)
