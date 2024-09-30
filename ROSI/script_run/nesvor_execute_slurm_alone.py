@@ -114,7 +114,7 @@ if __name__ == "__main__":
                     cmd_os_2 += " --output-resolution 0.5"
                     cmd_os_2 += " --inference-batch-size 255 "
                     cmd_os_2 += " --n-inference-samples 128 "
-                    cmd_os_2 += " --single-precision "
+                    #cmd_os_2 += " --single-precision "
                     
 
                     cmd = (
