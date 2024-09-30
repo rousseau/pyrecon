@@ -186,6 +186,7 @@ if __name__ == '__main__':
     for i in range(len(args.input_stacks)):
         print(args.input_stacks[i])
         print('------------load images--------------------')
+        print(args.input_stacks[i],args.input_masks[i])
         im, inmask = loadStack(args.input_stacks[i],args.input_masks[i]) 
         Affine = im.affine
 
@@ -268,9 +269,9 @@ if __name__ == '__main__':
     if not(os.path.exists(dir)):
         os.makedirs(dir)
 
-    image,ori = same_order(listSlice,listOriginal)
-    listSlice = np.concatenate(image)
-    listOriginal = np.concatenate(ori)
+    #image,ori = same_order(listSlice,listOriginal)
+    #listSlice = np.concatenate(image)
+    #listOriginal = np.concatenate(ori)
     print(len(listSlice))
     print(len(listOriginal))
     index_original=[(s.get_indexVolume(),s.get_indexSlice()) for s in listOriginal]
