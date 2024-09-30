@@ -295,8 +295,8 @@ if __name__ == '__main__':
         #sliceor.get_slice().get_fdata()
         affine = islice.get_estimatedTransfo()
         sliceoriginal = sliceor.get_slice().get_fdata() * mask
-        #dataslice = sliceoriginal
-        dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
+        dataslice = sliceoriginal
+        #dataslice = sliceoriginal / np.quantile(sliceoriginal,0.99)
         nibslice = nib.Nifti1Image((dataslice),affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
