@@ -215,7 +215,8 @@ if __name__ == '__main__':
         sliceor = listOriginal[i]
         #nib.load(os.path.join(args.input_slices,listOriginal[i]))
         mask = islice.get_mask()
-        affine = islice.get_estimatedTransfo()
+        #affine = islice.get_estimatedTransfo()
+        affine = islice.get_slice().affine
         #path_to_original = os.path.join(args.input_slices,listOriginal[i])
         sliceoriginal = sliceor.get_slice().get_fdata() * mask 
         dataslice = sliceoriginal
