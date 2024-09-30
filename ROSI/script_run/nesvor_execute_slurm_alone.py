@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 list_stacks=[]
                 list_masks=[]
                 for file in input_stacks:
-                    if file.endswith("denoised_T2w.nii.gz") and 'tru' in file:
+                    if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join(stacks_path,subject,session,file)
                         list_stacks.append(path_to_file)
@@ -63,7 +63,7 @@ if __name__ == "__main__":
                         num = "run-%s" %(file[num_index])
                         print("number run",num)
                         for file in input_stacks:
-                            if file.endswith("brainmask_T2w.nii.gz") and 'tru' in file and num in file:
+                            if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
                                 path_to_file = os.path.join(stacks_path,subject,session,file)
                                 list_masks.append(path_to_file)
                                 break
