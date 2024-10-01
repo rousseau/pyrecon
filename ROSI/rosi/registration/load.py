@@ -47,9 +47,9 @@ def convert2Slices(stack : Nifti1Image,
         decrease=np.linspace(1,0,6,dtype=float)
         index=0
         
-        for index_dist in range(4,10):
-             slice_value[np.where(dist>index_dist)] = decrease[index]*slice_value[np.where(dist>index_dist)]
-             index+=1
+        #for index_dist in range(4,10):
+        #     slice_value[np.where(dist>index_dist)] = decrease[index]*slice_value[np.where(dist>index_dist)]
+        #     index+=1
  
         if ~(np.all(slice_mask==0)): #Check that the slice mask is not null. If it is, the slice will be deleted because it has no interest.
             
