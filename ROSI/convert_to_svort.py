@@ -252,7 +252,7 @@ if __name__ == '__main__':
     squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listSlice)
     matrix = np.array([squarre_error,nbpoint_matrix,intersection_matrix,union_matrix])
     update_features(listSlice,listFeatures,squarre_error,nbpoint_matrix,intersection_matrix,union_matrix)
-    set_r = detect_misregistered_slice(listSlice,matrix,load_model,0.2)
+    set_r = detect_misregistered_slice(listSlice,matrix,load_model,0.5)
     listOfOutliers = removeBadSlice(listSlice,set_r)
 
     listErrorSlice = [sliceFeature(s.get_stackIndex(),s.get_indexSlice()) for s in listOriginal]
@@ -301,10 +301,10 @@ if __name__ == '__main__':
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
-        #if not index_slice in listOfOutliers : 
-        nib.save(nibslice,dir+'/%d.nii.gz'%(i))
-        nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
-        #else : 
-        print("this is an outlier slice")
+        if not index_slice in listOfOutliers : 
+            nib.save(nibslice,dir+'/%d.nii.gz'%(i))
+            nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
+        else : 
+            print("this is an outlier slice")
 
 print(nibslice.header)
