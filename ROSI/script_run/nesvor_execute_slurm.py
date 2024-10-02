@@ -55,7 +55,7 @@ if __name__ == "__main__":
             #
             #== "sub-0009" and session == "ses-0012":
             #
-                joblib_path = os.path.join(job_res,subject, session,'res_alone','res.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session,'res_clinique','res.joblib.gz')
                 print(joblib_path)
                 input_slices = os.path.join(slices_path,subject,session,'res')
                 #print(input_sl)
