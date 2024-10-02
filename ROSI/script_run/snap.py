@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_ms_INIT = "/home/cmercier/results/ms"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinque.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinique.csv"
 
     output = MARSFET_MESO_RESULTS
     csv_file =  MARSFET_DATABASE
