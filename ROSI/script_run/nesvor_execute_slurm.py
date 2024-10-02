@@ -57,7 +57,7 @@ if __name__ == "__main__":
             #
                 joblib_path = os.path.join(job_res,subject, session,'res_clinique','res.joblib.gz')
                 print(joblib_path)
-                input_slices = os.path.join(slices_path,subject,session,'res')
+                input_slices = os.path.join(slices_path,subject,session,'res_clinique')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
