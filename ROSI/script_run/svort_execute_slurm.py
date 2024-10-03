@@ -51,8 +51,10 @@ if __name__ == "__main__":
                         path_to_file = os.path.join('/data',subject,session,file)
                         list_stacks.append(path_to_file)
                         run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
-                        num_index = run + 4
-                        num = "run-%s" %(file[num_index])
+                        desc = file.find("_desc")
+                        num_index_min = run + 4
+                        num_index_max = desc - 1
+                        num = "run-%s" %(file[num_index_min:num_index_max])
                         print("number run",num)
                         for file in input_stacks:
                             if file.endswith("brainmask_T2w.nii.gz") and 'tru' in file and num in file:
