@@ -304,6 +304,7 @@ def compute_noise_variance(stack : 'list[SliceObject]') -> float:
     some help on computed the noise : 
     Reference: J. Immerkær, “Fast Noise Variance Estimation”, Computer Vision and Image Understanding, Vol. 64, No. 2, pp. 300-302, Sep. 1996
     """
+    [print(len(slice_k.get_slice().get_fdata().squeeze())) for slice_k in stack]
     data=[slice_k.get_slice().get_fdata().squeeze() for slice_k in stack]
     mask=[slice_k.get_mask().squeeze() for slice_k in stack]
     values = np.concatenate(data)
