@@ -13,7 +13,7 @@ if __name__ == "__main__":
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort/"
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinique.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     input_data = MARSFET_MESO_SVORT_INIT
     output_data = MARSFET_MESO_ROSI
@@ -41,8 +41,8 @@ if __name__ == "__main__":
             #
             #
             #
-                input_slices = os.path.join(input_data,subject, session, 'res_clinique')
-                dir_out = os.path.join(output_data, subject, session,'res_clinique')
+                input_slices = os.path.join(input_data,subject, session, 'res_tru')
+                dir_out = os.path.join(output_data, subject, session,'res_tru')
                 if not os.path.exists(os.path.join(dir_out,'res.joblib.gz')):
                     print('input_slices:',input_slices)
                     print('dir_output:',dir_out)
