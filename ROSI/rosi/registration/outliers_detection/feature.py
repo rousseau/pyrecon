@@ -119,6 +119,7 @@ def update_features(listOfSlice : 'list[SliceObject]',
     
     stacks,masks=separate_slices_in_stacks(listOfSlice)
     print(len(stacks))
+
     variance = [compute_noise_variance(img) for img in stacks]
     index = [len(masks[n]) for n in range(0,len(masks))]
     pmasktot=[max(sum(masks[n][0:index[n]],axis=(1,2))) for n in range(0,len(masks))]
@@ -221,6 +222,7 @@ def update_features_v2(listOfSlice : 'list[SliceObject]',
     """
     
     stacks,masks=separate_slices_in_stacks(listOfSlice)
+    [print(len(img)) for img in stacks]
     variance = [compute_noise_variance(img) for img in stacks]
     index = [len(masks[n]) for n in range(0,len(masks))]
     pmasktot=[max(sum(masks[n][0:index[n]],axis=(1,2))) for n in range(0,len(masks))]
