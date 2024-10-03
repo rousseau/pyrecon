@@ -53,7 +53,7 @@ if __name__ == "__main__":
                         run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
                         desc = file.find("_desc")
                         num_index_min = run + 4
-                        num_index_max = desc - 1
+                        num_index_max = desc
                         num = "run-%s" %(file[num_index_min:num_index_max])
                         print("number run",num)
                         for file in input_stacks:
