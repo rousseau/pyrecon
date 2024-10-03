@@ -48,7 +48,7 @@ def separate_slices_in_stacks(listOfSlice : 'list[SliceObject]') -> (np.array('l
 
     for slicei in listOfSlice:
         stack_of_slicei = slicei.get_indexVolume()
-        #print(stack_of_slicei)
+        print(stack_of_slicei)
 
         if stack_of_slicei in volume_index: #if we already encounter a slice from this volume
             index_orientation = volume_index.index(stack_of_slicei)
