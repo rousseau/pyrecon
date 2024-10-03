@@ -54,7 +54,7 @@ if __name__ == "__main__":
                         desc = file.find("_desc")
                         num_index_min = run + 4
                         num_index_max = desc
-                        num = "run-%s" %(file[num_index_min:num_index_max])
+                        num = "run-%s_" %(file[num_index_min:num_index_max])
                         print("number run",num)
                         for file in input_stacks:
                             if file.endswith("brainmask_T2w.nii.gz") and 'tru' in file and num in file:
