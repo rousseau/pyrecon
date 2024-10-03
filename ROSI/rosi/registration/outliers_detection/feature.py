@@ -306,7 +306,7 @@ def compute_noise_variance(stack : 'list[SliceObject]') -> float:
     """
     data=[slice_k.get_slice().get_fdata().squeeze() for slice_k in stack]
     mask=[slice_k.get_mask().squeeze() for slice_k in stack]
-    print(data)
+    print([slice_k.get_slice().get_fdata().squeeze().shape for slice_k in stack])
     values = np.concatenate(data)
     values_mask = np.concatenate(mask)
     laplacien=array([[0,1,0],[1,-4,1],[0,1,0]]) #laplacien filter
