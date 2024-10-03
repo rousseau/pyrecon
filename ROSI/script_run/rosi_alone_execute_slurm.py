@@ -43,16 +43,17 @@ if __name__ == "__main__":
                 list_stacks=[]
                 list_masks=[]
                 for file in input_stacks:
-                    if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
+                    if file.endswith("denoised_T2w.nii.gz") and 'tru' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join(stacks_path,subject,session,file)
                         list_stacks.append(path_to_file)
                         run = file.find("run") #find the number of the run to make sure the stack is associated with its corresponding mask
-                        num_index = run + 4
-                        num = "run-%s" %(file[num_index])
-                        print("number run",num)
+                        desc = file.find("_desc")
+                        num_index_min = run + 4
+                        num_index_max = desc
+                        num = "run-%s_" %(file[num_index_min:num_index_max])
                         for file in input_stacks:
-                            if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
+                            if file.endswith("brainmask_T2w.nii.gz") and 'tru' in file and num in file:
                                 path_to_file = os.path.join(stacks_path,subject,session,file)
                                 list_masks.append(path_to_file)
                                 break
@@ -61,7 +62,7 @@ if __name__ == "__main__":
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 print(list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-                dir_out = os.path.join(output_data, subject, session,'res_alone')
+                dir_out = os.path.join(output_data, subject, session,'res_tru')
                 print(dir_out)
                 cmd_os = "--filenames " + list_stacks 
                 cmd_os += " --filenames_masks " + list_masks 
