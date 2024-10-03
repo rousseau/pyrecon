@@ -13,7 +13,7 @@ if __name__ == "__main__":
     MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/ROSI/"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinique.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     output_data = MARSFET_MESO_SVORT_INIT
     stacks_path = MARSFET_DATAPATH
@@ -34,8 +34,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             
-            if subject in sub_list and session in ses_list :
-            #if subject== "sub-0662" and session == "ses-0788":
+            #if subject in sub_list and session in ses_list :
+            if subject== "sub-0102" and session == "ses-0118":
             # 
             #subject== "sub-0117" and session == "ses-0137":
             #
@@ -46,7 +46,7 @@ if __name__ == "__main__":
                 list_masks=[]
                 for file in input_stacks:
                     #print(file)
-                    if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
+                    if file.endswith("denoised_T2w.nii.gz") and 'tru' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join('/data',subject,session,file)
                         list_stacks.append(path_to_file)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
                         num = "run-%s" %(file[num_index])
                         print("number run",num)
                         for file in input_stacks:
-                            if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
+                            if file.endswith("brainmask_T2w.nii.gz") and 'tru' in file and num in file:
                                 path_to_file = os.path.join('/data',subject,session,file)
                                 list_masks.append(path_to_file)
                                 break
@@ -64,7 +64,7 @@ if __name__ == "__main__":
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 print(list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
-                dir_out = os.path.join(output_data, subject, session,'res_clinique')
+                dir_out = os.path.join(output_data, subject, session,'res_tru')
                 print(dir_out)
                 cmd_os = "--input-stacks " + list_stacks 
                 cmd_os += " --stack-masks " + list_masks 
