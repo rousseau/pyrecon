@@ -50,7 +50,7 @@ if __name__ == "__main__":
                 list_stacks=[]
                 list_masks=[]
                 for file in input_stacks:
-                    if file.endswith("denoised_T2w.nii.gz") and 'haste' in file:
+                    if file.endswith("denoised_T2w.nii.gz") and 'tru' in file:
 						#stack = os.path.join(dir_reconst, subject+ "_"+ session + "_"+ "acq-"+ sequence+ "_"+ "run" + "-" + serie + "_desc-denoised_T2w.nii.gz")
                         path_to_file = os.path.join(stacks_path,subject,session,file)
                         list_stacks.append(path_to_file)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
                         num = "run-%s" %(file[num_index])
                         print("number run",num)
                         for file in input_stacks:
-                            if file.endswith("brainmask_T2w.nii.gz") and 'haste' in file and num in file:
+                            if file.endswith("brainmask_T2w.nii.gz") and 'tru' in file and num in file:
                                 path_to_file = os.path.join(stacks_path,subject,session,file)
                                 list_masks.append(path_to_file)
                                 break
@@ -80,22 +80,21 @@ if __name__ == "__main__":
                 #
                 #== "sub-0009" and session == "ses-0012":
                 #== "sub-0002" and session == "ses-0002":
-                joblib_path = os.path.join(job_res,subject, session, 'res_alone/res_mse.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session, 'res_tru/res.joblib.gz')
                 input_slices = os.path.join(slices_path,subject,session,'res')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_mse', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_mse_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_mse', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_mse.nii")
+                output_svort = os.path.join(output,'nesvor', 'rosi_tru', subject, session)
+                output_svort_mask = os.path.join(output,'nesvor', 'rosi_tru_mask', subject, session)
+                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_tru', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_tru.nii")
                 output_slices = os.path.join('/data','nesvor',subject,session,'slices_opti')
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_mse.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                
-                if True : 
-                #os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
+                if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     print(list_stacks)
                     cmd_os_1 = " --input_stacks " + list_stacks
                     cmd_os_1 += " --input_mask " + list_masks
