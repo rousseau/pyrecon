@@ -129,7 +129,7 @@ def loadFromdir(dir_input):
                 nz = np.cross(nx,ny)
                 vec_orthogonal = nz/np.linalg.norm(nz)
                 print(vec_orthogonal,list_stack_ortho[i],np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])))
-                if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.9 :
+                if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.7 :
                     index_stack = i
                     break
                 else : 
