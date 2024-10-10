@@ -101,7 +101,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
     grid_slices=array([squarre_error,number_point,intersection,union])
     set_r=zeros(nbSlice)
   
-    nbstack=max([slicei.get_stackIndex() for slicei in listSlice])
+    #nbstack=max([slicei.get_stackIndex() for slicei in listSlice])
 
     Vmx=computeMaxVolume(listSlice)
 
