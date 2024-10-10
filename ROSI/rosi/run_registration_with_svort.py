@@ -94,7 +94,7 @@ def main():
 
 
     print('----Start Registration :')
-    #dicRes, rejectedSlices = global_optimisation(listSlice,optimisation=args.optimisation,classifier=args.classifier,multi_start=args.no_multistart,hyperparameters={'ds':args.initial_simplex,'fs':args.final_simplex,'T':args.local_convergence,'omega':args.omega}) 
+    dicRes, rejectedSlices = global_optimisation(listSlice,optimisation=args.optimisation,classifier=args.classifier,multi_start=args.no_multistart,hyperparameters={'ds':args.initial_simplex,'fs':args.final_simplex,'T':args.local_convergence,'omega':args.omega}) 
     print('\n')
     print('-----End Registration :')
     
