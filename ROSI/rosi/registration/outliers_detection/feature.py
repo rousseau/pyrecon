@@ -122,9 +122,9 @@ def update_features(listOfSlice : 'list[SliceObject]',
     [print('taille image',len(img)) for img in stacks]
     variance = [compute_noise_variance(img) for img in stacks]
     index = [len(masks[n]) for n in range(0,len(masks))]
-    #pmasktot=[max(sum(masks[n][0:index[n]],axis=(1,2))) for n in range(0,len(masks))]
-    #mask_volume=[concatenate(masks[n][0:index[n]],axis=2) for n in range(0,len(masks))]
-    #center_volume = [slice_center(mask_volume[n]) for n in range(0,len(stacks))]
+    pmasktot=[max(sum(masks[n][0:index[n]],axis=(1,2))) for n in range(0,len(masks))]
+    mask_volume=[concatenate(masks[n][0:index[n]],axis=2) for n in range(0,len(masks))]
+    center_volume = [slice_center(mask_volume[n]) for n in range(0,len(stacks))]
     #std_total = [std_volume(stacks[n],masks[n]) for n in range(0,len(masks))]
     
     slices_index = range(0,len(listOfSlice))
@@ -187,12 +187,12 @@ def update_features(listOfSlice : 'list[SliceObject]',
         current_feature.set_inter(inter)
         
         #Update mask_proportion
-        #fk=slicek.get_indexVolume()
-        #mtot=pmasktot[vk]
-        #mask=slicek.get_mask()
-        #mprop=somme(mask)
-        #current_feature.set_mask_point(mprop)
-        #current_feature.set_mask_proportion(mprop/mtot)
+        fk=slicek.get_indexVolume()
+        mtot=pmasktot[vk]
+        mask=slicek.get_mask()
+        mprop=somme(mask)
+        current_feature.set_mask_point(mprop)
+        current_feature.set_mask_proportion(mprop/mtot)
         
         #Update the distance to the mask
         #stack=stacks[fk]
