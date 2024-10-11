@@ -112,6 +112,7 @@ def loadFromdir(dir_input):
      list_file = sorted_alphanumeric([file for file in os.listdir(dir_input) if os.path.isdir(dir_input)])
      OutputList = []
      list_stack_ortho = []
+     list_image_size = []
      list_stack_zi = []
      for file in list_file:
           index_stack=0
@@ -128,8 +129,9 @@ def loadFromdir(dir_input):
                 ny = nib_slice.affine[0:3,1]
                 nz = np.cross(nx,ny)
                 vec_orthogonal = nz/np.linalg.norm(nz)
+                vec_imagesize = nib_slice.affine.shape
                 print(vec_orthogonal,list_stack_ortho[i],np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])))
-                if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.7 :
+                if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.7 and vec_image_size == list_image_size[i]:
                     index_stack = i
                     break
                 else : 
@@ -144,6 +146,7 @@ def loadFromdir(dir_input):
                 vec_orthogonal = nz/np.linalg.norm(nz)
 
                 list_stack_ortho.append(vec_orthogonal)
+                list_image_size.append(nib_slice.shape)
                 list_stack_zi.append(1)
                 index_stack = len(list_stack_zi)-1
 
