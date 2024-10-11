@@ -129,7 +129,7 @@ def loadFromdir(dir_input):
                 ny = nib_slice.affine[0:3,1]
                 nz = np.cross(nx,ny)
                 vec_orthogonal = nz/np.linalg.norm(nz)
-                vec_imagesize = nib_slice.affine.shape
+                vec_image_size = nib_slice.affine.shape
                 print(vec_orthogonal,list_stack_ortho[i],np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])))
                 if np.abs(np.dot(vec_orthogonal,list_stack_ortho[i])) > 0.7 and vec_image_size == list_image_size[i]:
                     index_stack = i
