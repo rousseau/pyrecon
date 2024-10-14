@@ -16,13 +16,13 @@ if __name__ == "__main__":
 
     MARSFET_MESO_RESULTS = "/home/cmercier/results/"
 
-    MARSFET_MESO_SVORT_INIT = "/home/cmercier/results/svort"
+    MARSFET_MESO_tru_INIT = "/home/cmercier/results/tru"
     
     MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
-    slices_path = MARSFET_MESO_SVORT_INIT
+    slices_path = MARSFET_MESO_tru_INIT
     csv_file =  MARSFET_DATABASE
     stacks_path = MARSFET_DATAPATH
     sub_list = []
@@ -43,7 +43,7 @@ if __name__ == "__main__":
             #if  :
             #if  subject == "sub-0148" and session == "ses-0174":
             #    print("this subject exist hehehe")
-            if (subject == "sub-0011" and session == "ses-0014") or (subject == "sub-0423" and session == "ses-0513") :
+            if (subject == "sub-0102" and session == "ses-0118") or (subject == "sub-0567" and session == "ses-0681") or (subject == "sub-0327" and session == "ses-0396") or (subject == "sub-0649" and session == "ses-0775") or (subject == "sub-0278" and session == "ses-1098") :
             #subject in sub_list and session in ses_list :
             #
             #
@@ -56,27 +56,27 @@ if __name__ == "__main__":
             #
             #== "sub-0009" and session == "ses-0012":
             #
-                joblib_path = os.path.join(job_res,subject, session,'res','res.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session,'res_tru','res.joblib.gz')
                 print(joblib_path)
-                input_slices = os.path.join(slices_path,subject,session,'res')
+                input_slices = os.path.join(slices_path,subject,session,'res_tru')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_svort', subject, session)
-                output_svort_mask = os.path.join(output,'nesvor', 'rosi_mask', subject, session)
-                output_svort_similarity = os.path.join('/data','nesvor', 'rosi_svort', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_svort.nii")
+                output_tru = os.path.join(output,'nesvor', 'rosi_tru', subject, session)
+                output_tru_mask = os.path.join(output,'nesvor', 'rosi_mask', subject, session)
+                output_tru_similarity = os.path.join('/data','nesvor', 'rosi_tru', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_tru.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_svort.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                
                 if True : 
                 #if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     cmd_os_1 = " --input_slices " + input_slices
-                    cmd_os_1 += " --output " + output_svort
-                    cmd_os_1 += " --output_mask " + output_svort_mask
+                    cmd_os_1 += " --output " + output_tru
+                    cmd_os_1 += " --output_mask " + output_tru_mask
                     cmd_os_1 += " --results " + joblib_path
-                    cmd_os_2 =  " --input-slices " + output_svort_similarity
+                    cmd_os_2 =  " --input-slices " + output_tru_similarity
                     cmd_os_2 += " --output-volume " + output_nesvor
                     cmd_os_2 += " --registration none "
                     cmd_os_2 += " --no-transformation-optimization "
