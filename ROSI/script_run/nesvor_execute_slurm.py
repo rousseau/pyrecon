@@ -63,7 +63,7 @@ if __name__ == "__main__":
                 #print("input_stacks",input_stacks)
             
                 
-                output_svort = os.path.join(output,'nesvor', 'rosi_sovrt', subject, session)
+                output_svort = os.path.join(output,'nesvor', 'rosi_svort', subject, session)
                 output_svort_mask = os.path.join(output,'nesvor', 'rosi_mask', subject, session)
                 output_svort_similarity = os.path.join('/data','nesvor', 'rosi_svort', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_svort.nii")
