@@ -95,7 +95,7 @@ for data in ${file_list}
 	    do	
 
 		     #echo $data
-		     #fonction "$data" 
+		     fonction "$data" 
 
 		done
 
