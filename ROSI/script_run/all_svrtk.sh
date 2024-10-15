@@ -83,7 +83,7 @@ for file in ${images_list}
 
 		     #echo $dir_output_motion
 		                   
-		     #docker exec svrtk mirtk reconstruct 'home/res/'${file1}'/'${file2}/'outputSVR.nii.gz' --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline --outlier-rejection 0
+		     docker exec svrtk mirtk reconstruct 'home/res/'${file1}'/'${file2}/'outputSVR.nii.gz' "${#list_docker[@]}" "${list_docker[@]}" 
 	     	 #docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/Ebner' ${results}'/'${sub_file}'/'
 	     	    
 		     
