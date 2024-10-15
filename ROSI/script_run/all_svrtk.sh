@@ -21,7 +21,7 @@ echo $listr
 #mkdir $output_path
 #echo $images_list
 
-docker start wizardly_brattain
+docker start svrtk
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
 results='home/results'
