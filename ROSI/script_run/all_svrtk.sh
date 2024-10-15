@@ -47,14 +47,14 @@ for file in ${images_list}
 
                      for doc in $list
                      do
-					 		 d=${doc//'/data_inter/'}
+					 		 d=${doc//'/home/aorus-users/Chloe/data_inter/'}
                              list_docker+=('home/data/'$d)
                      done
 
 		     for doc in $list_mask
 		     do
-			 	 d=${doc//'../data_inter/'}
-			     mask_docker+=('home/data/'$doc)
+			 	 d=${doc//'/home/aorus-users/Chloe/data_inter/'}
+			     mask_docker+=('home/data/'$d)
 
 	             done
 		      
