@@ -1,11 +1,9 @@
 #!/bin/bash 
-images_file='../data_inter/export_chloe_29_07_2022/rawdata/'
-simul_file='../simu_no_flip'
+images_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/rawdata/'
 
 
 echo $images_file
 images_list="$(find $images_file -name '*sub*'  -type d)"
-images_simul="$(find $simul_file -type d )"
 mask="$(find $simul_file -type d -name '*brain_mask*')"
 #echo $images_simul
 #echo $mask
