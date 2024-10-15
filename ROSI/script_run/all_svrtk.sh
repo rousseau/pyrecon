@@ -24,7 +24,7 @@ echo $listr
 docker start svrtk
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
-results='~/Chloe/res/svrtk'
+results='/home/aorus-users/Chloe/res/svrtk'
 mkdir $results
 for file in ${images_list}
 	do     
