@@ -3,7 +3,7 @@ images_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/rawdata/
 
 
 echo $images_file
-images_list="$(find $images_file -name '*sub-0018*'  -type d)"
+images_list="$(find $images_file -name '*sub*'  -type d)"
 mask="$(find $simul_file -type d -name '*brain_mask*')"
 #echo $images_simul
 #echo $mask
