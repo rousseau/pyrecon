@@ -3,7 +3,7 @@ images_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/rawdata/
 
 
 echo $images_file
-images_list="$(find $images_file -name '*sub*'  -type d)"
+images_list="$(find $images_file -name '*sub-0004*'  -type d)"
 mask="$(find $simul_file -type d -name '*brain_mask*')"
 #echo $images_simul
 #echo $mask
@@ -76,14 +76,14 @@ for file in ${images_list}
 	     	    
 		     echo "${list_docker[@]}"
 		     echo "${mask_docker[@]}"
-			 #docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'
-	     	 #docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}
-		     #docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}
-             #docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}'/Ebner'
+			 echo "${#list_docker[@]}"
+			 docker exec svrtk mkdir 'home/res/'
+	     	 docker exec svrtk mkdir 'home/res/'${file1}
+		     docker exec svrtk mkdir 'home/res/'${file1}'/'${file2}
 
 		     #echo $dir_output_motion
 		                   
-		     #docker exec wizardly_brattain python NiftyMIC/niftymic_run_reconstruction_pipeline.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline --outlier-rejection 0
+		     #docker exec svrtk mirtk reconstruct 'home/res/'${file1}'/'${file2}/'outputSVR.nii.gz' --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline --outlier-rejection 0
 	     	 #docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/Ebner' ${results}'/'${sub_file}'/'
 	     	    
 		     
