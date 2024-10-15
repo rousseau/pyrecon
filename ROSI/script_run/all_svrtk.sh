@@ -47,11 +47,13 @@ for file in ${images_list}
 
                      for doc in $list
                      do
-                             list_docker+=('home/data/'$doc)
+					 		 d=${doc//'/data_inter/'}
+                             list_docker+=('home/data/'$d)
                      done
 
 		     for doc in $list_mask
 		     do
+			 	 d=${doc//'../data_inter/'}
 			     mask_docker+=('home/data/'$doc)
 
 	             done
