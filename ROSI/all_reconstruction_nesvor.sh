@@ -87,7 +87,7 @@ for file in ${images_list}
 
 		     #docker cp  nesvor_contener:'/'${output_svort_docker} ${output_svort_pc}
 			 
-			 #output_rosi='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
+			 output_rosi='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
 			 #mkdir $output_rosi
 			 #python run_registration_svort.py --filenames ${output_svort_pc}'/svort' --output ${output_rosi} --no_multistart 1
 			 output_slices='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/slices'
