@@ -75,17 +75,17 @@ for file in ${images_list}
 		     echo "${list_docker[@]}"
 		     echo "${mask_docker[@]}"
 
-			 docker exec nesvor_container mkdir '/usr/local/NeSVoR/res'
-	     	 docker exec nesvor_container mkdir '/usr/local/NeSVoR/res/'${file1}
-		     docker exec nesvor_container mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}
-			 docker exec nesvor_container mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
+			 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res'
+	     	 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}
+		     docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}
+			 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
 
 			 output_svort_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
 			 output_svort_pc='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/svort'
 
-			 docker exec nesvor_container nesvor register --input-stacks "${list_docker[@]}" --mask-docker "${mask_docker[@]}" --output-slices $output_docker
+			 docker exec nesvor_contener nesvor register --input-stacks "${list_docker[@]}" --mask-docker "${mask_docker[@]}" --output-slices $output_docker
 
-		     docker cp  nesvor_container:'/'${output_svort_docker} ${output_svort_pc}
+		     docker cp  nesvor_contener:'/'${output_svort_docker} ${output_svort_pc}
 			 
 			 output_rosi='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
 			 mkdir $output_rosi
@@ -98,11 +98,11 @@ for file in ${images_list}
 			 python convert_to_svort_init.py  --input_slices $output_svort_pc --output $output_slices  --output_mask $output_slices_mask --results ${output_rosi}'/res.joblib.gz'
 			
 			 input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi'
-			 docker exec nesvor_container mkdir $input_rosi_docker
+			 docker exec nesvor_contener mkdir $input_rosi_docker
 			 output_nesvor_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor'
-			 docker exec nesvor_container mkdir $output_nesvor_docker
+			 docker exec nesvor_contener mkdir $output_nesvor_docker
 			 output_nesvor_image='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor/res.nii'
-			 docker cp ${output_slices} nesvor_container:'/'${input_rosi_docker} 
+			 docker cp ${output_slices} nesvor_contener:'/'${input_rosi_docker} 
 			 docker exec nesvor reconstruct --input-slices ${input_rosi_docker} --output-volume ${output_nesvor_image} --registration none  --no-transformation-optimization  --output-resolution 0.5  --inference-batch-size 255  --n-inference-samples 128 
 
 		}
