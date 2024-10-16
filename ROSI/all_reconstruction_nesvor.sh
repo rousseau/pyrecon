@@ -69,7 +69,7 @@ for file in ${images_list}
 
 		
 		     #
-			 #python ROSI/main_realdata.py --filenames $list  --filenames_masks $list_mask  --output $output_registration  --ablation no_multistart dice Nelder-Mead --hyperparameters 4 0.25 2000 0.25 5 0 --classifier 'ROSI/my_model_mse_inter_std_intensity_mask_proportion_dice.pickle' 
+			 python ROSI/main_realdata.py --filenames $list  --filenames_masks $list_mask  --output $output_registration  --ablation no_multistart dice Nelder-Mead --hyperparameters 4 0.25 2000 0.25 5 0 --classifier 'ROSI/my_model_mse_inter_std_intensity_mask_proportion_dice.pickle' 
 	
 	     	    
 		     echo "${list_docker[@]}"
