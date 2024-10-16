@@ -44,7 +44,7 @@ for file in ${images_list}
                      do
 					 		 d=${doc//'/home/aorus-users/Chloe/data_inter/'}
 							 echo $d
-                             list_docker+=('/usr/local/NeSVoR/res_nesvor_svort/'$d)
+                             list_docker+=('/usr/local/NeSVoR/data/'$d)
 							 echo "list_docker"
 							 echo $list_docker
                      done
@@ -53,7 +53,7 @@ for file in ${images_list}
 		     do
 			 	 d=${doc//'/home/aorus-users/Chloe/data_inter/'}
 				 echo $doc
-			     mask_docker+=('/usr/local/NeSVoR/res_nesvor_svort/'$d)
+			     mask_docker+=('/usr/local/NeSVoR/data/'$d)
 				 echo $mask_docker
 
 	             done
