@@ -75,34 +75,34 @@ for file in ${images_list}
 		     echo "${list_docker[@]}"
 		     echo "${mask_docker[@]}"
 
-			 #docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res'
-	     	 #docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}
-		     #docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}
-			 #docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
+			 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res'
+	     	 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}
+		     docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}
+			 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
 
-			 #output_svort_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
-			 #output_svort_pc='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}
+			 output_svort_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
+			 output_svort_pc='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}
 
-			 #docker exec nesvor_contener nesvor register --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-slices $output_svort_docker
+			 docker exec nesvor_contener nesvor register --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-slices $output_svort_docker
 
-		     #docker cp  nesvor_contener:'/'${output_svort_docker} ${output_svort_pc}
+		     docker cp  nesvor_contener:'/'${output_svort_docker} ${output_svort_pc}
 			 
-			 #output_rosi='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
-			 #mkdir $output_rosi
-			 #python run_registration_svort.py --filenames ${output_svort_pc}'/svort' --output ${output_rosi} --no_multistart 1
-			 #output_slices='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/slices'
-			 #mkdir $output_slices
-			 #output_slices_masks='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/masks'
-			 #mkdir $output_slices_masks
+			 output_rosi='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
+			 mkdir $output_rosi
+			 python run_registration_svort.py --filenames ${output_svort_pc}'/svort' --output ${output_rosi} --no_multistart 1
+			 output_slices='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/slices'
+			 mkdir $output_slices
+			 output_slices_masks='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/masks'
+			 mkdir $output_slices_masks
 			 
-			 #python convert_to_svort_init.py  --input_slices $output_svort_pc'/svort' --output $output_slices  --output_mask $output_slices_masks --results ${output_rosi}'/res.joblib.gz'
+			 python convert_to_svort_init.py  --input_slices $output_svort_pc'/svort' --output $output_slices  --output_mask $output_slices_masks --results ${output_rosi}'/res.joblib.gz'
 			
 			 input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi/slices'
-			 #docker exec nesvor_contener mkdir $input_rosi_docker
-			 #output_nesvor_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor'
-			 #docker exec nesvor_contener mkdir $output_nesvor_docker
+			 docker exec nesvor_contener mkdir $input_rosi_docker
+			 output_nesvor_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor'
+			 docker exec nesvor_contener mkdir $output_nesvor_docker
 			 output_nesvor_image='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor/res.nii'
-			 #docker cp ${output_slices} nesvor_contener:'/'${input_rosi_docker} 
+			 docker cp ${output_slices} nesvor_contener:'/'${input_rosi_docker} 
 			 docker exec nesvor_contener nesvor reconstruct --input-slices ${input_rosi_docker} --output-volume ${output_nesvor_image} --registration none  --no-transformation-optimization  --output-resolution 0.5  --inference-batch-size 255  --n-inference-samples 128 
 
 		}
