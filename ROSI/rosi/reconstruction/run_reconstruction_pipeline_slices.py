@@ -36,7 +36,7 @@ import niftymic.utilities.target_stack_estimator as ts_estimator
 from niftymic.utilities.input_arparser import InputArgparser
 import niftymic.utilities.template_stack_estimator as tse
 import shutil
-import nisnap
+#import nisnap
 
 
 from niftymic.definitions import DIR_TEMPLATES
@@ -678,9 +678,9 @@ def main():
     #snapshot_mask=os.path.join(
     #    dir_output_recon_template_space,
     #    "%stemplate_mask.png" % args.prefix_output)
-    nisnap.plot_segment(srr_template_mask,axes='x',bg=srr_template,opacity=20,savefig=snap_ax,contours=False)
-    nisnap.plot_segment(srr_template_mask,axes='y',bg=srr_template,opacity=20,savefig=snap_cor,contours=False)
-    nisnap.plot_segment(srr_template_mask,axes='z',bg=srr_template,opacity=20,savefig=snap_sag,contours=False)
+    #nisnap.plot_segment(srr_template_mask,axes='x',bg=srr_template,opacity=20,savefig=snap_ax,contours=False)
+    #nisnap.plot_segment(srr_template_mask,axes='y',bg=srr_template,opacity=20,savefig=snap_cor,contours=False)
+    #nisnap.plot_segment(srr_template_mask,axes='z',bg=srr_template,opacity=20,savefig=snap_sag,contours=False)
 
     #nisnap.plot_segment(srr_template_mask,savefig=snapshot_mask) 
 
