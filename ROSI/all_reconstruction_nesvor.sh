@@ -97,7 +97,7 @@ for file in ${images_list}
 			 
 			 #python convert_to_svort_init.py  --input_slices $output_svort_pc'/svort' --output $output_slices  --output_mask $output_slices_masks --results ${output_rosi}'/res.joblib.gz'
 			
-			 input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi'
+			 input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi/slices'
 			 #docker exec nesvor_contener mkdir $input_rosi_docker
 			 #output_nesvor_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor'
 			 #docker exec nesvor_contener mkdir $output_nesvor_docker
