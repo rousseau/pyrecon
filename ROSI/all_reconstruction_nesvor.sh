@@ -81,7 +81,7 @@ for file in ${images_list}
 			 docker exec nesvor_contener mkdir '/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
 
 			 output_svort_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/svort'
-			 output_svort_pc='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/svort'
+			 output_svort_pc='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}
 
 			 docker exec nesvor_contener nesvor register --input-stacks "${list_docker[@]}" --stack-masks "${mask_docker[@]}" --output-slices $output_svort_docker
 
