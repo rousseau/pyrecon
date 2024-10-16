@@ -66,10 +66,6 @@ for file in ${images_list}
 		     mkdir ${results}'/'${file1}
 		     mkdir ${results}'/'${file1}'/'${file2}
 		     output_registration='/home/aorus-users/res/check_code/value/'${sub_file}'/res_test_lamb0_mvt'
-
-		
-		     #
-			 python ROSI/main_realdata.py --filenames $list  --filenames_masks $list_mask  --output $output_registration  --ablation no_multistart dice Nelder-Mead --hyperparameters 4 0.25 2000 0.25 5 0 --classifier 'ROSI/my_model_mse_inter_std_intensity_mask_proportion_dice.pickle' 
 	
 	     	    
 		     echo "${list_docker[@]}"
@@ -91,6 +87,7 @@ for file in ${images_list}
 			 mkdir $output_rosi
 			 python run_registration_svort.py --filenames ${output_svort_pc}'/svort' --output ${output_rosi} --no_multistart 1
 			 output_slices='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/slices'
+			 mkdir '/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
 			 mkdir $output_slices
 			 output_slices_masks='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/masks'
 			 mkdir $output_slices_masks
