@@ -74,7 +74,7 @@ if __name__ == "__main__":
                 path_to_res ="/scratch/cmercier/results/rosi/"
                 
                
-                if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
+                if True :
                     cmd_os = " --filenames " + list_stacks
                     cmd_os += " --filenames-masks " + list_masks
                     cmd_os += " --dir-output " + dir_output
