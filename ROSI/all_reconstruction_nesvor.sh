@@ -100,7 +100,7 @@ for file in ${images_list}
 			 output_nesvor_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor'
 			 docker exec nesvor_contener mkdir $output_nesvor_docker
 			 output_nesvor_image='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor/res.nii'
-			 docker cp ${output_slices} nesvor_contener:'/'${input_rosi_docker} 
+			 docker cp ${output_slices} nesvor_contener:'/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi/'
 			 docker exec nesvor_contener nesvor reconstruct --input-slices ${input_rosi_docker} --output-volume ${output_nesvor_image} --registration none  --no-transformation-optimization  --output-resolution 0.5  --inference-batch-size 255  --n-inference-samples 128 
 
 		}
