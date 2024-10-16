@@ -97,11 +97,11 @@ for file in ${images_list}
 			 
 			 #python convert_to_svort_init.py  --input_slices $output_svort_pc'/svort' --output $output_slices  --output_mask $output_slices_masks --results ${output_rosi}'/res.joblib.gz'
 			
-			 #input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi'
+			 input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi'
 			 #docker exec nesvor_contener mkdir $input_rosi_docker
 			 #output_nesvor_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor'
 			 #docker exec nesvor_contener mkdir $output_nesvor_docker
-			 #output_nesvor_image='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor/res.nii'
+			 output_nesvor_image='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/nesvor/res.nii'
 			 #docker cp ${output_slices} nesvor_contener:'/'${input_rosi_docker} 
 			 docker exec nesvor_contener nesvor reconstruct --input-slices ${input_rosi_docker} --output-volume ${output_nesvor_image} --registration none  --no-transformation-optimization  --output-resolution 0.5  --inference-batch-size 255  --n-inference-samples 128 
 
