@@ -95,7 +95,7 @@ for file in ${images_list}
 			 output_slices_masks='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/masks'
 			 mkdir $output_slices_masks
 			 
-			 python convert_to_svort_init.py  --input_slices $output_svort_pc --output $output_slices  --output_mask $output_slices_masks --results ${output_rosi}'/res.joblib.gz'
+			 python convert_to_svort_init.py  --input_slices $output_svort_pc'/svort' --output $output_slices  --output_mask $output_slices_masks --results ${output_rosi}'/res.joblib.gz'
 			
 			 input_rosi_docker='/usr/local/NeSVoR/res/'${file1}'/'${file2}'/rosi'
 			 docker exec nesvor_contener mkdir $input_rosi_docker
