@@ -68,10 +68,10 @@ if __name__ == "__main__":
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
               
     
-                dir_output = os.path.join(output,'niftymic', 'rosi', subject, session)
-                dir_input = os.path.join('results/','rosi',subject,session,"res_alone/niftymic_mvt")
+                dir_output = os.path.join('/results','niftymic', 'rosi', subject, session)
+                dir_input = os.path.join('/results','rosi',subject,session,"res_alone/niftymic_mvt")
                 path_to_reconstruction = "/scratch/cmercier/code/pyrecon/ROSI/rosi/reconstruction"
-                path_to_res ="/scratch/cmercier/results/rosi/"
+                path_to_res ="/scratch/cmercier/results/"
                 
                
                 if True :
