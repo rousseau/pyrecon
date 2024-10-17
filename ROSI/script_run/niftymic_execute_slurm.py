@@ -69,7 +69,7 @@ if __name__ == "__main__":
               
     
                 dir_output = os.path.join('/results','niftymic', 'rosi', subject, session)
-                dir_input = os.path.join('/results','rosi',subject,session,"res_alone/niftymic_mvt")
+                dir_input = os.path.join('/results','rosi',subject,session,"res_alone/niftimic_mvt")
                 path_to_reconstruction = "/scratch/cmercier/code/pyrecon/ROSI/rosi/reconstruction"
                 path_to_res ="/scratch/cmercier/results/"
                 
