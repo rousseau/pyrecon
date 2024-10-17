@@ -75,7 +75,7 @@ if __name__ == "__main__":
                 
                
                 if True :
-                    cmd_os = "python niftymic_run_reconstruction_pipeline_slices.py"
+                    cmd_os = "python /app/NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py"
                     cmd_os += " --filenames " + list_stacks
                     cmd_os += " --filenames-masks " + list_masks
                     cmd_os += " --dir-output " + dir_output
