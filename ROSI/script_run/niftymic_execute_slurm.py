@@ -36,10 +36,10 @@ if __name__ == "__main__":
     subjects = [sub for sub in os.listdir(stacks_path) if os.path.isdir(os.path.join(stacks_path,sub))]
     subjects.sort()
 
-    for subject in subjects:
+    for subject in sub_list:
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
-        for session in sessions:
+        for session in ses_list:
             #if  :
             #if  subject == "sub-0379" and session == "ses-0458":
             #    print("this subject exist hehehe")
