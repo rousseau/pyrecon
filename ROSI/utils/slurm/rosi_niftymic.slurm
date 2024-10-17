@@ -8,7 +8,7 @@
 
 # Run configuration
 #SBATCH --partition=volta
-#SBATCH -t 00:05:00
+#SBATCH -t 01:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -e output_slurm/niftymic.%A_%j.err
 #SBATCH -o output_slurm/niftymic.%A_%j.out
