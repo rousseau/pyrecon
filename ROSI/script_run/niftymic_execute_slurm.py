@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_ROSI = "/scratch/cmercier/results/rosi/"
 
-    MARSFET_MESO_RESULTS = "/home/cmercier/results/"
+    MARSFET_MESO_RESULTS = "/scratch/cmercier/results/"
 
     MARSFET_MESO_tru_INIT = "/home/cmercier/results/tru"
     
