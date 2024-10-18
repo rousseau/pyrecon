@@ -77,7 +77,7 @@ for file in ${images_list}
 			 
 			 output_rosi='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
 			 mkdir $output_rosi
-			 python run_registration.py --filenames ${list} --filename_mask ${list_mask} --output ${output_rosi} --no_multistart 1
+			 python run_registration.py --filenames ${list} --filenames_mask ${list_mask} --output ${output_rosi} --no_multistart 1
 			 output_slices='/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi/slices'
 			 mkdir '/home/aorus-users/Chloe/svort_rosi_nesvor/'${file1}'/'${file2}'/rosi'
 			 mkdir $output_slices
