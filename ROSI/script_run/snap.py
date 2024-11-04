@@ -65,7 +65,7 @@ if __name__ == "__main__":
                     print(snap)
                     #os.path.join(prefix_output,"snap.png")
                     #image_shape = nib.load(path_to_volume).shape
-                    data = nib.load(path_to_mask).get_fdata()
+                    data=nib.load(path_to_mask).get_fdata()
                     #output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
                     #nib.save(output_mask,path_to_mask)
                     if not os.path.exists(snap):
