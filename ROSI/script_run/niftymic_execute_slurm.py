@@ -77,13 +77,11 @@ if __name__ == "__main__":
                 
                
                 if True :
-                     cmd_os_1 = "python /scratch/cmercier/code/pyrecon/ROSI/convert_to_niftimic.py"
-                     cmd_os_1 += " --input-stacks" + list_stacks
-                     cmd_os_1 += " --input_mask" + list_masks
-                     cmd_os_1 += " --results" + joblib_path
-                     cmd_os_1 += " --output" + dir_input
-
-
+                    cmd_os_1 = "python /scratch/cmercier/code/pyrecon/ROSI/convert_to_niftimic.py"
+                    cmd_os_1 += " --input-stacks" + list_stacks
+                    cmd_os_1 += " --input_mask" + list_masks
+                    cmd_os_1 += " --results" + joblib_path
+                    cmd_os_1 += " --output" + dir_input
                     cmd_os = "python /app/NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py"
                     cmd_os += " --filenames " + list_stacks
                     cmd_os += " --filenames-masks " + list_masks
