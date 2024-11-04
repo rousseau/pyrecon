@@ -39,16 +39,17 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            if subject in sub_list and session in ses_list :
+            #if subject in sub_list and session in ses_list :
             #
             #
             #
-            #== "sub-0002" and session == "ses-0002":
+            if subject == "sub-0002" and session == "ses-0002":
 
-                path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                #path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/latest_nesvor/"
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
+                #path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
+                path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/niftymic-0.8-iso/"
+                #path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                 #path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/","%s_%s_acq-haste_rec-nesvor_T2w.nii.gz" %(subject,session))
+                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space/srr.template.nii.gz" %(subject,session))
                 #path_to_mask = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/", "%s_%s_acq-haste_rec-nesvor_desc-brainmask_T2w.nii.gz" %(subject,session))
 
                 if  os.path.exists(path_to_volume):
@@ -56,7 +57,7 @@ if __name__ == "__main__":
                     print(path_to_volume)
                     #save in nisnap simple visualisation
                     #code issue de MarsFet/fet-processing
-                    prefix_output = os.path.join(output,'snap2','tru',subject,session)
+                    prefix_output = os.path.join(output,'snap2','niftymic',subject,session)
                     figsize = {'x': (18, 4), 'y': (18, 4), 'z': (18, 5)}
                     if not os.path.exists(prefix_output):
                         os.makedirs(prefix_output)
