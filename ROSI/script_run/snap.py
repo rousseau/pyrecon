@@ -39,11 +39,11 @@ if __name__ == "__main__":
         dir_subject = os.path.join(stacks_path, subject)
         sessions = os.listdir(dir_subject)
         for session in sessions:
-            #if subject in sub_list and session in ses_list :
+            if subject in sub_list and session in ses_list :
             #
             #
             #
-            if subject == "sub-0002" and session == "ses-0002":
+            #if subject == "sub-0002" and session == "ses-0002":
 
                 #path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/niftymic-0.8-iso/"
