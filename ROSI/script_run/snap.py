@@ -49,8 +49,8 @@ if __name__ == "__main__":
                 path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/niftymic-0.8-iso/"
                 #path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                 #path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/","%s_%s_acq-haste_rec-nesvor_T2w.nii.gz" %(subject,session))
-                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"srr_template.nii.gz")
-                path_to_mask = os.path.join(path_to_reconstruction,subject,session, "srr_template_mask.nii.gz")
+                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space","srr_template.nii.gz")
+                path_to_mask = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space" "srr_template_mask.nii.gz")
 
                 if  os.path.exists(path_to_volume):
 
