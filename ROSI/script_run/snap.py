@@ -49,8 +49,8 @@ if __name__ == "__main__":
                 path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/niftymic-0.8-iso/"
                 #path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                 #path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/default_reconst/","%s_%s_acq-haste_rec-nesvor_T2w.nii.gz" %(subject,session))
-                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space","srr_template.nii.gz",'rb')
-                path_to_mask = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space","srr_template_mask.nii.gz",'rb')
+                path_to_volume = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space","srr_template.nii.gz")
+                path_to_mask = os.path.join(path_to_reconstruction,subject,session,"haste/recon_template_space","srr_template_mask.nii.gz")
 
                 if  os.path.exists(path_to_volume):
 
@@ -64,10 +64,10 @@ if __name__ == "__main__":
                     snap=os.path.join(prefix_output, subject + "_" + session + "_" +  ".png")
                     print(snap)
                     #os.path.join(prefix_output,"snap.png")
-                    image_shape = nib.load(path_to_volume).shape
-                    data = np.ones(image_shape)
-                    output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
-                    nib.save(output_mask,path_to_mask)
+                    #image_shape = nib.load(path_to_volume).shape
+                    #data = np.ones(image_shape)
+                    #output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
+                    #nib.save(output_mask,path_to_mask)
                     if not os.path.exists(snap):
                     #True :
                     #
