@@ -149,7 +149,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
     print('Outliers\'detection  :')
     load_model = pickle.load(open(classifier,'rb'))
     grid_slices=array([squarre_error,number_point,intersection,union])
-    #set_o = detect_misregistered_slice(listSlice, grid_slices, load_model,0.5)
+    set_o = detect_misregistered_slice(listSlice, grid_slices, load_model,0.5)
     
 
     if multi_start==0:

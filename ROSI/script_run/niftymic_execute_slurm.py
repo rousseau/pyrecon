@@ -41,8 +41,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            if subject in sub_list and session in ses_list :
-            #if  subject == "sub-0379" and session == "ses-0458":
+            #if subject in sub_list and session in ses_list :
+            if  subject == "sub-0379" and session == "ses-0458":
             #    print("this subject exist hehehe")
                 input_stacks = os.listdir(os.path.join(stacks_path,subject, session))
                 list_stacks=[]
@@ -67,6 +67,7 @@ if __name__ == "__main__":
                 list_stacks = ' '.join(str(list_stacks) for list_stacks in list_stacks)
                 print(list_stacks)
                 list_masks = ' '.join(str(list_masks) for list_masks in list_masks)
+                joblib_path = os.path.join(job_res,subject, session, 'res_alone/res.joblib.gz')
               
     
                 dir_output = os.path.join('/results','niftymic', 'rosi', subject, session)
@@ -76,6 +77,13 @@ if __name__ == "__main__":
                 
                
                 if True :
+                     cmd_os_1 = "python /scratch/cmercier/code/pyrecon/ROSI/convert_to_niftimic.py"
+                     cmd_os_1 += " --input-stacks" + list_stacks
+                     cmd_os_1 += " --input_mask" + list_masks
+                     cmd_os_1 += " --results" + joblib_path
+                     cmd_os_1 += " --output" + dir_input
+
+
                     cmd_os = "python /app/NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py"
                     cmd_os += " --filenames " + list_stacks
                     cmd_os += " --filenames-masks " + list_masks
