@@ -94,6 +94,10 @@ if __name__ == "__main__":
                         + "/scratch/cmercier/code/pyrecon/ROSI/utils/slurm/rosi_niftymic.slurm"
                         + " "
                         + '"'
+                        + cmd_os_1
+                        + '"'
+                        + " "
+                        + '"'
                         + cmd_os
                         + '"'
                         + " "
