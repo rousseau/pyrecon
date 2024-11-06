@@ -4,7 +4,7 @@
 # GENERIC CONFIGURATION FOR COMPUTATION ON THE AIX-MARSEILLE MESOCENTRE
 
 # Generic configuration
-#SBATCH --account='b219'
+#SRUN --account='b219'
 
 # Run configuration
 #SBATCH --partition=dev
