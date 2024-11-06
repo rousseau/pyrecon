@@ -7,7 +7,7 @@
 #SBATCH --account='b219'
 
 # Run configuration
-#SBATCH --partition=skylake
+#SBATCH --partition=dev
 #SBATCH -t 05:00:00
 #SBATCH --mem-per-cpu=50G
 #SBATCH -c 1
