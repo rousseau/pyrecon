@@ -43,8 +43,8 @@ if __name__ == "__main__":
             #if  :
             #if  subject == "sub-0148" and session == "ses-0174":
             #    print("this subject exist hehehe")
-            if (subject == "sub-0102" and session == "ses-0118") or (subject == "sub-0567" and session == "ses-0681") or (subject == "sub-0327" and session == "ses-0396") or (subject == "sub-0649" and session == "ses-0775") or (subject == "sub-0278" and session == "ses-1098") :
-            #subject in sub_list and session in ses_list :
+            #if (subject == "sub-0102" and session == "ses-0118") or (subject == "sub-0567" and session == "ses-0681") or (subject == "sub-0327" and session == "ses-0396") or (subject == "sub-0649" and session == "ses-0775") or (subject == "sub-0278" and session == "ses-1098") :
+            if subject in sub_list and session in ses_list :
             #
             #
             #
@@ -70,8 +70,8 @@ if __name__ == "__main__":
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                
-                if True : 
-                #if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
+                #if True : 
+                if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     cmd_os_1 = " --input_slices " + input_slices
                     cmd_os_1 += " --output " + output_tru
                     cmd_os_1 += " --output_mask " + output_tru_mask
