@@ -8,7 +8,7 @@
 
 # Run configuration
 #SBATCH --partition=dev
-#SBATCH -t 05:00:00
+#SBATCH -t 01:00:00
 #SBATCH --mem-per-cpu=50G
 #SBATCH -c 1
 #SBATCH -e output_slurm/rosi.%A_%j.err
