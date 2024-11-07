@@ -71,7 +71,8 @@ if __name__ == "__main__":
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
                
                 #if True :
-                print(os.path.exists(joblib_path) and not os.path.exists(path_to_volume)) 
+                print("sub :",subject," ses :",session)
+                print(os.path.exists(joblib_path),not os.path.exists(path_to_volume)) 
                 if os.path.exists(joblib_path) and not os.path.exists(path_to_volume):
                     cmd_os_1 = " --input_slices " + input_slices
                     cmd_os_1 += " --output " + output_tru
