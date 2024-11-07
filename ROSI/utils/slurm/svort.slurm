@@ -8,7 +8,7 @@
 
 # Run configuration
 #SBATCH --partition=volta
-#SBATCH -t 24:00:00
+#SBATCH -t 1:00:00
 #SBATCH --gres=gpu:1
 #SBATCH -e output_slurm/svort.%A.err
 #SBATCH -o output_slurm/svort.%A.out
