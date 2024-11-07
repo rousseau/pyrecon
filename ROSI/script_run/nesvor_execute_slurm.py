@@ -58,7 +58,7 @@ if __name__ == "__main__":
             #
                 joblib_path = os.path.join(job_res,subject, session,'res_tru','res.joblib.gz')
                 print(joblib_path)
-                input_slices = os.path.join(slices_path,subject,session,'res_tru')
+                input_slices = os.path.join(output,'svort',subject,session,'res_tru')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
