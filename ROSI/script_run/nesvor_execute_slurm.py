@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     MARSFET_MESO_tru_INIT = "/home/cmercier/results/tru"
     
-    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_chapter4.csv"
+    MARSFET_DATABASE = "/scratch/cmercier/code/pyrecon/bd_clinique.csv"
 
     job_res = MARSFET_MESO_ROSI
     output = MARSFET_MESO_RESULTS
@@ -56,19 +56,19 @@ if __name__ == "__main__":
             #
             #== "sub-0009" and session == "ses-0012":
             #
-                joblib_path = os.path.join(job_res,subject, session,'res_tru','res.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session,'res_clinique','res.joblib.gz')
                 print(joblib_path)
-                input_slices = os.path.join(output,'svort',subject,session,'res_tru')
+                input_slices = os.path.join(output,'svort',subject,session,'res_clinique')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
                 
-                output_tru = os.path.join(output,'nesvor', 'rosi_tru', subject, session)
+                output_tru = os.path.join(output,'nesvor', 'rosi', subject, session)
                 output_tru_mask = os.path.join(output,'nesvor', 'rosi_mask', subject, session)
-                output_tru_similarity = os.path.join('/data','nesvor', 'rosi_tru', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_tru.nii")
+                output_tru_similarity = os.path.join('/data','nesvor', 'rosi', subject, session)
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_clinique.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_tru.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_clinique.nii")
                
                 #if True :
                 print("sub :",subject," ses :",session)
