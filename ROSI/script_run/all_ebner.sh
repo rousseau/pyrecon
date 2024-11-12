@@ -50,13 +50,13 @@ for file in ${images_list}
                      for doc in $list
                      do
 					 		 im=${doc#*"/data_inter/"}
-                             list_docker+=('app/NiftyMIC/'$im)
+                             list_docker+=('/app/NiftyMIC/'$im)
                      done
 
 		     for doc in $list_mask
 		     do
 			 	 ma=${doc#*"/data_inter/"}
-			     mask_docker+=('NiftyMIC/'$ma)
+			     mask_docker+=('/app/NiftyMIC/'$ma)
 
 	             done
 		      
