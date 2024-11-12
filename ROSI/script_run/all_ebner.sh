@@ -74,14 +74,14 @@ for file in ${images_list}
 	     	    
 		     #echo "${list_docker[@]}"
 		     #echo "${mask_docker[@]}"
-			 docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'
-	     	 docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}
-		     docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}
-             docker exec wizardly_brattain mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}'/Ebner'
+			 docker exec ebner mkdir 'NiftyMIC/ipta/'
+	     	 docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}
+		     docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}
+             docker exec ebner mkdir 'NiftyMIC/ipta/'${file1}'/'${file2}'/Ebner'
 
 		     echo $dir_output_motion
 		                   
-		     docker exec wizardly_brattain python NiftyMIC/niftymic_run_reconstruction_pipeline.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline --outlier-rejection 0
+		     docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline --outlier-rejection 0
 	     	 #docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/Ebner' ${results}'/'${sub_file}'/'
 	     	    
 		     
