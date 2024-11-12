@@ -1,5 +1,5 @@
 #!/bin/bash 
-images_file='../data_inter/export_chloe_29_07_2022/rawdata/'
+images_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/rawdata/'
 simul_file='../simu_no_flip'
 
 
@@ -17,14 +17,14 @@ echo $listr
 #	sim_list+=(${sim#*${simul_file}'/'})
 #done
 
-output_path='../res/Ebner'
+output_path='/home/aorus-users/Chloe/res/Ebner'
 mkdir $output_path
 #echo $images_list
 
 docker start wizardly_brattain
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
-results='../res/Ebner/value'
+results='/home/aorus-users/Chloe/res/Ebner/value'
 mkdir $results
 for file in ${images_list}
 	do     
@@ -37,7 +37,7 @@ for file in ${images_list}
 
 			 list="$(find $data -name '*.nii.gz' -type f)"
 
-		     mask_file='../data_inter/export_chloe_29_07_2022/derivatives/brain_masks/'
+		     mask_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/derivatives/brain_masks/'
 	         sub_file=${data#"$images_file"}
 
 		     list_docker=()
@@ -49,12 +49,12 @@ for file in ${images_list}
 
                      for doc in $list
                      do
-                             list_docker+=('NiftyMIC/code_copie/'$doc)
+                             list_docker+=('NiftyMIC/export_chloe_29_07_2022/'$doc)
                      done
 
 		     for doc in $list_mask
 		     do
-			     mask_docker+=('NiftyMIC/code_copie/'$doc)
+			     mask_docker+=('NiftyMIC/export_chloe_29_07_2022/'$doc)
 
 	             done
 		      
@@ -66,11 +66,7 @@ for file in ${images_list}
 		     mkdir ${results}'/'${file1}
 		     mkdir ${results}'/'${file1}'/'${file2}
 		     output_registration=${results}'/'${sub_file}'/ebner_no_rejection'
-		      
-	
-
-		  
-		     output_reconstruction_inter=${output_path}'/'${sub_file}'/intersection_test.nii.gz'
+		    
 		     output_reconstruction_pipeline='NiftyMIC/ipta/'${sub_file}'/Ebner'
 		    
 		     dir_output=${output_path}'/'${sub_file}'/pipeline_Ebner/recon_subject_space/motion_correction'
@@ -86,7 +82,7 @@ for file in ${images_list}
 		     echo $dir_output_motion
 		                   
 		     docker exec wizardly_brattain python NiftyMIC/niftymic_run_reconstruction_pipeline.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline --outlier-rejection 0
-	     	 docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/Ebner' ${results}'/'${sub_file}'/'
+	     	 #docker cp wizardly_brattain:'/app/NiftyMIC/ipta/'${sub_file}'/Ebner' ${results}'/'${sub_file}'/'
 	     	    
 		     
 		}
@@ -94,8 +90,8 @@ for file in ${images_list}
 for data in ${file_list}
 	    do	
 
-		     #echo $data
-		     #fonction "$data" 
+		     echo $data
+		     fonction "$data" 
 
 		done
 
@@ -201,7 +197,7 @@ task (){
 			docker exec ebner mkdir 'NiftyMIC/eb/'${suffix} 
 			docker exec ebner mkdir 'NiftyMIC/eb/'${suffix}'/Ebner'
 		
-			docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output 'NiftyMIC/eb/'${suffix}'/Ebner' --outlier-rejection 1
+			docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output 'NiftyMIC/eb/'${suffix}'/Ebner' #--outlier-rejection 1
 			#docker cp ebner:'/app/NiftyMIC/eb/'${suffix}'/Ebner' ${results}'/simul_data/'${suffix}'/Ebner_outliers'
 					
 		fi 
@@ -215,7 +211,7 @@ do
 		simuldata=${simul_file}${simul}
 		echo $simul
 		
-		task "$simuldata" 
+		#task "$simuldata" 
 		
 		#echo 'simul directory'
 		#echo $simul &
