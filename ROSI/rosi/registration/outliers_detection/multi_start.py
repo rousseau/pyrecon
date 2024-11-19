@@ -72,6 +72,11 @@ def estimate_new_position(listSlice,i_before,i_slice,i_after):
         #print(p2)
         #M1=rigidMatrix(p1)
         #M2=rigidMatrix(p2)
+        affine1=listSlice[i_before].affine
+        affine2=listSlice[i_after].affine
+
+        M1 = affine1 @ np.linalg.inv(affine1)
+        M2 = affine2 @ np.linalg.inv(affine2)
 
         r1=M1[0:3,0:3]
         r2=M2[0:3,0:3]
@@ -90,7 +95,8 @@ def estimate_new_position(listSlice,i_before,i_slice,i_after):
         estimated_transfo = eye(4)
         estimated_transfo[0:3,0:3]=estimated_rotation
         estimated_transfo[0:3,3]=estimated_translation
-        estimated_rigid = inv(center_to_corner) @ ((estimated_transfo @ inv(slice_transformation)) @ inv(corner_to_center))
+        estimated_rigid = inv(center_to_corner) @ ((estimated_transfo @ inv(slice_transformation)) 
+        #@ inv(corner_to_center))
         #self.__estimated_transfo = self.__center_to_corner @ (self.__rigid_matrix @ (self.__corner_to_center @ slice_transformation))
         new_x = ParametersFromRigidMatrix(estimated_rigid)
         #check_transfo = rigidMatrix(new_x)

@@ -70,7 +70,7 @@ for file in ${images_list}
 
 		
 		     #
-			 python ./ROSI/run_registration.py --filenames $list  --filenames_masks $list_mask  --output $output_registration  --no_multistart 1
+			 python ./ROSI/run_registration.py --filenames $list  --filenames_masks $list_mask  --output $output_registration  --no_multistart 0
 			 #--ablation no_multistart dice Nelder-Mead --hyperparameters 4 0.25 2000 2 0 0 --classifier 'ROSI/my_model_mse_inter_std_intensity_mask_proportion_dice.pickle' 
 		
 
