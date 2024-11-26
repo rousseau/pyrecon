@@ -41,8 +41,8 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             #if  :
-            if subject in sub_list and session in ses_list :
-            #if  subject == "sub-0379" and session == "ses-0458":
+            #if subject in sub_list and session in ses_list :
+            if  subject == "sub-0002" and session == "ses-0002":
             #    print("this subject exist hehehe")
                 input_stacks = os.listdir(os.path.join(stacks_path,subject, session))
                 list_stacks=[]
