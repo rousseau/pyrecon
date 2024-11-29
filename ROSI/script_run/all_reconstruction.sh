@@ -18,14 +18,14 @@ echo $listr
 #	sim_list+=(${sim#*${simul_file}'/'})
 #done
 
-output_path='../res/check_code/'
+output_path='aorus-users/mnt/Data/res/lamb0/'
 mkdir $output_path
 #echo $images_list
 
 #docker start wizardly_brattain
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
-results='../res/check_code/value'
+results='aorus-users/mnt/Data/res/lamb0/value'
 mkdir $results
 for file in ${images_list}
 	do     
@@ -77,7 +77,7 @@ for file in ${images_list}
 		    
 		     mkdir ${results}'/'${file1}
 		     mkdir ${results}'/'${file1}'/'${file2}
-		     output_registration='../res/check_code/value/'${sub_file}'/res_test_lamb0_mvt'
+		     output_registration='aorus-users/mnt/Data/res/lamb0/value/'${sub_file}'/res_test_lamb0_mvt'
 
 		
 		     #
@@ -210,7 +210,6 @@ task (){
 					
 					
 					#echo $list_docker
-					#echo "herisson"
 					#echo ${output_simul_path}
 					#echo ${output_res}
 		    echo "${mask[@]}"
