@@ -102,7 +102,7 @@ for file in ${images_list}
 		     dir_output_motion='NiftyMIC/ipta/'${sub_file}'/res_test_lamb0_mvt'
 		     #echo $dir_output_motion
 		                   
-		     docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline  --dir-input-mc $dir_output_motion 
+		     docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline  --dir-input-mc $dir_output_motion --target-stack "${list_docker[2]}"
 	     	 #docker cp ebner:'/app/NiftyMIC/ipta/'${sub_file}'/outliers/' ${results}'/'${sub_file}'/'
 	     	    
 		     
