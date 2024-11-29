@@ -4,7 +4,7 @@ simul_file='../simu'
 
 
 echo $images_file
-images_list="$(find $images_file -name  '*sub-0004*'  -type d)"
+images_list="$(find $images_file -name  '*sub-0340*'  -type d)"
 images_simul="$(find $simul_file -type d )"
 echo $images_simul
 mask="$(find $simul_file -type d -name '*brain_mask*')"
@@ -103,7 +103,7 @@ for file in ${images_list}
 		     #echo $dir_output_motion
 		                   
 		     docker exec ebner python NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames "${list_docker[@]}" --filenames-masks "${mask_docker[@]}" --dir-output $output_reconstruction_pipeline  --dir-input-mc $dir_output_motion 
-	     	 docker cp ebner:'/app/NiftyMIC/ipta/'${sub_file}'/outliers/' ${results}'/'${sub_file}'/'
+	     	 #docker cp ebner:'/app/NiftyMIC/ipta/'${sub_file}'/outliers/' ${results}'/'${sub_file}'/'
 	     	    
 		     
 		}
