@@ -25,7 +25,7 @@ mkdir $output_path
 #docker start wizardly_brattain
 #docker update --cpuset-cpus "0-24" wizardly_brattain
 
-results='aorus-users/mnt/Data/res/lamb0/value'
+results='/mnt/Data/res/lamb0/value'
 mkdir $results
 for file in ${images_list}
 	do     
@@ -38,7 +38,7 @@ for file in ${images_list}
 
 			 list="$(find $data -name '*.nii.gz' -type f)"
 
-		     mask_file='../data_inter/export_chloe_29_07_2022/derivatives/brain_masks/'
+		     mask_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/derivatives/brain_masks/'
 	         sub_file=${data#"$images_file"}
 
 		     list_docker=()
@@ -77,7 +77,7 @@ for file in ${images_list}
 		    
 		     mkdir ${results}'/'${file1}
 		     mkdir ${results}'/'${file1}'/'${file2}
-		     output_registration='aorus-users/mnt/Data/res/lamb0/value/'${sub_file}'/res_test_lamb0_mvt'
+		     output_registration='/mnt/Data/res/lamb0/value/'${sub_file}'/res_test_lamb0_mvt'
 
 		
 		     #
