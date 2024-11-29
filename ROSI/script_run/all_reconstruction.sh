@@ -38,7 +38,7 @@ for file in ${images_list}
 
 			 list="$(find $data -name '*.nii.gz' -type f)"
 
-		     mask_file='/home/aorus-users/Chloe/data_inter/export_chloe_29_07_2022/derivatives/brain_masks/'
+		     mask_file='../data_inter/export_chloe_29_07_2022/derivatives/brain_masks/'
 	         sub_file=${data#"$images_file"}
 
 		     list_docker=()
