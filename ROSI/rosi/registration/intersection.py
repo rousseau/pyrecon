@@ -199,16 +199,11 @@ def common_segment_in_image(slice_k : SliceObject,
     if ok<1: #if there is no intersection lines (the 2 planes are parralel) it is useless to compute the intersectionSegment
         return zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_)
         
-    #sliceimage1=Slice1.get_slice().get_fdata()
-    #print(coeff)
+
     word_segment_k,ok=segment_intersection_in_world(data_k,M_k,coeff,pt) #if there is no intersection segment (the line of intersection is outisde of the image or on a corner), it useless to compute a common segment
     ok1=int(ok[0])
     #print('seg :',ok1)
    
-    #if ok<1:
-    #    return zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_)
-    
-    #sliceimage2=Slice2.get_slice().get_fdata()
     word_segment_kprime,ok=segment_intersection_in_world(data_kprime,M_kprime,coeff,pt)
     ok2=int(ok[0])
     
@@ -296,8 +291,6 @@ def common_segment_in_image(slice_k : SliceObject,
             segment_len_ink = norm(set_v[0:2,0] - set_v[0:2,1]) #distance between two points on the two images
             segment_len_inkprime = norm(set_vprime[0:2,0] - set_vprime[0:2,1]) 
 
-            #res = min(Slice1.get_slice().header.get_zooms())
-            #the smaller resolution of a voxel
                 
             if resolution<0: #probmem with the resolution of the image
                 return zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_),zeros((2,2),dtype=float_)        
@@ -348,13 +341,7 @@ def common_segment_in_image(slice_k : SliceObject,
     
         profile_k,m_kv,nb_point_in_k=interplolation_inimage(slice_k,set_v,nbpoint)
         profile_kprime,m_kvprime,nb_point_in_kprime=interplolation_inimage(slice_kprime,set_vprime,nbpoint)
- 
-        #profile_k = concatenate((profile_k[m_kv],zeros(nb_point_in_kprime)))
-        #profile_kprime = concatenate((zeros(nb_point_in_k),profile_kprime[m_kvprime]))
-        #m_kv = concatenate((m_kv[m_kv],zeros(nb_point_in_kprime)))
-        #m_kvprime = concatenate((zeros(nb_point_in_k),m_kvprime[m_kvprime]))
-
-    
+     
         if np.isscalar(profile_k) : 
             profile_kprime = zeros(nb_point_in_k)
             m_kvprime = zeros(nb_point_in_k)
@@ -628,13 +615,9 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     
     nbslice,nbslice = shape(grid_numerator)
     
-    #grid_numerator_no_o = grid_numerator.copy()
-    #grid_denumerator_no_o = grid_denumerator.copy()
-    
     set_outliers = 1-set_o
     set_outliers[i_slice]=1
-    #print('nb outliers :',sum(set_outliers))
-    #print("number of slice",nbslice)
+ 
     i1 = np.linspace(0,nbslice,nbslice,dtype=int)
     i2 = np.linspace(0,nbslice,nbslice,dtype=int)
     index=np.meshgrid(i1,i2)
@@ -649,10 +632,9 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
     new_ind = np.array(new_ind,dtype=bool)
    
    
-    numerator = sum(grid_numerator[new_ind])# * grid_outliers)
-    denumerator = sum(grid_denumerator[new_ind])# * grid_outliers)
-    #numerator = sum(grid_numerator)
-    #denumerator = sum(grid_denumerator)
+    numerator = sum(grid_numerator[new_ind])
+    denumerator = sum(grid_denumerator[new_ind])
+
 
     #cost = np.sum(numerator)/npdenumerator)
     if denumerator==0:

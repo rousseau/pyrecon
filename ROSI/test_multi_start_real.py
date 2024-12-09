@@ -109,9 +109,7 @@ if __name__ == '__main__':
     #after08=np.sum(set_r)
     set_o = detect_misregistered_slice(listOfSlice,matrix,load_model,0.5)
     after05=np.sum(set_o)
-    #ge,gn,gi,gu,dicRes=algo_optimisation(hyperparameters,listOfSlice,set_o,set_r,matrix,dicRes,Vmx,1,'Nelder-Mead')
-    #print('Slice not well registered after multistart')
-    #print(np.where(set_r==1))
+
     
     # set_r = np.zeros(len(listOfSlice))
     bad_slices = removeBadSlice(listOfSlice,set_o)
@@ -142,14 +140,7 @@ if __name__ == '__main__':
     EvolutionParameters = np.reshape(dicRes["evolutionparameters"],[nbit,number_slice,6])
     #np.savez_compressed(strEP,EvolutionParameters)
     
-    #strET = file + '/EvolutionTransfo.npz'
-    #EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,number_slice,4,4])
-    #np.savez_compressed(strET,EvolutionTransfo)
-    #strCG = file + '/CostGlobal.npz' 
-    #costGlobal.tofile(strCG)
-    #multi_start = [('Before at 0.5',before05),('Before at 0.8',before08),('After at 0.5',after05),('After at 08',after08)]
-    #transfo = args.simulation
-    #tre_new = np.array([e.get_error() for e in listFeatures])
+
     res_obj = [('listSlice',listOfSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('RejectedSlices',bad_slices),('ListError',listFeatures)]
     #,('multi_start',multi_start)]
     
