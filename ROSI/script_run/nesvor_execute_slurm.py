@@ -65,7 +65,7 @@ if __name__ == "__main__":
                 
                 output_tru = os.path.join(output,'nesvor', 'rosi', subject, session)
                 output_tru_mask = os.path.join(output,'nesvor', 'rosi_mask', subject, session)
-                output_tru_similarity = os.path.join('/data','nesvor', 'rosi', subject, session)
+                output_tru_similarity = os.path.join('/data','nesvor', 'rosi_svort', subject, session)
                 output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_svort2.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_svort2.nii")
