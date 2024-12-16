@@ -56,9 +56,9 @@ if __name__ == "__main__":
             #
             #== "sub-0009" and session == "ses-0012":
             #
-                joblib_path = os.path.join(job_res,subject, session,'res_clinique','res.joblib.gz')
+                joblib_path = os.path.join(job_res,subject, session,'res.joblib.gz')
                 print(joblib_path)
-                input_slices = os.path.join(output,'svort',subject,session,'res_clinique')
+                input_slices = os.path.join(output,'svort',subject,session,'res')
                 #print(input_sl)
                 #print("input_stacks",input_stacks)
             
@@ -66,9 +66,9 @@ if __name__ == "__main__":
                 output_tru = os.path.join(output,'nesvor', 'rosi', subject, session)
                 output_tru_mask = os.path.join(output,'nesvor', 'rosi_mask', subject, session)
                 output_tru_similarity = os.path.join('/data','nesvor', 'rosi', subject, session)
-                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_clinique.nii")
+                output_nesvor = os.path.join('/data','nesvor',subject,session,"volume_rosi_svort2.nii")
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
-                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_clinique.nii")
+                path_to_volume = os.path.join(output,'nesvor',subject,session,"volume_rosi_svort2.nii")
                
                 #if True :
                 print("sub :",subject," ses :",session)
