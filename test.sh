@@ -1,5 +1,0 @@
-#!/bin/bash
-
-python run_registration.py --filenames /envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing/sub-0018/ses-0021/sub-0018_ses-0021_acq-haste_run-1_desc-denoised_T2w.nii.gz  /envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing/sub-0018/ses-0021/sub-0018_ses-0021_acq-haste_run-2_desc-denoised_T2w.nii.gz /envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing/sub-0018/ses-0021/sub-0018_ses-0021_acq-haste_run-3_desc-denoised_T2w.nii.gz  --filenames_mask /envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing/sub-0018/ses-0021/sub-0018_ses-0021_acq-haste_run-1_desc-brainmask_T2w.nii.gz /envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing/sub-0018/ses-0021/sub-0018_ses-0021_acq-haste_run-2_desc-brainmask_T2w.nii.gz /envau/work/meca/data/Fetus/datasets/MarsFet/derivatives/preprocessing/sub-0018/ses-0021/sub-0018_ses-0021_acq-haste_run-3_desc-brainmask_T2w.nii.gz  --output ../../results --no_multistart 1
-
-
