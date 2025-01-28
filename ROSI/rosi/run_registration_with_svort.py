@@ -41,10 +41,8 @@ def main():
     args = input_parser.parse_args()
     args.tre
 
-    if args.tre==1 : 
-        input_parser.add_nomvt(required=True) #load images with no movement
-        input_parser.add_nomvt_mask(required=True)
-        input_parser.add_transformation(required=True)
+    if args.tre and (args.nomvt is None or args.nomvt_mask is None or args.transformation is None):
+        input_parser.error("--tre requires --nomvt and --nomvt_mask and --transformation.")
 
      
     args = input_parser.parse_args()
@@ -112,12 +110,13 @@ def main():
     EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,nbSlice,4,4])
     
     if args.tre==1:
-        transfo = args.simulation #the simulated transformation
+        transfo = args.transformation #the simulated transformation
         transfo=np.array(transfo,dtype=str)
         listsliceFeatures = [sliceFeature(slicei.get_stackIndex(),slicei.get_indexSlice()) for slicei in listSlice]
-        tre_for_each_slices(listnomvt,listSlice,listsliceFeatures,transfo,rejectedSlices)
+        tre_for_each_slices(listnomvt,listSlice,listsliceFeatures,transfo,[])
+        tre = [errori.get_error() for errori in listsliceFeatures]
         #save result in a joblib
-        res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo), ('RejectedSlices',rejectedSlices),('ListError',listsliceFeatures)]
+        res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo), ('RejectedSlices',rejectedSlices),('ListError',listsliceFeatures),('tre',tre)]
     else :
         res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('RejectedSlices',rejectedSlices)]
    
@@ -131,29 +130,6 @@ def main():
     #joblib_name = os.path.join(dirname,'../../'+ args.output + '.joblib.gz')
     joblib.dump(res_obj,open(joblib_name,'wb'), compress=True)
     
-    
-    #Create directory of transformations for NiftyMIC
-    #print('-----Save Results for NiftyMIC')
-    #res = joblib.load(open(joblib_name,'rb'))
-    #key=[p[0] for p in res]
-    #element=[p[1] for p in res]
-    #listSlice=element[key.index('listSlice')]
-    
-    #list_prefixImage = []
-    #for string_name in args.filenames:
-    #    name_file = string_name.split('/')[-1]
-    #    name = name_file.replace('.nii.gz','')
-    #    list_prefixImage.append(name)
-        
-    #parent_dir = getcwd() + '/'
-    #path_dir = os.path.join(args.output + '/niftimic_mvt')
-    #path_dir = path.join(parent_dir, directory)
-    #if not path.isdir(path_dir):
-    #    mkdir(path_dir) 
-    #else:
-    #    shutil.rmtree(path_dir)
-    #    mkdir(path_dir)
-    #convert2EbnerParam(res,list_prefixImage,path_dir)
     
 if __name__ == '__main__':
     main()   

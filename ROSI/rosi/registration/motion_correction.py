@@ -106,6 +106,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
     Vmx=computeMaxVolume(listSlice)
 
     v = [1,2,4,8]
+ 
     iteration = range(0,len(v))
 
     for iter in iteration:

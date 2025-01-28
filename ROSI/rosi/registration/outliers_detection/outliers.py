@@ -19,7 +19,7 @@ class sliceFeature: #object that contains all features for outliers classificati
         self._mse = 0
         self._nmse = 0
         self._inter = 0
-        self._error = 0
+        self._error = []
         self._nbpoint = 0
         self._slice_error = 0
         self._mask_proportion = 0
@@ -32,17 +32,17 @@ class sliceFeature: #object that contains all features for outliers classificati
         self._errorpoint=0
 
     def add_registration_error(self,new_error):
-        self._error=self._error+new_error
-        self._errorpoint=self._errorpoint+1
-        self._slice_error = self._error/self._errorpoint
+        self._error.append(new_error)
+        #self._errorpoint=self._errorpoint+1
+        self._slice_error = np.median(self._error)
      
     def get_error(self):
         return self._slice_error
     
     def reinitialized_error(self):
         self._slice_error=0
-        self._error=0
-        self._errorpoint=0
+        self._error=[]
+        #self._errorpoint=0
     
     def set_error(self,er):
         self._slice_error = er
