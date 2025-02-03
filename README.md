@@ -15,7 +15,7 @@ Results are saved in a joblib format, wich contains:
 - the list containing features for all slices.
 - (the Target Registration Error (TRE) for each slices)
 
-# To run ROSI on real data : 
+**To run ROSI on real data** 
 A basic usage is : 
 
 ```
@@ -32,7 +32,7 @@ If you don't want to use multistart, specify :
 python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --no_multistart 1
 ```
 
-# To run ROSI on simulated data :
+**To run ROSI on simulated data**
 
 Data can be simulated with : 
 ```
@@ -48,7 +48,7 @@ The Joblib output will include the TRE value for each slice.
 
 In the folowing, we explain how to reconstruct a 3D volume with Nesvor or NiftyMIC, using singularity images
 
-# With NiftyMIC
+**With NiftyMIC**
 (refered to the work of Ebner et al. : https://github.com/gift-surg/NiftyMIC) 
 
 To run ROSI with NiftyMIC, run the folowing command: 
@@ -68,7 +68,7 @@ ${path_to_reconstruction}/run_reconstruction_pipeline_slices.py:/app/NiftyMIC/ni
 ${path_to_reconstruction}/niftymic_run_reconstruction_pipeline_slices.py:/app/NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py 
 niftymic.multifact_latest.sif python /app/NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --dir-output niftymic_output --dir-input-mc dir_input
 ```
-# With NeSVoR:
+**With NeSVoR**
 (refered to the work of Xu et al. : https://github.com/daviddmc/NeSVoR) 
 
 
