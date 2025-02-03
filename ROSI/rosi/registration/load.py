@@ -77,7 +77,7 @@ def loadStack(fileImage : str,
     #stack = stack_original.copy()
     if fileMask == None: ##If the mask wasn't provided, one is created covering the entire image.
           fileMask = np.ones(stack.get_fdata().shape)
-          stmask = Nifti1Image(fileMask,stack.affine)
+          stmask = Nifti1Image(fileMask,stack.affine,dtype=np.int16)
     else :
           stmask = load(fileMask).get_fdata()
           print(stmask[np.where(stmask>0)])
@@ -88,7 +88,7 @@ def loadStack(fileImage : str,
           stmask = np.array(stmask,dtype=np.int64)
           print(stmask[np.where(stmask>0)])
           data = stmask.reshape(-1)
-          stmask = Nifti1Image(stmask,stack.affine)
+          stmask = Nifti1Image(stmask,stack.affine,dtype=np.int16)
           print(data[data<1])
           #)
 

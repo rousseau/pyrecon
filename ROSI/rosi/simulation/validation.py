@@ -201,7 +201,7 @@ def slice_tre(set_v : np.array,
       
     return tre
 
-def same_order(listSlice,listnomvt,listFeature,transfo):
+def same_order2(listSlice,listnomvt,listFeature,transfo):
     
     img,_=separate_slices_in_stacks(listSlice)
     img=np.array(img,dtype=list)
@@ -281,7 +281,7 @@ def tre_for_each_slices(NoMotionSlices : 'list[SliceObject]',
     """
     Compute the mean tre for each slices. Results are stored in sliceFeature corresponding to each slice
     """  
-    images,nomvt,features,transfo = same_order(listOfSlice,NoMotionSlices,listFeatures,transfo)
+    images,nomvt,features,transfo = same_order2(listOfSlice,NoMotionSlices,listFeatures,transfo)
     print([len(images[i]) for i in range(0,3)],[len(nomvt[i]) for i in range(0,3)],[len(features[i]) for i in range(0,3)])
     listOfSlice = np.concatenate(images)
     listOfSlice = listOfSlice.tolist()

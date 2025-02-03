@@ -38,17 +38,17 @@ def main():
     input_parser.add_no_mutlistart() #by default, algorithm use multistart
     input_parser.add_optimisation() #Nedler-Mead
     input_parser.add_classifier() #random forest classifier
+    input_parser.add_nomvt(required=False) #load images with no movement
+    input_parser.add_nomvt_mask(required=False)
+    input_parser.add_transformation(required=False)
 
     args = input_parser.parse_args()
     args.tre
 
-    if args.tre==1 : 
-        input_parser.add_nomvt(required=True) #load images with no movement
-        input_parser.add_nomvt_mask(required=True)
-        input_parser.add_transformation(required=True)
+    if args.tre and (args.nomvt is None or args.nomvt_mask is None or args.transformation is None):
+        input_parser.error("--tre requires --nomvt and --nomvt_mask and --transformation.")
 
      
-    args = input_parser.parse_args()
     print(args.classifier)
     costGlobal = np.zeros(3)
     
@@ -179,12 +179,13 @@ def main():
     EvolutionTransfo = np.reshape(dicRes["evolutiontransfo"],[nbit,nbSlice,4,4])
     
     if args.tre==1:
-        transfo = args.simulation #the simulated transformation
+        transfo = args.transformation #the simulated transformation
         transfo=np.array(transfo,dtype=str)
         listsliceFeatures = [sliceFeature(slicei.get_stackIndex(),slicei.get_indexSlice()) for slicei in listSlice]
-        tre_for_each_slices(listnomvt,listSlice,listsliceFeatures,transfo,rejectedSlices)
+        tre_for_each_slices(listnomvt,listSlice,listsliceFeatures,transfo,[])
+        tre = [errori.get_error() for errori in listsliceFeatures]
         #save result in a joblib
-        res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo), ('RejectedSlices',rejectedSlices),('ListError',listsliceFeatures)]
+        res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('EvolutionTransfo',EvolutionTransfo), ('RejectedSlices',rejectedSlices),('ListError',listsliceFeatures),('tre',tre)]
     else :
         res_obj = [('listSlice',listSlice),('ErrorEvolution',ErrorEvolution), ('DiceEvolution',DiceEvolution), ('EvolutionGridError',EvolutionGridError), ('EvolutionGridNbpoint',EvolutionGridNbpoint), ('EvolutionGridInter',EvolutionGridInter), ('EvolutionGridUnion',EvolutionGridUnion), ('EvolutionParameters',EvolutionParameters),('RejectedSlices',rejectedSlices)]
    

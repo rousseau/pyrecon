@@ -289,14 +289,22 @@ if __name__ == '__main__':
         mask = islice.get_mask()
         affine = islice.get_slice().affine
         print('affine sign :',np.linalg.det(affine)<0)
-        #islice.get_estimatedTransfo()
         sliceoriginal = sliceor.get_slice().get_fdata()
+        if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
+            #w,h,d = data.shape
+            #affine[:,0] *=-1
+            #affine[0,3] -=((w-1)/2)
+            #new_affine = affine
+            sliceoriginal = np.flip(sliceor.get_slice().get_fdata(),0)
+        #islice.get_estimatedTransfo()
+        
+        #sliceoriginal=islice.get_fdata()
         #sliceor.get_slice().affine
         #sliceor.get_slice().get_fdata()
         affine = islice.get_estimatedTransfo()
-        sliceoriginal = sliceor.get_slice().get_fdata() 
+        #sliceoriginal = sliceor.get_slice().get_fdata() 
         #dataslice = sliceoriginal
-        dataslice = (sliceoriginal / np.quantile(sliceoriginal,0.99))*mask
+        dataslice = (sliceoriginal / np.quantile(sliceoriginal,0.99))#*mask
         nibslice = nib.Nifti1Image((dataslice),affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)

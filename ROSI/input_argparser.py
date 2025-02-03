@@ -28,6 +28,10 @@ class InputArgparser(object):
             self._parse_config_file()
 
         return self._parser.parse_args()
+    
+    def error(self,error_message):
+
+        return self._parser.error(error_message)
         
     def add_filenames(
         self,
@@ -61,7 +65,7 @@ class InputArgparser(object):
             
     def add_nomvt_mask(
         self,
-        option_string="--nomvt_masks",
+        option_string="--nomvt_mask",
         nargs="+",
         help="mask of the data in nii.gz",
         default=None,
