@@ -44,11 +44,11 @@ python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii
 ```
 The Joblib output will include the TRE value for each slice.
 
-##3D Reconstruction using two 3D fetal reconstruction algorithm: NiftyMIC and Nesvor
+## 3D Reconstruction using two 3D fetal reconstruction algorithm: NiftyMIC and Nesvor
 
 In the folowing, we explain how to reconstruct a 3D volume with Nesvor or NiftyMIC, using singularity images
 
-#With NiftyMIC
+# With NiftyMIC
 (refered to the work of Ebner et al. : https://github.com/gift-surg/NiftyMIC) 
 
 To run ROSI with NiftyMIC, run the folowing command: 
@@ -70,8 +70,6 @@ niftymic.multifact_latest.sif python /app/NiftyMIC/niftymic_run_reconstruction_p
 ```
 # With NeSVoR:
 (refered to the work of Xu et al. : https://github.com/daviddmc/NeSVoR) 
-
-## Without initialization from SvoRT:
 
 
 To run ROSI with NeSVoR without SvoRT initialization, execute the following commands:
