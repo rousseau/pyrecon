@@ -44,11 +44,12 @@ python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii
 ```
 The Joblib output will include the TRE value for each slice.
 
-##3D Reconstruction using NiftyMIC and Nesvor
+##3D Reconstruction using two 3D fetal reconstruction algorithm: NiftyMIC and Nesvor
 
 In the folowing, we explain how to reconstruct a 3D volume with Nesvor or NiftyMIC, using singularity images
 
 #With NiftyMIC
+(refered to the work of Ebner et al. : https://github.com/gift-surg/NiftyMIC) 
 
 To run ROSI with NiftyMIC, run the folowing command: 
 
@@ -68,8 +69,10 @@ ${path_to_reconstruction}/niftymic_run_reconstruction_pipeline_slices.py:/app/Ni
 niftymic.multifact_latest.sif python /app/NiftyMIC/niftymic_run_reconstruction_pipeline_slices.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --dir-output niftymic_output --dir-input-mc dir_input
 ```
 # With NeSVoR:
+(refered to the work of Xu et al. : https://github.com/daviddmc/NeSVoR) 
 
 ## Without initialization from SvoRT:
+
 
 To run ROSI with NeSVoR without SvoRT initialization, execute the following commands:
 
@@ -83,8 +86,8 @@ DATA='/data_path' # Change this to the actual path to your data
 singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor reconstruct --input-slices output_rosi_slices --output-volumes output_nesvor --registration none --no-transformation-optimization --inference-batch-size 255 --n-inference-samples 128
 ```
 
+To run ROSI with NeSVoR with SvoRT initialization, execute the following commands:
 
-To run ROSI with NeSVoR, run the following command, #with initilisation from SvoRT:
 
 ```bash
 
