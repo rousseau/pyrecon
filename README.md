@@ -58,7 +58,7 @@ python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii
 
 python convert_to_niftimic.py  --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --results rosi_output.joblib.gz --output dir_motion 
 
-path_to_res='/ouptut_path' #change here to your output path
+path_to_res='/ouptut_path' # change thid to your output path
 path_to_reconstruction='ROSI/rosi/reconstruction'
 Data='/data_path' #change to the path to your data 
 
