@@ -271,9 +271,6 @@ if __name__ == '__main__':
     if not(os.path.exists(dir)):
         os.makedirs(dir)
 
-    #image,ori = same_order(listSlice,listOriginal)
-    #listSlice = np.concatenate(image)
-    #listOriginal = np.concatenate(ori)
     #Create directory of transformations for NiftyMIC
     print('-----Save Results for NiftyMIC')    
     list_prefixImage = []

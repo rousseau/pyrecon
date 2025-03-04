@@ -18,7 +18,21 @@ root = os.getcwd()
 #load_model = pickle.load(open('ROSI/my_model_nmse_inter_dice_std.pickle','rb'))
 
 def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my_model_nmse_inter_dice.pickle',multi_start=0,hyperparameters={'ds':4,'fs':0.25,'T':2,'omega':0}):
+    """
+    Compute the optimised parameters for each slice. At the end of the function parameters of each slice must be the optimised parameters. The function returns the evolution of the registration on each iterarion.
     
+    Input
+    
+    listSlice : list of sliceObjects
+        list of slices from all staks
+
+    Returns
+    
+    dicRes : A dictionnay wich contains informations on the evolution of the registration during all iteration (ex : evolution of MSE, evolution of DICE, evolution of parameters ....)
+    rejectedSlice : list of rejected slices and their corresponding stack
+    
+    """
+
     print(classifier)
     tps = perf_counter()
     ##Preprocessing : 
@@ -37,20 +51,7 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
         
     
     squarre_error,number_point,intersection,union=compute_cost_matrix(listSlice) 
-    """
-    Compute the optimised parameters for each slice. At the end of the function parameters of each slice must be the optimised parameters. The function returns the evolution of the registration on each iterarion.
-    
-    Input
-    
-    listSlice : list of sliceObjects
-        list of slices from all staks
 
-    Returns
-    
-    dicRes : A dictionnay wich contains informations on the evolution of the registration during all iteration (ex : evolution of MSE, evolution of DICE, evolution of parameters ....)
-    rejectedSlice : list of rejected slices and their corresponding stack
-    
-    """
  
     #Results initialisation
     nbSlice=len(listSlice) 

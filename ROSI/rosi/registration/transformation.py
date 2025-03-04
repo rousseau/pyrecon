@@ -121,8 +121,8 @@ def log_cplx(x):
 def IsItRigid(matrix : np.array) -> bool : 
     """
     Take a 4x4 homogenous matrix and check : 
-    1. That the matrix is indeed homogenous
-    2. The the rotation part is indeed a rotation 
+    1. That the matrix is homogenous
+    2. That the rotation part is a rotation 
        2.1 Check if the matrix is orthogonal
        2.2 Check the matrix determinant
     """
@@ -139,6 +139,10 @@ def IsItRigid(matrix : np.array) -> bool :
     return rigidity
 
 def rotation_diff(A,B):
+    """
+    Compute the difference between two rotation A and B
+    """
+
     tr = np.trace(np.dot(A,B.T))
     theta=np.arccos((tr-1)/2) #difference in gradient
     return theta

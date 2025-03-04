@@ -219,8 +219,6 @@ if __name__ == '__main__':
         if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
             dataslice = np.flip(islice.get_slice().get_fdata(),0)
         affine = islice.get_estimatedTransfo()
-        #affine = islice.get_slice().affine
-        #path_to_original = os.path.join(args.input_slices,listOriginal[i])
         nibslice = nib.Nifti1Image((dataslice),affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)

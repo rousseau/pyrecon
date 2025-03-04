@@ -1,3 +1,9 @@
+# script from NiftyMIC 
+# src : https://github.com/gift-surg/NiftyMIC
+# Script from https://github.com/gift-surg/NiftyMIC that segments the fetal brain in fetal MRI acquisitions. 
+# This script has been modified to output all segmentation components, instead of only the largest connected component.
+
+
 # Copyright 2020 Marta Bianca Maria Ranzini and contributors
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

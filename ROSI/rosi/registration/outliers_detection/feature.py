@@ -140,7 +140,7 @@ def update_features(listOfSlice : 'list[SliceObject]',
         var_fk=variance[vk]
      
         #Update MSE
-        #Correspond to eqaution : 
+        #Correspond to equation : 
         #sum _{i=1,i!=fk} (1/ (var_fk + var_i)) *( ( sum_{k',f(k)=i} S^2(k,k') ) /  ( sum_{k',f(k)=i} N^2(k,k') ) )
         stack = stacks[vk]
         mse=[]
@@ -440,24 +440,5 @@ def detect_slices_out_of_images(listFeatures : 'list[SliceObject]',
     return list_far_far_away,listFeatures
 
 
-def save_features_in_csv(listFeatures : 'list[sliceFeature]',
-                         output : str) :
-    
-    labels = ['stack','position','tre','nmse','dice','mprop','std','diff']
-    
-    with open(output,'w',newline='') as file:
-        writer=csv.writer(file)
-        writer.writerow(labels)
-        for feature in listFeatures:
-            values = [
-                feature.get_stack(),
-                feature.get_index(),
-                feature.get_error(),
-                feature.get_mse(),
-                feature.get_dice(),
-                feature.get_mask_proportion(),
-                feature.get_std_intensity(),
-                feature.get_inter()
-            ]
-            writer.writerow(values)
+
 

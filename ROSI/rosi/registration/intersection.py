@@ -423,13 +423,16 @@ def common_profile(profile_k : array,
 @jit(nopython=True,fastmath=True)
 def error(profile_k,profile_kprime):
     """
-    Compute sumed squares error between two intensity profils. The function is accelerated with numba.
+    Compute sumed squares error between two intensity profils. 
     The function compute : 
     S^2(k,k') = sum_v (s_k(v) - s_k'(v'))^2        
     """
     return somme((profile_k - profile_kprime)**2)
     
 def NCC(profile_k,profile_kprime):
+    """
+    Compute the NCC with the intersection profils
+    """
     
     x=profile_k[~isnan(profile_k)]
     y=profile_kprime[~isnan(profile_kprime)]
@@ -490,6 +493,9 @@ def cost_between_2slices(slice_k,slice_kprime):
     return square_error,common_point,2*intersection,union,ncc_var,mse_coupe
 
 def ncc_between2slice(slice_k,slice_kprime):
+    """
+    Compute the normalized cross correlation between two slices
+    """
 #https://stackoverflow.com/questions/53436231/normalized-cross-correlation-in-python
 
     ncc=0
@@ -580,7 +586,6 @@ def compute_cost_matrix(listOfSlice):
 
 @jit(nopython=True)
 def compute_cost_from_matrix(numerator,denumerator):
-    
     """
     Compute the cost on all slices from two matrix. Can be equally used to compute the MSE and the DICE
     """
@@ -645,7 +650,7 @@ def cost_from_matrix(grid_numerator,grid_denumerator,set_o,i_slice):
 
 def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     """
-    function we want to minimize.
+    Cost function that return the mean squarre error between two slices
     """
     
     
@@ -693,14 +698,17 @@ def cost_fct(x0,k,listOfSlice,cost_matrix,set_o,lamb,Vmx):
     dice=dice/Vmx
 
 
-    cost = mse - lamb*(dice) #+ lamb*(union)
-    #print(cost)
+    cost = mse - lamb*(dice)
+    
     return cost
 
 
 
 def cost_multi_start(x_t,x_r,k,listOfSlices,cost_matrix,set_o):
-    
+    """
+    Cost function with the Dice, used in the multi-start procedure
+    """
+
     x0=np.array([x_r[0],x_r[1],x_r[2],x_t[0],x_t[1],x_t[2]]) 
     square_error_matrix = cost_matrix[0,:,:]
     nbpoint_matrix = cost_matrix[1,:,:]

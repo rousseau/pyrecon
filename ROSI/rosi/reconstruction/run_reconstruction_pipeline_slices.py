@@ -1,7 +1,4 @@
 ##Pipline of niftymic, sligthy modified 
-# 
-#src : https://github.com/gift-surg/NiftyMIC
-##script from NiftyMIC 
 #src : https://github.com/gift-surg/NiftyMIC
 #The entire reconstruction pipeline of NiftyMIC is run using this script. It has been slightly modified to reconstruct an image from input transformation.
 #Differents components of this script are  :

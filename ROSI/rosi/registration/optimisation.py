@@ -8,9 +8,6 @@ from numpy.linalg import norm
 
 
 
-
-#load_model = pickle.load(open('ROSI/rosi/registration/outliers_detection/my_new_model.pickle','rb'))
-
 def nelder_mead_optimisation(hyperparameters : dict,
                             listOfSlices : 'list[SliceObject]',
                             cost_matrix : array,
@@ -24,13 +21,11 @@ def nelder_mead_optimisation(hyperparameters : dict,
     The function used to optimise the cost_function. It applied the Nelder-Mead to optimise parameters of one slice. 
     """
     
-    #print('taille list :',len(listOfSlices))
     #the hyperparameters of the function are : the inital size of the simplex, tolerance on x, tolerance in f and omega
     registration_state=0
     
 
     #previous_parameters
-    #print('shape list :', len(listOfSlices))
     x0 = listOfSlices[k].get_parameters()
     
     #initial simplex
@@ -45,7 +40,6 @@ def nelder_mead_optimisation(hyperparameters : dict,
 
     #optimisation with Nelder-Mead
     ftol=1e-4
-    #print('delta',delta,'xatol',x_tol)
     if ablation == 'Nelder-Mead':
         NM = minimize(cost_fct,x0,args=(k,listOfSlices,cost_matrix,set_o,omega,Vmx),method='Nelder-Mead',options={"disp" : False, "maxiter" : maxiter, "maxfev":1e3, "fatol" : ftol,"xatol" : x_tol, "initial_simplex" : initial_s , "adaptive" :  False})
         x_opt = NM.x
@@ -55,10 +49,7 @@ def nelder_mead_optimisation(hyperparameters : dict,
     else : 
         NM = least_squares(cost_fct, x0,args=(k,listOfSlices,cost_matrix,set_o,omega,Vmx),xtol=1e-10,ftol=1e-10)
         x_opt = NM.x
-    #print(NM)
-    #update the parameters of the slice and the cost
-    #x_opt = NM.x 
-    #print(NM.fun)
+    
     listOfSlices[k].set_parameters(x_opt)
     square_error_matrix,nboint_matrix,intersection_matrix,union_matrix=[cost_matrix[i,:,:] for i in range(0,4)]
     update_cost_matrix(k,listOfSlices,square_error_matrix,nboint_matrix,intersection_matrix,union_matrix)

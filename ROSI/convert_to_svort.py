@@ -269,9 +269,7 @@ if __name__ == '__main__':
     if not(os.path.exists(dir)):
         os.makedirs(dir)
 
-    #image,ori = same_order(listSlice,listOriginal)
-    #listSlice = np.concatenate(image)
-    #listOriginal = np.concatenate(ori)
+   
     print(len(listSlice))
     print(len(listOriginal))
     index_original=[(s.get_indexVolume(),s.get_indexSlice()) for s in listOriginal]
@@ -284,35 +282,21 @@ if __name__ == '__main__':
         islice = listSlice[i]
         index_slice = (islice.get_indexVolume(),islice.get_indexSlice())
         ior=i
-        #ior = index_original.index(index_slice)
         sliceor = listOriginal[ior]
         mask = islice.get_mask()
         affine = islice.get_slice().affine
         print('affine sign :',np.linalg.det(affine)<0)
         sliceoriginal = sliceor.get_slice().get_fdata()
         if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
-            #w,h,d = data.shape
-            #affine[:,0] *=-1
-            #affine[0,3] -=((w-1)/2)
-            #new_affine = affine
             sliceoriginal = np.flip(sliceor.get_slice().get_fdata(),0)
-        #islice.get_estimatedTransfo()
-        
-        #sliceoriginal=islice.get_fdata()
-        #sliceor.get_slice().affine
-        #sliceor.get_slice().get_fdata()
+       
         affine = islice.get_estimatedTransfo()
-        #sliceoriginal = sliceor.get_slice().get_fdata() 
-        #dataslice = sliceoriginal
         dataslice = (sliceoriginal / np.quantile(sliceoriginal,0.99))#*mask
         nibslice = nib.Nifti1Image((dataslice),affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
-        #if not index_slice in listOfOutliers : 
         nib.save(nibslice,dir+'/%d.nii.gz'%(i))
         nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
-        #else : 
-        #    print("this is an outlier slice")
 
 print(nibslice.header)

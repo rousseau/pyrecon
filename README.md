@@ -16,7 +16,7 @@ Results are saved in a joblib format, wich contains:
 - (the Target Registration Error (TRE) for each slices)
 
 **To run ROSI on real data** 
-A basic usage is : 
+ 
 
 ```
 python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output
@@ -106,4 +106,5 @@ singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif n
 # References 
 
 [1] Mercier, C., Faisan, S., Pron, A., Girard, N., Auzias, G., Chonavel, T., & Rousseau, F. (2023, October). Retrospective motion estimation for fetal brain MRI. In 2023 Twelfth International Conference on Image Processing Theory, Tools and Applications (IPTA) (pp. 1-6). IEEE.
+[2] Mercier, C., Faisan, S., Pron, A., Girard, N., Auzias, G., Chonavel, T., & Rousseau, F. (2025). Intersection-based slice motion estimation for fetal brain imaging.
 

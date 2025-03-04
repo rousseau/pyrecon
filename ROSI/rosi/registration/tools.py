@@ -140,6 +140,17 @@ def normalization(listOfSlices):
 
 
 def same_order(listSlice,listnomvt,transfo):
+    """
+    The function consider a list Of SliceObject, a the same slice but without motion 
+    It's retrun the different lists in the same order
+
+    Inputs:
+    listSlice: A list of sliceObject instance, representing the 2D slices with simulated motion.
+    listnomvt: A list of sliceObject instance, representing the 2D slices without simulated motion.
+    transfo: A list of the theorical simulated transformation
+
+    """
+    
     img,_=separate_slices_in_stacks(listSlice)
     img=np.array(img,dtype=list)
     print(img.shape)

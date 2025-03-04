@@ -157,8 +157,24 @@ def loadFromdir(dir_input):
 
 
 def convert2ListSlice(dir_nomvt,dir_slice,slice_thickness,set_of_affines):
+    """
+    Function to convert corrected slices output by svort or nesvor into sliceObjects.
+
+    Inputs:
+    dir_slice: Path to the directory containing motion-corrected slices (output of Svort/Nesvor).
+    dir_nomvt: Path to the directory containing slices without simulated motion.
+    set_of_affines: List of affine matrices representing the original low-resolution (LR) image transformations.
+    slice_thickness: Thickness of the slices
+
+
+    Outputs:
+    listnomvt: List of SliceObject instances generated from the dir_nomvt directory.
+    listSlice:  List of SliceObject instances generated from the dir_slice directory.
+
+    N.B : The dir_nomvt directory is required to determine the slice index and stack index for each SliceObject during conversion.
+    """
     #print(dir_nomvt)
-    ##this function take each slices, saved in a nifti, and convert it to sliceObject. It then create a listOfSliceObject, which are used to compute the tre.
+    ##
     list_file = sorted_alphanumeric(os.listdir(dir_slice))
     #print(list_file)
 

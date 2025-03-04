@@ -202,7 +202,18 @@ def slice_tre(set_v : np.array,
     return tre
 
 def same_order2(listSlice,listnomvt,listFeature,transfo):
-    
+    """
+    The function consider a list Of SliceObject, a the same slice but without motion, the corresponding features and the corresponding theorical tranfsformation and make thel correspond
+    It's retrun the different list in the same order
+
+    Inputs:
+    listSlice: A list of sliceObject instance, representing the 2D slices with simulated motion.
+    listnomvt: A list of sliceObject instance, representing the 2D slices without simulated motion.
+    listFeatures: A list of the features for each slices
+    transfo: A list of the theorical simulated transformation
+
+    """
+
     img,_=separate_slices_in_stacks(listSlice)
     img=np.array(img,dtype=list)
     nomvt,_=separate_slices_in_stacks(listnomvt)
@@ -239,7 +250,17 @@ def same_order2(listSlice,listnomvt,listFeature,transfo):
     return img,nomvt[minnomvt],features,transfo[minnomvt]
     
 def same_order(listSlice,listnomvt):
-    
+    """
+    The function consider a list Of SliceObject, a the same slice but without motion 
+    It's retrun the different list in the same order
+
+    Inputs:
+        listSlice: A list of sliceObject instance, representing the 2D slices with simulated motion.
+        listnomvt: A list of sliceObject instance, representing the 2D slices without simulated motion.
+        transfo: A list of the theorical simulated transformation
+
+    """
+
     img,_=separate_slices_in_stacks(listSlice)
     img=np.array(img,dtype=list)
     nomvt,_=separate_slices_in_stacks(listnomvt)
@@ -338,6 +359,9 @@ def compute_image_distance(mask : Nifti1Image) -> np.array :
     return inv_chamfer_distance        
     
 def cumulative_tre(tre : np.array) :
+    """
+    Take the TRE in inputs and return an array of the cumulative tre
+    """
 
     X = np.linspace(0,16)
     Y = [np.sum(np.array(tre<xi)) for xi in X]
@@ -345,6 +369,17 @@ def cumulative_tre(tre : np.array) :
     return X,Y
 
 def theorical_misregistered(listOfSlice : 'list[SliceObject]', listFeatures : 'list[sliceFeature]', transfolist : np.array) -> list:
+    """
+    Return the set of slices that are theoricaly misregistered, ie, the slice that have a TRE above 1.5
+
+    Inputs:
+    listSlice: A list of sliceObject instance, representing the 2D slices with simulated motion.
+    listnomvt: A list of sliceObject instance, representing the 2D slices without simulated motion.
+    transfoList:  A list of the theorical simulated transformation
+
+    Ouptuts:
+    set_r : A binary array with classify each slices into outliers or inliers
+    """
 
     set_r = np.zeros(len(listOfSlice))
     rs = []

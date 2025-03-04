@@ -40,10 +40,6 @@ if __name__ == "__main__":
         sessions = os.listdir(dir_subject)
         for session in sessions:
             if subject in sub_list and session in ses_list :
-            #
-            #
-            #
-            #if subject == "sub-0002" and session == "ses-0002":
 
                 path_to_mask = os.path.join(output,'nesvor',subject,session,"volume_mask.nii")
                 #path_to_reconstruction = "/scratch/gauzias/data/datasets/MarsFet/derivatives/srr_reconstruction/niftymic-0.8-iso/"
@@ -63,14 +59,11 @@ if __name__ == "__main__":
                         os.makedirs(prefix_output)
                     snap=os.path.join(prefix_output, subject + "_" + session + "_" +  ".png")
                     print(snap)
-                    #os.path.join(prefix_output,"snap.png")
-                    #image_shape = nib.load(path_to_volume).shape
+         
                     data=nib.load(path_to_mask).get_fdata()
-                    #output_mask = nib.Nifti1Image(data,nib.load(path_to_volume).affine)
-                    #nib.save(output_mask,path_to_mask)
+                
                     if not os.path.exists(snap):
-                    #True :
-                    #
+                  
                         done = 0
                         d_max = 150
                         step = 20

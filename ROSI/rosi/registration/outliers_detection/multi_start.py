@@ -20,10 +20,22 @@ from scipy.linalg import expm
 
 from rosi.simulation.validation import theorical_misregistered, tre_for_each_slices
 from skimage.measure import block_reduce
-
+import time
 
 #find the best closer solutions
 def good_neighboors(listOfSlice,k,set_r,nb_neigbhoors) :
+    """
+    Given a list of SliceObject instances, find the closest well-registered slices to slice k.
+
+    Inputs:
+    ListOfSlice: List of SliceObject instances (representing 2D slices).
+    k: Index of the slice of interest.
+    set_r: Classification of slices as well-aligned or misaligned.
+    nb_neigbhoors: Number of well-aligned neighboring slices to retrieve.
+
+    Outputs: 
+    List of indices of the closest well-aligned slices to slice k
+    """
 
     i_before=nb_neigbhoors*[None]
     i_after=nb_neigbhoors*[None]
@@ -52,6 +64,18 @@ def good_neighboors(listOfSlice,k,set_r,nb_neigbhoors) :
 
 #estimate a new initial postion for the slice
 def estimate_new_position(listSlice,i_before,i_slice,i_after):
+    """
+    Compute the average transformation if either i_before or i_after is not None. Otherwise, estimate a position for slice i_slice parallel to either i_before or i_after.
+
+    Inputs:
+        listSlice: A list of SliceObject instances, representing 2D slices.
+        i_slice: The index of the slice of interest.
+        i_before: The index of a well-aligned slice preceding i_slice in the stack (or None).
+        i_after: The index of a well-aligned slice following i_slice in the stack (or None).
+
+    Outputs:
+        new_x: The estimated parameters for the slice at index i_slice.
+    """
 
     center_in_world=listSlice[i_slice].get_centerOfRotation()
     corner_to_center=eye(4)
@@ -65,13 +89,7 @@ def estimate_new_position(listSlice,i_before,i_slice,i_after):
         M1=listSlice[i_before].get_estimatedTransfo()
         #print(M1)
         M2=listSlice[i_after].get_estimatedTransfo()
-        #print(M2)
-        #p1=listSlice[i_before].get_parameters()
-        #print(p1)
-        #p2=listSlice[i_after].get_parameters()
-        #print(p2)
-        #M1=rigidMatrix(p1)
-        #M2=rigidMatrix(p2)
+ 
         affine1=listSlice[i_before].affine
         affine2=listSlice[i_after].affine
 
@@ -99,11 +117,7 @@ def estimate_new_position(listSlice,i_before,i_slice,i_after):
         #self.__estimated_transfo = self.__center_to_corner @ (self.__rigid_matrix @ (self.__corner_to_center @ slice_transformation))
         new_x = ParametersFromRigidMatrix(estimated_rigid)
         #check_transfo = rigidMatrix(new_x)
-        
-        #print('determinant :',np.linalg.det(estimated_rigid))
-        #print('estimated :',estimated_rigid)
-        #print('transfo :',check_transfo)
-        
+               
         listSlice[i_slice].set_parameters(new_x)
         #print(listSlice[i_slice].get_estimatedTransfo())
         
@@ -192,7 +206,7 @@ def multi_start2(hyperparameters,i_slice,listSlice,cost_matrix,set_o,x0,Vmx,opti
     ----------
     hyperparameters : parameters for optimisation : simplex size, xatol, fatol, epsilon, gauss, lamb
     i_slice : slice we want to correct
-    listSlice : set of slices
+    listSlice :  A list of SliceObject instances, representing 2D slices
     grid_slices : matrix costs
     set_o : set of outliers
     x0 : initial postion of the slice
@@ -261,18 +275,37 @@ def computeMeanTranslation(T1 : np.array,
     
     return T_mean
 
-import time
-def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisation):
 
+def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisation):
+    """
+    This function:
+        1. Generates a grid of fixed rotation parameter values.
+        2. For each rotation parameter value, estimates the optimal translation by minimizing the Dice score within the overlapping region of the slice of interest and its intersecting slice.
+
+    The function returns the estimated translation for each grid point, along with the corresponding Dice score.
+
+    Inputs:
+        x0: The center of the rotation parameter grid.
+        hyperparameters: A dictionary containing optimization hyperparameters.
+        listOfSlices: A list of SliceObject instances, representing 2D slices.
+        cost_matrix: A dictionary of matrices containing precomputed intersection, union, squared error, and intersecting point counts for each slice pair. These are used to calculate the Dice score.
+        set_o: A boolean array indicating whether each slice is classified as an outlier (True) or inlier (False).
+        Vmx: The maximum volume of the region of interest.
+        optimization: The optimization algorithm used to estimate the translation (e.g., "gradient descent", "Powell").
+
+    Outputs:
+        grid: A matrix containing the Dice score values for each point in the rotation parameter grid.
+        estimated_translation: A matrix containing the estimated translation vectors corresponding to each point in the rotation parameter grid.
+    """
     a,b,c = x0[0:3]
-    #x_opt,cost = translation_optimisation(hyperparameters,listOfSlices,cost_matrix,set_r,set_o,Vmx,k,x0)
-    
-    #print(x_t)
+
     vect_a = np.array([a-6,a-3,a,a+3,a+6])
     vect_b = np.array([b-6,b-3,b,b+3,b+6])
     vect_c = np.array([c-6,c-3,c,c+3,c+6])
     x=np.zeros(6)
-    grid = np.zeros((len(vect_a),len(vect_b),len(vect_c)))
+
+    #Initialisation
+    grid = np.zeros((len(vect_a),len(vect_b),len(vect_c))) 
     estimated_translation = np.zeros((len(vect_a),len(vect_b),len(vect_c),3))
     t1 = time.perf_counter()
     for i in range(0,len(vect_a)):
@@ -280,11 +313,11 @@ def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisa
             for z in range(0,len(vect_c)):                
                 x[:3]=[vect_a[i],vect_b[j],vect_c[z]]
                 x[3:6]=x0[3:6]
-                x_opt,cost=translation_optimisation(hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,x,optimisation)
+                x_opt,cost=translation_optimisation(hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,x,optimisation) #estimate the best translation associated with the translation parameters
                 x_t=x_opt[3:6]
                 x = np.array([vect_a[i],vect_b[j],vect_c[z],x_t[0],x_t[1],x_t[2]])
                 listOfSlices[k].set_parameters(x)
-                cost=cost_fct(x,k,listOfSlices,cost_matrix,set_o,hyperparameters['omega'],Vmx)
+                cost=cost_fct(x,k,listOfSlices,cost_matrix,set_o,hyperparameters['omega'],Vmx) #value of the cost function for the parameters values: the three rotation parameters and the three estimated translation parameters
                 grid[i,j,z]=cost
                 estimated_translation[i,j,z,:]=x_t
     t2 = time.perf_counter()
@@ -294,6 +327,9 @@ def grid_search(x0,hyperparameters,listOfSlices,cost_matrix,set_o,Vmx,k,optimisa
 
 @jit(nopython=True,fastmath=True)
 def local_minimum(grid):
+    """
+    Find the five local minima of the grid
+    """
     
     local_minium = []
     cost_minimum = []
@@ -325,7 +361,9 @@ def local_minimum(grid):
 
 
 def find_minimum(x0,index,estimated_translation):
-    
+    """
+    Returns the parameters corresponding to the local minimum values of the grid 
+    """
 
     a,b,c = x0[0:3]
     vect = np.array([-6,-3,0,+3,+6])
@@ -340,6 +378,24 @@ def find_minimum(x0,index,estimated_translation):
     return starts
 
 def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,optimisation):
+    """
+    This function performs a multi-start optimization from the set of initial parameter values "starts" and returns the parameters associated with the lowest cost.
+
+    Inputs:
+        hyperparameters: A dictionary containing optimization parameters (e.g., simplex size, xatol, fatol, epsilon, gauss, lambda).
+        listOfSlices: A list of SliceObject instances, representing 2D slices.
+        cost_matrix: A dictionary of matrices containing precomputed intersection, union, squared error, and intersecting point counts for each slice pair. These are used to calculate the Dice score.
+        set_o: A boolean array indicating whether each slice is classified as an outlier (True) or an inlier (False).
+        Vmx: The maximum volume of the region of interest.
+        i_slice: The index of the slice of interest.
+        starts: A list of initial parameter values for the multi-start optimization.
+        optimization: The optimization method to be used (e.g., "Nelder-Mead").
+
+    Outputs:
+        x_min: The optimal parameters found by the optimization.
+        cost_min: The minimum value of the cost function, evaluated at x_min.
+
+    """
 
     cost = np.zeros(5)
     optimise_parameters = np.zeros((5,6))
@@ -357,11 +413,7 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
     for id in index:
         print(optimisation)
         x0=multi_start2(hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation,id)
-    #with Pool(processes=6) as p:
-    #    tmpfun=partial(multi_start2,hyperparameters,i_slice,listSlice,cost_matrix,set_o,starts,Vmx,optimisation)
-    #    res=p.map(tmpfun,index)    
-    #for x0 in res:
-                
+
         cost = cost_fct(x0,i_slice,listSlice,cost_matrix,set_o,hyperparameters['omega'],Vmx)
 
         if cost<cost_pre:
@@ -384,6 +436,22 @@ def best_value(hyperparameters,listSlice,cost_matrix,set_o,Vmx,i_slice,starts,op
 
 
 def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matrix,listFeatures,loaded_model,dicRes,threshold):
+    """
+    This function applies a multi-start optimization procedure to all slices identified as misaligned by the classifier.
+
+    Inputs:
+        set_r: A boolean array indicating whether each slice is classified as misaligned (True) or aligned (False).
+        set_o: A boolean array indicating whether each slice is classified as an outlier (True) or inlier (False), using a different threshold than set_r.
+        listOfSlices: A list of SliceObject instances, representing 2D slices.
+        hyperparameters: A dictionary containing optimization parameters (e.g., simplex size, xatol, fatol, epsilon, gauss, lambda).
+        optimization: The optimization method to be used (e.g., "Nelder-Mead").
+        Vmx: The maximum volume of the region of interest.
+        matrix: A dictionary of matrices containing precomputed intersection, union, squared error, and intersecting point counts for each slice pair. These are used to calculate the Dice score.
+        listFeatures: A list of SliceError instances, containing the features associated with each slice.
+        loaded_model: The trained classifier model.
+        dicRes: A dictionary to store the optimization results.
+        threshold: The threshold used by the classifier to determine misalignment.
+     """
 
     mask = [e.get_mask_proportion()[0] for e in listFeatures]
     mask = np.array(mask)
@@ -472,6 +540,9 @@ def correct_slice(set_r,set_o,listOfSlice,hyperparameters,optimisation,Vmx,matri
     return set_r
 
 def choose_postion(new_position):
+    """
+    When selecting the starting position for multi-start, select only the one that are different
+    """
     
     for iter in range(0,len(new_position)):
         if iter!=0:
@@ -491,6 +562,7 @@ def choose_postion(new_position):
     return new_position
 
 def check_distance(i_slice1,i_slice2,listOfSlice,M1prime,M2prime):
+ 
     
     slice1 = listOfSlice[i_slice1].copy()
     slice2 = listOfSlice[i_slice2].copy()
