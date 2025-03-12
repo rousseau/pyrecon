@@ -8,7 +8,7 @@ Created on Tue Aug 23 09:20:15 2022
 
 from nibabel import Nifti1Image,load
 import numpy as np
-from rosi.reconstruction.rec_ebner import sorted_alphanumeric
+from rosi.reconstruction.link_to_reconstruction import sorted_alphanumeric
 from .sliceObject import SliceObject
 from .tools import distance_from_mask
 from .sliceObject import SliceObject
