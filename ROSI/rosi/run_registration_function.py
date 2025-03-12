@@ -38,7 +38,7 @@ def main():
     input_parser.add_no_mutlistart() #by default, algorithm use multistart
     input_parser.add_optimisation() #Nedler-Mead
     input_parser.add_classifier() #random forest classifier
-    #input_parser.add_nomvt(required=False) #load images with no movement
+    input_parser.add_nomvt(required=False) #load images with no movement
     #input_parser.add_nomvt_mask(required=False)
     #input_parser.add_transformation(required=False)
 
