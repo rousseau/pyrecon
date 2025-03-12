@@ -89,7 +89,7 @@ class InputArgparser(object):
         self,
         option_string="--transformation",
         nargs="+",
-        help=" ",
+        help="theorical transformation for the simulated data",
         default=None,
         required=False,
                     ):
