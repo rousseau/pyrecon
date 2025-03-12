@@ -40,7 +40,7 @@ def main():
     input_parser.add_classifier() #random forest classifier
     input_parser.add_nomvt(required=False) #load images with no movement
     input_parser.add_nomvt_mask(required=False)
-    #input_parser.add_transformation(required=False)
+    input_parser.add_transformation(required=False)
 
     args = input_parser.parse_args()
     args.tre
