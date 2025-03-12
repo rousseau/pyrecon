@@ -39,14 +39,13 @@ def main():
     input_parser.add_optimisation() #Nedler-Mead
     input_parser.add_classifier() #random forest classifier
     input_parser.add_nomvt(required=False) #load images with no movement
-    input_parser.add_nomvt_mask(required=False)
     input_parser.add_transformation(required=False)
     
 
     args = input_parser.parse_args()
     args.tre
 
-    if args.tre and (args.nomvt is None or args.nomvt_mask is None or args.transformation is None):
+    if args.tre and (args.nomvt is None or args.transformation is None):
         input_parser.error("--tre requires --nomvt and --nomvt_mask and --transformation.")
 
      
