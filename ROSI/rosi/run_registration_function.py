@@ -41,7 +41,7 @@ def main():
     input_parser.add_nomvt(required=False) #load images with no movement
     input_parser.add_nomvt_mask(required=False)
     input_parser.add_transformation(required=False)
-    add_transformation
+    
 
     args = input_parser.parse_args()
     args.tre
