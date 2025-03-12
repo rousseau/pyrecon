@@ -15,7 +15,7 @@ from input_argparser import InputArgparser
 import joblib
 from os import getcwd, path, mkdir, makedirs
 from rosi.registration.tools import separate_slices_in_stacks
-from rosi.reconstruction.rec_ebner import convert2EbnerParam
+from rosi.reconstruction.link_to_reconstruction import convert2EbnerParam
 from rosi.registration.outliers_detection.outliers import sliceFeature
 import shutil
 import os
