@@ -29,9 +29,9 @@ class InputArgparser(object):
 
         return self._parser.parse_args()
     
-    #def error(self,error_message):
+    def error(self,error_message):
 
-    #    return self._parser.error(error_message)
+        return self._parser.error(error_message)
         
     def add_filenames(
         self,
