@@ -106,5 +106,6 @@ singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif n
 # References 
 
 [1] Mercier, C., Faisan, S., Pron, A., Girard, N., Auzias, G., Chonavel, T., & Rousseau, F. (2023, October). Retrospective motion estimation for fetal brain MRI. In 2023 Twelfth International Conference on Image Processing Theory, Tools and Applications (IPTA) (pp. 1-6). IEEE.
+
 [2] Mercier, C., Faisan, S., Pron, A., Girard, N., Auzias, G., Chonavel, T., & Rousseau, F. (2025). Intersection-based slice motion estimation for fetal brain imaging.
 
