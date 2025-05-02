@@ -25,7 +25,7 @@ import nibabel as nib
 
 def main():
     
-    print('test')
+    
     input_parser = InputArgparser() 
     input_parser.add_filenames(required=True) #load images
     input_parser.add_filenames_masks(required=True) #load masks
@@ -49,7 +49,6 @@ def main():
         input_parser.error("--tre requires --nomvt and --nomvt_mask and --transformation.")
 
      
-    print(args.classifier)
     costGlobal = np.zeros(3)
     
     
@@ -63,7 +62,6 @@ def main():
     nb_remove=0
     i_prefix=0
     for i in range(len(args.filenames)):
-        print(args.filenames[i])
         print('------------load images--------------------')
         im, inmask = loadStack(args.filenames[i],args.filenames_masks[i]) 
         Affine = im.affine
@@ -97,31 +95,31 @@ def main():
               if max(orx,ory,orz)==orx:
                   output = convert2Slices(im,mask,[],1,i_image)
                   listSlice+=output
-                  print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                  print(i, ' : Coronal')
+                  #print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                  #print(i, ' : Coronal')
                   i_image=i_image+1
         
               elif max(orx,ory,orz)==ory:
                   output = convert2Slices(im,mask,[],2,i_image)
                   listSlice+=output
-                  print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                  print(i ,' : Sagittal')
+                  #print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                  #print(i ,' : Sagittal')
                   i_image=i_image+1
         
               else:
                   output = convert2Slices(im,mask,[],0,i_image)
                   listSlice+=output
-                  print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                  print(i , ' : Axial')
+                  #print('orx :', orx, 'ory :', ory, 'orz :', orz)
+                  #print(i , ' : Axial')
                   i_image=i_image+1
               
-            print('i_image',i_image)
+            #print('i_image',i_image)
              
               
         else :
             i_prefix = i - nb_remove
             del list_prefixImage[i_prefix]
-            print(list_prefixImage)
+            #print(list_prefixImage)
             nb_remove=nb_remove+1
 
         if args.tre==1:
@@ -129,7 +127,7 @@ def main():
             nomt = convert2Slices(im, inmask, [], i,i_image)
             listnomvt+=nomt
 
-    print('\n')
+    #print('\n')
     #normalize the data with z-score
     image,mask = separate_slices_in_stacks(listSlice.copy()) #create n list of slices and n mask, corresponding to n stack 
     
@@ -139,7 +137,7 @@ def main():
         listSliceNorm = listSliceNorm + normalization(m)
     
     listSlice = listSliceNorm
-    print(len(listSlice))
+    #print(len(listSlice))
     
     #Algorithm of motion correction
     print("--Method use for optimisation is :", args.optimisation)

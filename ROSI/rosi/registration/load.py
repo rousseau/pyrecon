@@ -60,8 +60,8 @@ def convert2Slices(stack : Nifti1Image,
             new_slice = Nifti1Image(slice_value.copy(),slice_transformation)
             new_object = SliceObject(new_slice,slice_mask.copy(),index_stack,zi,index_volume)
             OutputList.append(new_object)
-        else :
-            print('mask_nul')
+        #else :
+            #print('mask_nul')
    
     return OutputList
 
