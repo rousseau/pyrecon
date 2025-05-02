@@ -75,7 +75,7 @@ def multi_optimisation(hyperparameters : dict,
     The function used to optimise the cost_function in multi-start. It applied the Nelder-Mead algorithm to optimise parameters of one slice. 
     """
     
-    print('optimisation',optimisation)
+    #print('optimisation',optimisation)
     delta=hyperparameters['ds']
     x_tol=hyperparameters['fs']
     omega=hyperparameters['omega']
@@ -84,7 +84,7 @@ def multi_optimisation(hyperparameters : dict,
 
     ftol=1e-4
   
-    print(optimisation)
+    #print(optimisation)
     #print(dtype(cost_matrix[0][0,0]))
     if optimisation == 'Nelder-Mead':
         p=(ones((x0.size,x0.size))*x0.T)+eye(6)*delta
@@ -95,9 +95,9 @@ def multi_optimisation(hyperparameters : dict,
     elif optimisation != "LM":
         NM = minimize(cost_fct,x0,args=(k,listOfSlices,cost_matrix,set_o,omega,Vmx),method=optimisation,jac=None,options={"disp" : False, "return_all" : False, "gtol" : 6*(1e-3), "eps" : 1e-4})
         x_opt = NM.x
-        print(NM)
-        print(NM.message)
-        print(x_opt)
+        #print(NM)
+        #print(NM.message)
+        #print(x_opt)
         #else :
         #    x_opt=x0
             
@@ -105,13 +105,13 @@ def multi_optimisation(hyperparameters : dict,
     else : 
         NM = least_squares(cost_fct, x0,args=(k,listOfSlices,cost_matrix,set_o,omega,Vmx),xtol=1e-10,ftol=1e-10)
         x_opt = NM.x
-        print(NM.message)
+        #print(NM.message)
   
     listOfSlices[k].set_parameters(x_opt)
     square_error_matrix,nboint_matrix,intersection_matrix,union_matrix=[cost_matrix[i,:,:] for i in range(0,4)]
     update_cost_matrix(k,listOfSlices,square_error_matrix,nboint_matrix,intersection_matrix,union_matrix)
     cost_matrix = array([square_error_matrix,nboint_matrix,intersection_matrix,union_matrix])
-    print(x_opt)
+    #print(x_opt)
 
     return x_opt
 
@@ -155,13 +155,13 @@ def translation_optimisation(hyperparameters : array(6),
     elif optimisation != 'LM':
         NM = minimize(cost_multi_start,xt,args=(xr,k,listOfSlices,cost_matrix,set_o),method=optimisation,jac=None,options={"disp" : False,"gtol" : 1e-10, "eps" : 1e-10})
         x_est = NM.x
-        print(NM.message)
+        #print(NM.message)
 
     else :
-        print('LM')
+        #print('LM')
         NM = least_squares(cost_multi_start, xt,args=(xr,k,listOfSlices,cost_matrix,set_o),xtol=1e-10,ftol=1e-10)
         x_est = NM.x
-        print(NM.message)
+        #print(NM.message)
     #update the parameters of the slice and the cost
     
     #print('x_est',x_est)

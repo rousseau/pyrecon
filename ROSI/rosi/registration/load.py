@@ -80,17 +80,12 @@ def loadStack(fileImage : str,
           stmask = Nifti1Image(fileMask,stack.affine,dtype=np.int16)
     else :
           stmask = load(fileMask).get_fdata()
-          print(stmask[np.where(stmask>0)])
           #check that the mask is a binary image
-          #
           stmask = np.round(stmask)
-          print(stmask[np.where(stmask>0)])
           stmask = np.array(stmask,dtype=np.int64)
-          print(stmask[np.where(stmask>0)])
           data = stmask.reshape(-1)
           stmask = Nifti1Image(stmask,stack.affine,dtype=np.int16)
-          print(data[data<1])
-          #)
+          
 
           if not (np.all((data==0)|(data==1))):
                raise Exception('The mask is not a binary image')
@@ -146,9 +141,7 @@ def loadFromdir(dir_input):
 
             zi = list_stack_zi[index_stack]+1
             list_stack_zi[index_stack]=zi
-            print(list_stack_zi)
             index_volume = index_stack
-            print(file,index_stack,zi)
             new_object = SliceObject(nib_slice,nib_mask.get_fdata(),index_stack,zi,index_volume)
             OutputList.append(new_object)
 
@@ -185,15 +178,11 @@ def convert2ListSlice(dir_nomvt,dir_slice,slice_thickness,set_of_affines):
         
         if not 'mask' in file and not 'image' in file and not 'volume' in file : ##for svrtk you would need to have "slice"
             ##else do nothing
-            print('file_name :',file)
             slice_data=nib.load(dir_slice + '/' + file)
             mask_data=nib.load(dir_slice + '/mask_' + file)
             slice_nomvt = nib.load(dir_nomvt + '/' + file)
             mask_slice=nib.load(dir_slice + '/mask_' + file)
             print("affine equal ? ",np.allclose(slice_data.affine,slice_nomvt.affine,1e-1))
-                #print(slice_data.affine - slice_nomvt.affine)
-            print(slice_data.affine)
-            print(slice_nomvt.affine)
                 
             T0 = slice_data.affine
 

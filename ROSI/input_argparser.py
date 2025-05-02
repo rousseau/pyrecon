@@ -83,8 +83,8 @@ class InputArgparser(object):
         required=True,
                    ):
         self._add_argument(dict(locals()))
-        
-        
+
+            
     def add_transformation(
         self,
         option_string="--transformation",
