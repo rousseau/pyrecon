@@ -12,6 +12,8 @@ import numpy as np
 import scipy
 import csv
 
+
+
 def mask_proportion(mask : array) -> float:
     """
     Compute the mask proprtion on the slice
@@ -399,16 +401,20 @@ def detect_misregistered_slice(listOfSlices : 'list[SliceObject]',
      #note à moi meme : si possible udapte directement les features
      list_without_outliers = [sliceFeature(slice_k.get_stackIndex(),slice_k.get_indexSlice()) for slice_k in listOfSlices] 
      update_features(listOfSlices,list_without_outliers,square_error_matrix,nbpoint_matrix,intersection_matrix,union_matrx) 
-     #features= ['nmse','dice','inter']
-     features=["inter","nmse","dice"] 
+     features= ['nmse','dice','inter']
+     #features=["inter","nmse","dice"] 
 
      #convert the data into input for the classifier
      X=data_to_classifier_real(list_without_outliers,features)
      
      #classifier for prediction
-     proba=loaded_model.predict_proba(X)
+     #proba=loaded_model.predict_proba(X)
+     #
+     input_name = loaded_model.get_inputs()[0].name
+     label_name = loaded_model.get_outputs()[0].name
+     proba = loaded_model.run(None, {input_name: X.astype(np.float32)})[1]
      estimated_y = proba[:,0]<threshold
-     
+
      return abs(estimated_y)    
 
 def detect_slices_out_of_images(listFeatures : 'list[SliceObject]',

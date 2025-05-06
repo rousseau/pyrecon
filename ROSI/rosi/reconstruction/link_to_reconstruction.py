@@ -43,7 +43,7 @@ def convert2EbnerParam(joblib,list_prefix,directory):
     listSlice=element[key.index('listSlice')]  #list of slice
     parameters=element[key.index('EvolutionParameters')][-1,:,:] #estimated parameters of the registration
     rejectedSlice=element[key.index('RejectedSlices')] #rejected slices
-    print(rejectedSlice)
+    #print(rejectedSlice)
 
     
     images,mask = separate_slices_in_stacks(listSlice.copy()) #create one list per LR image
@@ -64,8 +64,8 @@ def convert2EbnerParam(joblib,list_prefix,directory):
             
             slicei=imagen[i_slice]    
             s = (slicei.get_indexVolume(),slicei.get_indexSlice())
-            print(s)
-            print(s in rejectedSlice)
+            #print(s)
+            #print(s in rejectedSlice)
             
             if s not in rejectedSlice:
                 dimension=3

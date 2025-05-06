@@ -12,12 +12,21 @@ from .outliers_detection.multi_start import  removeBadSlice, correct_slice
 from .tools import computeMaxVolume
 import os
 
-import pickle
+import skl2onnx
+import onnx
+from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx import convert_sklearn
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+import onnxruntime as rt
+
+#import pickle
 
 root = os.getcwd()
 #load_model = pickle.load(open('ROSI/my_model_nmse_inter_dice_std.pickle','rb'))
 
-def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my_model_nmse_inter_dice.pickle',multi_start=0,hyperparameters={'ds':4,'fs':0.25,'T':2,'omega':0}):
+def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my_model_nmse_dice_inter.onnx',multi_start=0,hyperparameters={'ds':4,'fs':0.25,'T':2,'omega':0}):
     """
     Compute the optimised parameters for each slice. At the end of the function parameters of each slice must be the optimised parameters. The function returns the evolution of the registration on each iterarion.
     
@@ -149,7 +158,8 @@ def global_optimisation(listSlice,optimisation='Nelder-Mead',classifier='ROSI/my
 
     new_hyperparameters={'ds':hyperparameters['ds']/v[iter],'fs':hyperparameters['fs']/v[iter],'T':sqrt(6*(hyperparameters["T"]/v[iter])**2),'omega':hyperparameters['omega']/v[iter]}
     print('Outliers\'detection  :')
-    load_model = pickle.load(open(classifier,'rb'))
+    #load_model = pickle.load(open(classifier,'rb'))
+    load_model = rt.InferenceSession(classifier, providers=["CPUExecutionProvider"])
     grid_slices=array([squarre_error,number_point,intersection,union])
     set_o = detect_misregistered_slice(listSlice, grid_slices, load_model,0.5)
     
