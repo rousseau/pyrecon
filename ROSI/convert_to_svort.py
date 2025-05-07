@@ -70,7 +70,7 @@ class InputArgparser(object):
 
     def add_input_stacks(
         self,
-        option_string="--input_stacks",
+        option_string="--input-stacks",
         type=str,
         nargs="+",
         default=None,
@@ -80,7 +80,7 @@ class InputArgparser(object):
         
     def add_input_mask(
         self,
-        option_string="--input_masks",
+        option_string="--input-masks",
         type=str,
         nargs="+",
         default=None,
@@ -107,15 +107,6 @@ class InputArgparser(object):
     ):
         self._add_argument(dict(locals()))
 
-    def add_classifier(
-        self,
-        option_string="--classifier",
-        type=str,
-        default='my_model_nmse_inter_dice.pickle',
-        help="",
-        required=False,
-        ):
-        self._add_argument(dict(locals()))
         
     def _add_argument(self, allvars):
 
@@ -164,18 +155,15 @@ if __name__ == '__main__':
     input_parser.add_input_mask(required=True) #load masks
     input_parser.add_results(required=True)
     input_parser.add_output(required=True) #load simulated transformation
-    input_parser.add_classifier()
     args = input_parser.parse_args()
 
 
-    print(type(args.results))
     res = job.load(open(args.results,"rb"))
     listSlice = res[0][1]
     nbSlice = len(listSlice)
     dir = args.output
     listOfOutliers = res[-1][1]
-    print(listOfOutliers)
-    load_model = pickle.load(open(args.classifier,'rb'))
+ 
     
 
     #load original data to get the data without normalisation
@@ -184,7 +172,6 @@ if __name__ == '__main__':
     nb_remove=0
     i_prefix=0
     for i in range(len(args.input_stacks)):
-        print(args.input_stacks[i])
         print('------------load images--------------------')
         print(args.input_stacks[i],args.input_masks[i])
         im, inmask = loadStack(args.input_stacks[i],args.input_masks[i]) 
@@ -221,27 +208,19 @@ if __name__ == '__main__':
                     if max(orx,ory,orz)==orx:
                         output = convert2Slices(im,mask,[],1,i_image)
                         listOriginal+=output
-                        print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                        print(i, ' : Coronal')
                         i_image=i_image+1
                 
                     elif max(orx,ory,orz)==ory:
                         output = convert2Slices(im,mask,[],2,i_image)
                         listOriginal+=output
-                        print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                        print(i ,' : Sagittal')
                         i_image=i_image+1
                 
                     else:
                         output = convert2Slices(im,mask,[],0,i_image)
                         listOriginal+=output
-                        print('orx :', orx, 'ory :', ory, 'orz :', orz)
-                        print(i , ' : Axial')
                         i_image=i_image+1
                 
-                print('i_image',i_image)
-                
-                
+            
             else :
                 i_prefix = i - nb_remove
                 del list_prefixImage[i_prefix]
@@ -252,8 +231,6 @@ if __name__ == '__main__':
     squarre_error,nbpoint_matrix,intersection_matrix,union_matrix=compute_cost_matrix(listSlice)
     matrix = np.array([squarre_error,nbpoint_matrix,intersection_matrix,union_matrix])
     update_features(listSlice,listFeatures,squarre_error,nbpoint_matrix,intersection_matrix,union_matrix)
-    set_r = detect_misregistered_slice(listSlice,matrix,load_model,0.5)
-    listOfOutliers = removeBadSlice(listSlice,set_r)
 
     listErrorSlice = [sliceFeature(s.get_stackIndex(),s.get_indexSlice()) for s in listOriginal]
     squarre_error,number_point,intersection,union=compute_cost_matrix(listOriginal) 
@@ -270,12 +247,9 @@ if __name__ == '__main__':
         os.makedirs(dir)
 
    
-    print(len(listSlice))
-    print(len(listOriginal))
     index_original=[(s.get_indexVolume(),s.get_indexSlice()) for s in listOriginal]
     index_slice=[(s.get_indexVolume(),s.get_indexSlice()) for s in listSlice]
-    print(index_original)
-    print(index_slice)
+
 
 
     for i in range(0,nbSlice):
@@ -285,7 +259,6 @@ if __name__ == '__main__':
         sliceor = listOriginal[ior]
         mask = islice.get_mask()
         affine = islice.get_slice().affine
-        print('affine sign :',np.linalg.det(affine)<0)
         sliceoriginal = sliceor.get_slice().get_fdata()
         if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
             sliceoriginal = np.flip(sliceor.get_slice().get_fdata(),0)
