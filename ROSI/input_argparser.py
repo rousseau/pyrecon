@@ -33,9 +33,9 @@ class InputArgparser(object):
 
         return self._parser.error(error_message)
         
-    def add_filenames(
+    def add_input_stacks(
         self,
-        option_string="--filenames",
+        option_string="--input-stacks",
         nargs="+",
         help="image data in nii.gz",
         default=None,
@@ -43,9 +43,9 @@ class InputArgparser(object):
                     ):
         self._add_argument(dict(locals()))
         
-    def add_filenames_masks(
+    def add_input_masks(
         self,
-        option_string="--filenames_masks",
+        option_string="--input-masks",
         nargs="+",
         help="mask of the data in nii.gz",
         default=None,
@@ -65,7 +65,7 @@ class InputArgparser(object):
             
     def add_nomvt_mask(
         self,
-        option_string="--nomvt_mask",
+        option_string="--nomvt-mask",
         nargs="+",
         help="mask of the data in nii.gz",
         default=None,
@@ -116,7 +116,7 @@ class InputArgparser(object):
         
     def add_isimplex(
         self,
-        option_string="--initial_simplex",
+        option_string="--initial-simplex",
         type=float,
         default=4,
         help="If optimisation is Nelder-Mead: size of the initial simplex used for optimisation, default=4mm",
@@ -126,7 +126,7 @@ class InputArgparser(object):
     
     def add_fsimplex(
         self,
-        option_string="--final_simplex",
+        option_string="--final-simplex",
         type=float,
         default=2,
         help="If optimisation is Nelder-Mead: size of the final simplex used for optimisation, default=0.25mm",
@@ -136,7 +136,7 @@ class InputArgparser(object):
     
     def add_localConvergence(
         self,
-        option_string="--local_convergence",
+        option_string="--local-convergence",
         type=float,
         default=2,
         help="Value for convergence, default is 2",
@@ -156,7 +156,7 @@ class InputArgparser(object):
 
     def add_no_mutlistart(
         self,
-        option_string="--no_multistart",
+        option_string="--no-multistart",
         type=bool,
         default=1,
         help="Set to 1 if you dont want to use multistart",

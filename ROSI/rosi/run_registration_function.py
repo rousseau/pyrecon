@@ -27,8 +27,8 @@ def main():
     
     
     input_parser = InputArgparser() 
-    input_parser.add_filenames(required=True) #load images
-    input_parser.add_filenames_masks(required=True) #load masks
+    input_parser.add_input_stacks(required=True) #load images
+    input_parser.add_input_masks(required=True) #load masks
     input_parser.add_output(required=True) #output 
     input_parser.add_tre() #compute TRE for each slice
     input_parser.add_isimplex() #initial size of the simplex, default value is 4
@@ -44,6 +44,7 @@ def main():
 
     args = input_parser.parse_args()
     args.tre
+    print(args.tre)
 
     if args.tre and (args.nomvt is None or args.transformation is None):
         input_parser.error("--tre requires --nomvt and --nomvt_mask and --transformation.")
@@ -61,9 +62,10 @@ def main():
     i_image=0
     nb_remove=0
     i_prefix=0
-    for i in range(len(args.filenames)):
+    print(args.nomvt)
+    for i in range(len(args.input_stacks)):
         print('------------load images--------------------')
-        im, inmask = loadStack(args.filenames[i],args.filenames_masks[i]) 
+        im, inmask = loadStack(args.input_stacks[i],args.input_masks[i]) 
         Affine = im.affine
 
         datamask = inmask.get_fdata().squeeze()
@@ -207,7 +209,7 @@ def main():
     listSlice=element[key.index('listSlice')]
     
     list_prefixImage = []
-    for string_name in args.filenames:
+    for string_name in args.input_stacks:
         name_file = string_name.split('/')[-1]
         name = name_file.replace('.nii.gz','')
         list_prefixImage.append(name)

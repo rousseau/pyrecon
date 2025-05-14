@@ -70,7 +70,7 @@ class InputArgparser(object):
 
     def add_input_slices(
         self,
-        option_string="--input_slices",
+        option_string="--input-slices",
         type=str,
         default=None,
         required=True,
@@ -79,7 +79,7 @@ class InputArgparser(object):
         
     def add_input_mask(
         self,
-        option_string="--input_masks",
+        option_string="--input-masks",
         type=str,
         nargs="+",
         default=None,
@@ -98,7 +98,7 @@ class InputArgparser(object):
 
     def add_output_mask(
         self,
-        option_string="--output_mask",
+        option_string="--output-mask",
         type=str,
         default=None,
         required=True,

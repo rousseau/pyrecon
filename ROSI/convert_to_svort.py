@@ -260,16 +260,16 @@ if __name__ == '__main__':
         mask = islice.get_mask()
         affine = islice.get_slice().affine
         sliceoriginal = sliceor.get_slice().get_fdata()
-        if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
-            sliceoriginal = np.flip(sliceor.get_slice().get_fdata(),0)
+        #if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
+        #    sliceoriginal = np.flip(sliceor.get_slice().get_fdata(),0)
        
         affine = islice.get_estimatedTransfo()
-        dataslice = (sliceoriginal / np.quantile(sliceoriginal,0.99))#*mask
-        nibslice = nib.Nifti1Image((dataslice),affine)
+        dataslice = (sliceoriginal / np.quantile(sliceoriginal,0.99))
+        nibslice = nib.Nifti1Image(dataslice,affine)
         nibslice.header.set_data_dtype(np.float32)
         nibmask = nib.Nifti1Image(mask,affine)
         nibmask.header.set_data_dtype(np.float32)
         nib.save(nibslice,dir+'/%d.nii.gz'%(i))
         nib.save(nibmask,dir+'/mask_%d.nii.gz'%(i))
 
-print(nibslice.header)
+#print(nibslice.header)

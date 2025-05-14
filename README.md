@@ -19,17 +19,17 @@ Results are saved in a joblib format, wich contains:
  
 
 ```
-python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output
+python run_registration.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output
 ```
 
 Eventually, you could specify different parameters for the optimization, for example:
 ```
-python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --intial_simplex 4 --final_simplex 0.25 --local_convergence 0.25 --omega 0 --optimisation "Nelder-Mead"
+python run_registration.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --intial-simplex 4 --final-simplex 0.25 --local-convergence 0.25 --omega 0 --optimisation "Nelder-Mead" --classifier /home/aorus-users/Chloe/pyrecon/ROSI/my_model_nmse_dice_inter.onnx
 ```
 
 If you don't want to use multistart, specify : 
 ```
-python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --no_multistart 1
+python run_registration.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --no-multistart 1 --classifier /home/aorus-users/Chloe/pyrecon/ROSI/my_model_nmse_dice_inter.onnx
 ```
 
 **To run ROSI on simulated data**
@@ -40,7 +40,7 @@ python scriptSimulData.py --hr HR_image.nii.gz --mask HR_brainmask.nii.gz --outp
 ```
 Then you can run ROSI with : 
 ```
-python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --tre 1
+python run_registration.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output name_output --tre 1 --classifier /home/aorus-users/Chloe/pyrecon/ROSI/my_model_nmse_dice_inter.onnx
 ```
 The Joblib output will include the TRE value for each slice.
 
@@ -54,9 +54,9 @@ In the folowing, we explain how to reconstruct a 3D volume with Nesvor or NiftyM
 To run ROSI with NiftyMIC, run the folowing command: 
 
 ```
-python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output rosi_output 
+python run_registration.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output rosi_output --classifier /home/aorus-users/Chloe/pyrecon/ROSI/my_model_nmse_dice_inter.onnx
 
-python convert_to_niftimic.py  --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --results rosi_output.joblib.gz --output dir_motion 
+python convert_to_niftimic.py  --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --results rosi_output/res.joblib.gz --output dir_motion 
 
 path_to_res='/ouptut_path' # change thid to your output path
 path_to_reconstruction='ROSI/rosi/reconstruction'
@@ -75,9 +75,9 @@ niftymic.multifact_latest.sif python /app/NiftyMIC/niftymic_run_reconstruction_p
 To run ROSI with NeSVoR without SvoRT initialization, execute the following commands:
 
 ```bash
-python run_registration.py --filenames stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --filenames_mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output rosi_output
+python run_registration.py --input-slices stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output rosi_output --classifier /home/aorus-users/Chloe/pyrecon/ROSI/my_model_nmse_dice_inter.onnx
 
-python convert_to_svort.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-mask brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --results rosi_output.joblib.gz --output output_rosi_slices
+python convert_to_svort.py --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --input-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --results rosi_output/res.joblib.gz --output output_rosi_slices 
 
 DATA='/data_path' # Change this to the actual path to your data
 
@@ -93,7 +93,7 @@ DATA='/data_path' # Change this to the actual path to your data
 
 singularity exec --nv -B $DATA:/data /scratch/cmercier/softs/nesvor_latest.sif nesvor register --input-stacks stack_1.nii.gz stack_2.nii.gz stack_3.nii.gz --stack-masks brainmask_1.nii.gz brainmask_2.nii.gz brainmask_3.nii.gz --output-slices input_rosi_slices
 
-python run_registration_svort.py --filenames input_rosi_slices --output rosi_output
+python run_registration_svort.py --input-masks input_rosi_slices --output rosi_output --classifier /home/aorus-users/Chloe/pyrecon/ROSI/my_model_nmse_dice_inter.onnx
 
 python convert_to_svort_init.py --input-slices input_rosi_slices --results rosi_output.joblib.gz --output output_rosi_slices
 
