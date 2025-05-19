@@ -243,13 +243,16 @@ if __name__ == '__main__':
             else:
                     it+=1
     
-    if not(os.path.exists(dir)):
-        os.makedirs(dir)
+    if (os.path.exists(dir)):
+        file = os.listdir(dir)
+        for f in file:
+            os.remove(dir + '/' + f)
+        os.rmdir(dir)
+    os.makedirs(dir)
 
    
     index_original=[(s.get_indexVolume(),s.get_indexSlice()) for s in listOriginal]
     index_slice=[(s.get_indexVolume(),s.get_indexSlice()) for s in listSlice]
-
 
 
     for i in range(0,nbSlice):
@@ -263,6 +266,7 @@ if __name__ == '__main__':
         #if np.linalg.det(affine)<0 : #if the determinant is negatif, performs horizontal flip on the image
         #    sliceoriginal = np.flip(sliceor.get_slice().get_fdata(),0)
        
+
         affine = islice.get_estimatedTransfo()
         dataslice = (sliceoriginal / np.quantile(sliceoriginal,0.99))
         nibslice = nib.Nifti1Image(dataslice,affine)
